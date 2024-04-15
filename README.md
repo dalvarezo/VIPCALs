@@ -1,6 +1,6 @@
 # VIPCALs
 
-VIPCALs (Pipeline for automated data Calibration using AIPS (in the Smile framework))
+VIPCALs (VLBI Pipeline for automated data Calibration using AIPS (in the Smile framework))
 
 ## Rationale
 
