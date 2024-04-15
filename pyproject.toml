@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "VIPCALs"
+version = "0.1"
+authors = [
+    {name = "Diego Álvarez-Ortega", email = "dalvarez@physics.uoc.gr"}
+]
+description = "Automated VLBI data calibration pipeline using AIPS"
+readme = "README.md"
+requires-python = ">= 3.1"
+license = {file = "LICENSE"}
+keywords = ["VLBI", "AIPS", "ParselTongue", "Very Long Baseline Interferometry", "VLBA"]
+
+
+dependencies = [
+    "numpy"
+]
