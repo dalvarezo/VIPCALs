@@ -18,3 +18,6 @@ keywords = ["VLBI", "AIPS", "ParselTongue", "Very Long Baseline Interferometry",
 dependencies = [
     "numpy"
 ]
+
+[project.urls]
+repository = "https://gitlab.ia.forth.gr/smile/vipcals"
