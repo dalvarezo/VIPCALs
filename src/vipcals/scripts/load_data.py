@@ -2,6 +2,7 @@ import numpy as np
 import os
 import math
 import pandas as pd
+import pkg_resources
 
 from astropy.io import fits
 from astropy.table import Table
@@ -93,7 +94,11 @@ def find_calibrators(full_source_list):
                  'C_long', 'X_short', 'X_long', 'U_short', 'U_long',\
                  'K_short', 'K_long', 'Ka', 'Ref']
 
-    calib_list = pd.read_fwf('./vlbaCalib_allfreq_full.txt', skiprows = 16,\
+    catalogue_path = \
+        pkg_resources.resource_filename(__name__,\
+                                         '../catalogues/vlbaCalib_allfreq_full.txt')
+    
+    calib_list = pd.read_fwf(catalogue_path, skiprows = 16,\
                              names = col_names)
 
     
