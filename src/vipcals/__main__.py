@@ -50,9 +50,12 @@ if multifreq_id[0] == True:
     for ids in range(multifreq_id[1]):
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath, multifreq_id[2][ids])
-        calibs = load.find_calibrators(full_source_list)
-        sources = calibs.copy()
-        sources.append(target)
+        if load_all == False:
+            calibs = load.find_calibrators(full_source_list)
+            sources = calibs.copy()
+            sources.append(target)
+        if load_all == True:
+            sources = [x.name for x in full_source_list]
         # Timer per ID
         t_id = time.time() 
         if multifreq_id[2][ids] > 1e10:
@@ -96,9 +99,12 @@ if multifreq_if[0] == True:
     ## FIRST FREQUENCY ##
     ## Select sources to load ##
     full_source_list = load.get_source_list(filepath, multifreq_if[7])
-    calibs = load.find_calibrators(full_source_list)
-    sources = calibs.copy()
-    sources.append(target)
+    if load_all == False:
+        calibs = load.find_calibrators(full_source_list)
+        sources = calibs.copy()
+        sources.append(target)
+    if load_all == True:
+        sources = [x.name for x in full_source_list]
     ## Open log ##
     filename_1 = filename + '_' + klass_1
     
@@ -126,9 +132,12 @@ if multifreq_if[0] == True:
     ## SECOND FREQUENCY ##
     ## Select sources to load ##
     full_source_list = load.get_source_list(filepath, multifreq_if[8])
-    calibs = load.find_calibrators(full_source_list)
-    sources = calibs.copy()
-    sources.append(target)
+    if load_all == False:
+        calibs = load.find_calibrators(full_source_list)
+        sources = calibs.copy()
+        sources.append(target)
+    if load_all == True:
+        sources = [x.name for x in full_source_list]
     
     ti_2 = time.time()
     ## Open log ##
@@ -166,9 +175,12 @@ if multifreq_id[0] == False and multifreq_if[0] == False:
     
     ## Select sources to load ##
     full_source_list = load.get_source_list(filepath)
-    calibs = load.find_calibrators(full_source_list)
-    sources = calibs.copy()
-    sources.append(target)
+    if load_all == False:
+        calibs = load.find_calibrators(full_source_list)
+        sources = calibs.copy()
+        sources.append(target)
+    if load_all == True:
+        sources = [x.name for x in full_source_list]
     
     ## Open log ##
     
