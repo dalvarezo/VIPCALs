@@ -10,27 +10,24 @@ def amp_cal(data, sources, solint = -3, average = 0, ref_if = 0):
     This task takes as input a system temperature (TY) table and a 
     gain curve GC table and generates a solution (SN) table containing 
     amplitude gain calibration information.
+
     Creates SN#2 and CL#5.
-    
-    Parameters:
-    ----------
-    
-    data: (AIPSUVData)
-        visibility data
-        
-    solint: (float)
-        solution interval (min). If > 0, does not pay attention to 
-        scan boundaries.
-        
-    average: (int)
-        if > 0 => normalize Tsys by average Tsys. Default = 0
-        
-    ref_if: (int)
-        if average > 0, ref_if is used as as the IF to define the
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param sources: list of Source() objects
+    :type sources: _type_
+    :param solint: solution interval (min). If > 0, does not pay attention to 
+        scan boundaries, defaults to -3
+    :type solint: int, optional
+    :param average: if > 0 => normalize Tsys by average Tsys, defaults to 0
+    :type average: int, optional
+    :param ref_if: if average > 0, ref_if is used as as the IF to define the
         correct Tsys rather than the average over all IFs.
         if average > 0 and ref_if < 1, the mean value is used.
-        if average = 0, this parameter does nothing               
-    """
+        if average = 0, this parameter does nothing , defaults to 0
+    :type ref_if: int, optional
+    """    
     apcal = AIPSTask('apcal')
     apcal.inname = data.name
     apcal.inclass = data.klass
