@@ -2,3 +2,13 @@ __pycache__
 .vscode
 ptongue
 docs
+AIPS.py
+AIPSTask.py
+AIPSData.py
+AIPSUtil.py
+Wizardry
+LocalProxy.py
+Proxy
+AIPSLite.py
+ObitTask.py
+Obit.py
