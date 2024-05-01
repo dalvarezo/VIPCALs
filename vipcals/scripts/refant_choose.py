@@ -3,8 +3,7 @@ import Wizardry.AIPSData as wizard
 
 
 class AntennaTY():
-    """ 
-    """
+    """Obvserving Antennas."""
     def __init__(self):
         self.name = None
         self.id = None
@@ -20,8 +19,7 @@ class AntennaTY():
 
 
 class Scan():
-    """
-    """        
+    """Scans within an observation."""        
     def __init__(self):
         self.number = None
         self.itime = None
@@ -39,13 +37,27 @@ class Scan():
     
     
     
-def refant_choose(uvdata, sources, full_source_list, pipeline_log):
-    """
-    """
+def refant_choose(data, sources, full_source_list, pipeline_log):
+    """Choose a suitable reference antenna
+
+    It chooses a reference antenna based on its availability, stability of system \
+    temperatures, and proximity to the center of the array.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param sources: list with source names
+    :type sources: list of str
+    :param full_source_list: list containing all sources in the dataset
+    :type full_source_list: list of Source objects
+    :param pipeline_log: pipeline log
+    :type pipeline_log: file
+    :return: reference antenna number
+    :rtype: int
+    """    
     # Load tables
-    nx_table = uvdata.table('NX', 1)
-    ty_table = uvdata.table('TY', 2)
-    an_table = uvdata.table('AN', 1)
+    nx_table = data.table('NX', 1)
+    ty_table = data.table('TY', 2)
+    an_table = data.table('AN', 1)
     
     # Which sources are relevant?
     sources_codes = []
@@ -75,8 +87,8 @@ def refant_choose(uvdata, sources, full_source_list, pipeline_log):
         antennas_list[ant].dist = vector_dist.dot(vector_dist)
 
 
-    wuvdata = wizard.AIPSUVData(uvdata.name, uvdata.klass, uvdata.disk, \
-                                uvdata.seq)  # Wizardry version of the data
+    wuvdata = wizard.AIPSUVData(data.name, data.klass, data.disk, \
+                                data.seq)  # Wizardry version of the data
 
     # Create scan list
     scan_list = []

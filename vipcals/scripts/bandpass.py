@@ -6,7 +6,13 @@ import os
 
 
 def ddhhmmss(time):
-    """Convert decimal dates into AIPS dd hh mm ss format."""
+    """Convert decimal dates into AIPS dd hh mm ss format.
+
+    :param time: decimal date
+    :type time: float
+    :return: 1D array with day, hour, minute and second
+    :rtype: ndarray
+    """   
     total_seconds = int(time * 24 * 60 * 60)
     days, remainder = divmod(total_seconds, 24 * 60 * 60)
     hours, remainder = divmod(remainder, 60 * 60)
@@ -14,11 +20,18 @@ def ddhhmmss(time):
     return np.array([days,hours,minutes,seconds])
     
 
-def bp_correction(data,refant, cal_scan, number = 0):
+def bp_correction(data,refant, cal_scan):
     """Apply complex bandpass correction to the data.
-    
-    Generates BP#1.
-    """
+
+    Generates BP#1
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param cal_scan: scan used for the calibration
+    :type cal_scan: Scan object
+    """    
     calib = cal_scan.name
     scan_time = cal_scan.time
     scan_time_interval = cal_scan.time_interval

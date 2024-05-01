@@ -8,7 +8,10 @@ def pang_corr(data):
     """Correct phases for parallactic angles.
     
     Creates CL#6
-    """    
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    """     
     clcor = AIPSTask('clcor')
     clcor.inname = data.name
     clcor.inclass = data.klass

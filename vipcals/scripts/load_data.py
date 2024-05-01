@@ -10,9 +10,6 @@ from astropy.table import Table
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
-#from AIPSData import AIPSUVData, AIPSImage
-#import Wizardry.AIPSData as wizard
-
 class Source():
     """Sources within a fits file."""
     def __init__(self):
@@ -38,15 +35,25 @@ class Source():
 
 
 def open_log(name):
-    """Create a directory and a _log.txt file."""
+    """Create a directory and a log.txt to store the calibration results.
+
+    :param name: name to be used for the directory
+    :type name: str
+    """    
+    """"""
     if os.path.exists('./' + name) == False:
         os.system('mkdir ' + name)
     AIPS.log = open('./' + name + '/' + name + '_AIPS_log.txt', 'w')
 
 def get_source_list(file_path, freq = 0):
-    """Get a source list from a fits file.
-    
-    It returns a list of Source objects.
+    """Get a source list from a uvfits/idifits file.
+
+    :param file_path: path of the uvfits/idifts file
+    :type file_path: str
+    :param freq: if there are multiple frequency ids, which one to chhose; defaults to 0
+    :type freq: int, optional
+    :return: list of sources contained in the file
+    :rtype: list of Source objects
     """    
     hdul = fits.open(file_path)
     full_source_list = []
@@ -88,7 +95,12 @@ def find_calibrators(full_source_list):
     function. If there are more than 3 observed sources, the names 
     of the brightest 3 are given in return. If not, only the 
     brighthest source is returned.
-    """
+
+    :param full_source_list: list of sources contained in the file
+    :type full_source_list: list of Source objects
+    :return: names of possible calibrators available in the file
+    :rtype: list of str
+    """    
     col_names = ['NameJ2000', 'NameB1950', 'NameICRF3', 'NameOther','RA',\
                  'DEC', 'RAE', 'DECE', 'S_short', 'S_long', 'C_short',\
                  'C_long', 'X_short', 'X_long', 'U_short', 'U_long',\
@@ -127,13 +139,13 @@ def find_calibrators(full_source_list):
     
 def is_it_multifreq_id(file_path):
     """Check if the file contains multiple bands splitted in IDs.
-    
-    Returns:
-        multifreq: (boolean) True if the dataset has multiple bands, False if 
-                    not
-        howmanyids: (int) number of ids
-        bands: (list of float) frequency of each id
-        """
+
+    :param file_path: path of the uvfits/idifts file
+    :type file_path: str
+    :return: True if the dataset has multiple bands, False if not; number of ids; \
+             frequency of each id
+    :rtype: tuple with (boolean, int, list of float)
+    """    
     multifreq = False
     hdul = fits.open(file_path)
     howmanyids = len(hdul['FREQUENCY'].data['FREQID'])
@@ -155,19 +167,16 @@ def is_it_multifreq_if(file_path):
     Looks at the central frequency of all IFs and looks for jumps of
     more than 1 GHz between them. Only works for datasets with 1 or 2
     frequency bands, not more.
-    
-    Returns:
-        multifreq: (boolean) True if the dataset has multiple bands, False if 
-                    not
-        1: (int) Value of the first IF, always 1
-        IF: (int) value of the last IF of band 1
-        IF+1: (int) value of the first IF of band 2            
-        len(if_freq[0]): (int) value of the last IF of band 2
-        str(freq_1)[0]: (str) first digit of the frequency of band 1
-        str(freq_2)[0]: (str) first digit of the frequency of band 2
-        freq_1: (float) frequency of band 1
-        freq_2: (float) frequency of band 2
-    """
+
+    :param file_path: path of the uvfits/idifts file
+    :type file_path: str
+    :return: True if the dataset has multiple bands, False if not; Value of the first \
+             IF, always 1; value of the last IF of band 1; value of the first IF of \
+             band 2; value of the last IF of band 2; first digit of the frequency of \
+             band 1; first digit of the frequency of band 2; frequency of band 1 ;\
+             frequency of band 2
+    :rtype: tuple with (boolean, int, int, int, int, str, str, float, float)
+    """    
     multifreq = False
     hdul = fits.open(file_path)
     if_freq = hdul['SOURCE'].data['RESTFREQ'][0] \
@@ -195,34 +204,28 @@ def is_it_multifreq_if(file_path):
 def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
               seq = 0, bif = 0, eif = 0):
     """Load data from a uvfits/idifits file.
-    
-    Arguments:
-    ---------
-    
-    file_path: (str)
-        path to the fits file
-        
-    name: (str)
-        file name within AIPS
-        
-    sources: list of (str)
-        list of sources to accept
-    
-    disk: (int)
-        disk number within AIPS.
-    
-    klass: (str)
-        class name within AIPS. Default = '' 
-    
-    seq: (int)
-        sequence number within AIPS. Default = 0
-    
-    bif: (int)
-        first IF to copy. 0 => 1. Default = 0
-    
-    eif: (int)
-        highest IF to copy. 0 => all higher than bif. Default = 0   
-    """              
+
+    :param file_path: path of the uvfits/idifts file
+    :type file_path: str
+    :param name: file name whithin AIPS
+    :type name: str
+    :param sources: list of sources to load
+    :type sources: list of str
+    :param disk: disk number whithin AIPS
+    :type disk: int
+    :param multi_id: True if there are multiple frequency ids, False otherwise
+    :type multi_id: bool
+    :param selfreq: if there are multiple frequency ids, which one to load
+    :type selfreq: int
+    :param klass: class name whithin AIPS; defaults to ''
+    :type klass: str, optional
+    :param seq: sequence number within AIPS; defaults to 0
+    :type seq: int, optional
+    :param bif: first IF to copy, 0 => 1; defaults to 0
+    :type bif: int, optional
+    :param eif: highest IF to copy,  0 => all higher than bif; defaults to 0
+    :type eif: int, optional
+    """      
     fitld = AIPSTask('fitld')
     fitld.datain = file_path
     fitld.outname = name
@@ -239,7 +242,15 @@ def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
     fitld.go()
 
 def print_listr(data, log):
-    """Print scan information in an external file."""
+    """Print scan information in an external file.
+
+    Runs the FITLD task and prints the output in scansum.txt
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param log: pipeline log
+    :type log: file
+    """    
     listr = AIPSTask('listr')
     listr.inname = data.name
     listr.inclass = data.klass

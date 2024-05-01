@@ -5,6 +5,11 @@ import numpy as np
 import os
 
 def print_box(s):
+    """Print some text inside a box in the terminal 
+
+    :param s: text to display in the box
+    :type s: str
+    """    
     box_width = 80
 
     # Split the input string into lines to fit within the box width
@@ -20,6 +25,13 @@ def print_box(s):
     print(box + '\n')
     
 def write_box(log, s):
+    """Write some text inside a box in the log file
+
+    :param log: pipeline log
+    :type log: file
+    :param s: text to display in the box
+    :type s: str
+    """    
     box_width = 100
 
     # Split the input string into lines to fit within the box width

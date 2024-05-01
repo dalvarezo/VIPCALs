@@ -7,9 +7,14 @@ from AIPSTask import AIPSTask, AIPSList
 def eop_correct(data):
     """Earth orientation parameters correction.
     
-    Correction of UT1-UTC and the Earth's pole position.
-    Downloads an USNO file and applies CLCOR to create CL#3
-    """
+    Correction of UT1-UTC and Earth's pole position.
+    Downloads an USNO file and applies CLCOR
+     
+    Create CL#3
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    """    
     if os.path.exists('/tmp/usno_finals_bis.erp') == False:
         curl_command = 'curl -u anonymous:daip@nrao.edu --ftp-ssl ' \
         + 'ftp://gdc.cddis.eosdis.nasa.gov/vlbi/gsfc/ancillary/' \

@@ -4,7 +4,7 @@ import os
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
-def amp_cal(data, sources, solint = -3, average = 0, ref_if = 0):
+def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     """Apply a-priori amplitude corrections
     
     This task takes as input a system temperature (TY) table and a 
@@ -15,8 +15,6 @@ def amp_cal(data, sources, solint = -3, average = 0, ref_if = 0):
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param sources: list of Source() objects
-    :type sources: _type_
     :param solint: solution interval (min). If > 0, does not pay attention to 
         scan boundaries, defaults to -3
     :type solint: int, optional
@@ -34,7 +32,7 @@ def amp_cal(data, sources, solint = -3, average = 0, ref_if = 0):
     apcal.indisk = data.disk
     apcal.inseq = data.seq
     apcal.solint = solint
-    apcal.sources = AIPSList(sources)
+    #  apcal.sources = AIPSList(sources)
     apcal.aparm[6] = average
     apcal.aparm[7] = ref_if
     apcal.msgkill = -4

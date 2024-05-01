@@ -9,8 +9,19 @@ from AIPSTask import AIPSTask, AIPSList
 #import Wizardry.AIPSData as wizard
 
 def tacop(data, ext, invers, outvers):
-    """
-    """
+    """Copy one calibration table to another.
+
+    Copies one AIPS calibration table from one version to another one.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param ext: table extension
+    :type ext: str
+    :param invers: input version
+    :type invers: int
+    :param outvers: output version
+    :type outvers: int
+    """    
     tacop = AIPSTask('tacop')
     tacop.inname = data.name
     tacop.inclass = data.klass 
@@ -32,13 +43,19 @@ def tacop(data, ext, invers, outvers):
 
 def old_tecor(data):
     """Ionospheric delay calibration.
-    
-    Derives corrections for ionospheric Faraday rotation and 
-    dispersive delay from maps of total electron content in IONEX 
-    format.
-    Reads the date from the header and the different observed days 
-    from each scan, then downloads the corresponding file(s).
-    Applies the TECOR task and creates CL#2
+
+    Derives corrections for ionospheric Faraday rotation and \
+    dispersive delay from maps of total electron content in IONEX \
+    format. 
+
+    Reads the date from the header and the different observed days \
+    from each scan, then downloads the corresponding file(s) using the old format \
+    (older than 06/08/2023) and applies the TECOR task.
+
+    Creates CL#2
+
+    :param data: visibility data
+    :type data: AIPSUVData
     """
     YYYY = int(data.header.date_obs[:4])
     MM = int(data.header.date_obs[5:7])
@@ -98,13 +115,19 @@ def old_tecor(data):
 
 def new_tecor(data):
     """Ionospheric delay calibration.
-    
-    Derives corrections for ionospheric Faraday rotation and 
-    dispersive delay from maps of total electron content in IONEX 
-    format.
-    Reads the date from the header and the different observed days 
-    from each scan, then downloads the corresponding file(s).
-    Applies the TECOR task and creates CL#2
+
+    Derives corrections for ionospheric Faraday rotation and \
+    dispersive delay from maps of total electron content in IONEX \
+    format. 
+
+    Reads the date from the header and the different observed days \
+    from each scan, then downloads the corresponding file(s) using the new format \
+    (recent than 06/08/2023) and applies the TECOR task.
+
+    Creates CL#2
+
+    :param data: visibility data
+    :type data: AIPSUVData
     """
     YYYY = int(data.header.date_obs[:4])
     MM = int(data.header.date_obs[5:7])
@@ -165,13 +188,13 @@ def new_tecor(data):
     tecor.go()
 def ionos_correct(data):
     """Ionospheric delay calibration.
+
+    Calls :func:`~vipcals.scripts.ionos_corr.new_tecor` or \
+    :func:`~vipcals.scripts.ionos_corr.old_tecor` depending on the observation date \
+    of the dataset.
     
-    Derives corrections for ionospheric Faraday rotation and 
-    dispersive delay from maps of total electron content in IONEX 
-    format.
-    Reads the date from the header and the different observed days 
-    from each scan, then downloads the corresponding file(s).
-    Applies the TECOR task and creates CL#2
+    :param data: visibility data
+    :type data: AIPSUVData
     """
     date_lim = datetime(2023,8,6)
     YYYY = int(data.header.date_obs[:4])

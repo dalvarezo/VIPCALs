@@ -24,8 +24,35 @@ from AIPSData import AIPSUVData
 
 
 def pipeline(filepath, filename, sources, full_source_list, target,
-             disk_number, pipeline_log, klass = '', seq = 1, bif = 0, eif = 0,\
+             disk_number, pipeline_log, klass = '', seq = 0, bif = 0, eif = 0,\
              multi_id = False, selfreq = 0):
+    """Main workflow of the pipeline 
+
+    :param filepath: path to the original uvfits/idifits file
+    :type filepath: str
+    :param filename: name of the output folder
+    :type filename: str
+    :param sources: list with source names
+    :type sources: list of str
+    :param full_source_list: list containing all sources in the dataset
+    :type full_source_list: list of Source objects
+    :param target: target name
+    :type target: str
+    :param disk_number:disk number whithin AIPS
+    :type disk_number: int
+    :param pipeline_log: pipeline log
+    :type pipeline_log: file
+    :param klass: class name whithin AIPS; defaults to ‘’
+    :type klass: str, optional
+    :param seq:sequence number within AIPS; defaults to 0
+    :type seq: int, optional
+    :param bif: first IF to copy, 0 => 1; defaults to 0
+    :type bif: int, optional
+    :param eif: highest IF to copy, 0 => all higher than bif; defaults to 0
+    :type eif: int, optional
+    :param selfreq: if there are multiple frequency ids, which one to load; defaults to 0
+    :type selfreq: int, optional
+    """    
     
     ## Check if the filename is too long, and rename ##
     filename_short = filename
@@ -187,7 +214,7 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     
     tysm.ty_smooth(uvdata)
     
-    original_tsys, flagged_tsys = tysm.assess_ty(uvdata)
+    original_tsys, flagged_tsys = tysm.ty_assess(uvdata)
     
     # Maybe this output could be written as a %, I just need to manually write
     # the case where 0 points are flagged
@@ -273,7 +300,7 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     
     disp.write_box(pipeline_log, 'Amplitude calibration')
     
-    ampc.amp_cal(uvdata, sources)
+    ampc.amp_cal(uvdata)
     t7 = time.time()
     pipeline_log.write('\nAmplitude calibration applied! SN#2 and CL#5'\
                        + ' created.\n')
@@ -413,16 +440,14 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     disp.write_box(pipeline_log, 'Plotting visibilities')
     
     ## Uncalibrated ##
-    plot.possm_plotter(filename, uvdata, target, cal_scan, \
-                       gainuse = 1, bpver = 0)
+    plot.possm_plotter(filename, uvdata, target, cal_scan, 1, bpver = 0)
     
     pipeline_log.write('\nUncalibrated visibilities plotted in /' + filename \
                         + '/CL1_possm.ps\n')
     print('\nUncalibrated visibilities plotted in /' + filename \
           + '/CL1_possm.ps\n')
     ## Calibrated ##
-    plot.possm_plotter(filename, uvdata, target, cal_scan, \
-                       gainuse = 9, bpver = 1)
+    plot.possm_plotter(filename, uvdata, target, cal_scan, 9, bpver = 1)
     
     pipeline_log.write('Calibrated visibilities plotted in /' + filename \
                         + '/CL9_possm.ps\n')

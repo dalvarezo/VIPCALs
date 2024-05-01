@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 class SNRScan():
-    """Scans within an observation."""
+    """Scans within an observation.""" ## SHOULD BE MERGED WITH THE Scan() CLASS
     def __init__(self):
         self.name = None
         self.id = None
@@ -14,12 +14,21 @@ class SNRScan():
         self.time_interval = None
         self.antennas = []
 
-def snr_fring(data, refant, solint = -1):
+def snr_fring(data, refant, solint = 0):
     """Short fringe fit to select a bright calibrator.
     
     Fringe fit of all IF's together, solving only for phases.
-    The output is SN#3, a table with the SNR per scan.    
-    """
+
+    Creates SN#3, which contains the SNR per scan.  
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param solint: solution interval in minutes, if 0 => solint = 10 min, \
+                   if > scan  => solint = scan; defaults to 0
+    :type solint: int, optional
+    """    
     snr_fring = AIPSTask('fring')
     snr_fring.inname = data.name
     snr_fring.inclass = data.klass
@@ -46,16 +55,29 @@ def snr_fring(data, refant, solint = -1):
     
     snr_fring.go()
     
-def snr_fring_only_fft(data, refant, solint = -1, delay_w = 1000, \
+def snr_fring_only_fft(data, refant, solint = 0, delay_w = 1000, \
                        rate_w = 200):
     """Short fringe fit (only FFT) to select a bright calibrator.
     
-    Fringe fit of all IF's together, solving for delays and rates.
-    The output is SN#3, a table with the SNR per scan.  
+    Fringe fit of all IF's together, solving for delays and rates. Default values for \
+    the delay and rate windows are 1000 ns and 200hz.
     
-    * I have set the delay and rate windows to 1000ns and 200hz so that the
-    tests run faster, we might consider to fine tune this  
-    """
+
+    Creates SN#3, which contains the SNR per scan. 
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param solint: solution interval in minutes, if 0 => solint = 10 min, \
+                   if > scan  => solint = scan; defaults to 0
+    :type solint: int, optional
+    :param delay_w: delay window in ns in which the search is performed, defaults to 1000
+    :type delay_w: int, optional
+    :param rate_w: rate window in hz in which the search is performed, defaults to 200
+    :type rate_w: int, optional  
+    """    
+
     snr_fring = AIPSTask('fring')
     snr_fring.inname = data.name
     snr_fring.inclass = data.klass
@@ -85,7 +107,25 @@ def snr_fring_only_fft(data, refant, solint = -1, delay_w = 1000, \
     snr_fring.go()
     
 def snr_scan_list(data, full_source_list, log, version = 3):
-    """Create a list of scans ordered by datapoints and SNR."""
+    """Create a list of scans ordered by datapoints and SNR.
+
+    Scans are first ordered by their SNR, then scans not using all antennas are dropped. \
+    If there are no scans with all antennas available, only the ones with the maximum \
+    number of antennas are taken into account. A warning will be printed if the best \
+    scans has an SNR below 40.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param full_source_list: list containing all sources in the dataset
+    :type full_source_list: list of Source objects
+    :param log: pipeline log
+    :type log: file
+    :param version: SN table version containing the SNR values, defaults to 3
+    :type version: int, optional
+    :return: ordered list of scans with SNR > 5, ordered list of scans where the maximum \
+             number of antennas was observing
+    :rtype: tuple of lists of Scan objects
+    """    
     max_n_antennas = len(data.table('AN', 1))
     snr_table = data.table('SN', version)
     scan_list = []

@@ -5,33 +5,38 @@ import numpy as np
 import os
 
 def ddhhmmss(time):
-    """Convert decimal dates into AIPS dd hh mm ss format."""
+    """Convert decimal dates into AIPS dd hh mm ss format.
+
+    :param time: decimal date
+    :type time: float
+    :return: 1D array with day, hour, minute and second
+    :rtype: ndarray
+    """    
     total_seconds = int(time * 24 * 60 * 60)
     days, remainder = divmod(total_seconds, 24 * 60 * 60)
     hours, remainder = divmod(remainder, 60 * 60)
     minutes, seconds = divmod(remainder, 60)
     return np.array([days,hours,minutes,seconds])
 
-def get_calib(number, scan_list, full_source_list):
-    """Gets information of the calibrator from the scan list."""
-    scan_time = scan_list[number].time
-    scan_time_interval = scan_list[number].time_interval
-    init_time = ddhhmmss(scan_time - 0.9*scan_time_interval/2)
-    final_time = ddhhmmss(scan_time + 0.9*scan_time_interval/2)
-    timerang = [None] + init_time.tolist() + final_time.tolist()
+def pulse_phasecal(data, refant, cal_scan):
+    """Correct instrumental phase delay using the PC table.
     
-    source_id = scan_list[number].id
-    source_name = next(source for source in full_source_list \
-                       if source.id == source_id).name
-                       
-    return(str(source_name), timerang)
-
-
-def pulse_phasecal(data, refant, cal_scan, number = 0):
-    """Corrects phases using PCAL tones data from PC table.
+    Corrects instrumental phase delay of each source using their entries from the \
+    pulse-calibration table (PC). A strong calibrator is used to eliminate any phase \
+    ambiguity (see `VLBA Scientific Memo #8 <ME>`_). The solution is \
+    applied to the calibration tables using CLCAL.
     
+    .. _ME: https://library.nrao.edu/public/memos/vlba/sci/VLBAS_08.pdf
+
     Creates SN#4 and CL#7
-    """
+    
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param cal_scan: scan used for the calibration
+    :type cal_scan: Scan object
+    """        
     calib = cal_scan.name
     scan_time = cal_scan.time
     scan_time_interval = cal_scan.time_interval
@@ -68,12 +73,21 @@ def pulse_phasecal(data, refant, cal_scan, number = 0):
     clcal.go()
 
     
-def manual_phasecal(data, refant, cal_scan, number = 0):
-    """Correct instrumental phase delay without the PC table.
+def manual_phasecal(data, refant, cal_scan):
+    """Correct instrumental phase delay without using the PC table.
     
-    Runs a fringe fit on a short scan of the calibrator, creating SN#4
-    Then interpolates the solution to the other sources, creating CL#7
-    """     
+    Runs a fringe fit on a short scan of the calibrator .Then interpolates the solution \
+    to the other sources using CLCAL.
+    
+    Creates SN#4 and CL#7
+
+    :param data: _description_
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param cal_scan: scan used for the calibration
+    :type cal_scan: Scan object
+    """        
     calib = cal_scan.name
     scan_time = cal_scan.time
     scan_time_interval = cal_scan.time_interval

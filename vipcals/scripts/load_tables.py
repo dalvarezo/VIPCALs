@@ -18,8 +18,7 @@ from AIPSTask import AIPSTask, AIPSList
 ### tsys.vlba, flag.vlba and similars in the target folder
 
 class gc_entry():
-    """
-    """
+    """Entries from the master gain curve (vlba_gains.key)"""
     def __init__(self):
         self.initime = None
         self.finaltime = None
@@ -28,7 +27,14 @@ class gc_entry():
         self.entry = None
 
 def pop_message_ty(log, good_url):
-    """    """
+    """Helper function to pop a message when TY tables are not available.
+
+    :param log: pipeline_log
+    :type log: file
+    :param good_url: url from which the TY tables are obtained
+    :type good_url: str
+    """    
+ 
     log.write('System temperatures were not available in the file, ' \
               + 'they have been retrieved from ' + good_url + '\n')
         
@@ -36,7 +42,13 @@ def pop_message_ty(log, good_url):
           + 'have been retrieved from ' + good_url + '\n')
 
 def pop_message_fg(log, good_url):
-    """    """
+    """Helper function to pop a message when FG tables are not available.
+
+    :param log: pipeline_log
+    :type log: file
+    :param good_url: url from which the FG tables are obtained
+    :type good_url: str
+    """    
     log.write('Flag information was not available in the file, ' \
               + 'it has been retrieved from ' + good_url + '\n')
 
@@ -44,8 +56,17 @@ def pop_message_fg(log, good_url):
           + 'has been retrieved from ' + good_url + '\n')
 
 def time_aver(data, oldtime, newtime):
-    """
-    """
+    """Average visibility data in time
+
+    Creates a new entry in AIPS with the same name but with klass 'AVGT'
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param oldtime: previous time resolution in seconds
+    :type oldtime: float
+    :param newtime: new time resolution in seconds
+    :type newtime: float
+    """    
     uvavg = AIPSTask('uvavg')
     uvavg.inname = data.name
     uvavg.inclass = data.klass
@@ -66,8 +87,16 @@ def time_aver(data, oldtime, newtime):
     uvavg.go()
     
 def freq_aver(data, ratio):
-    """
-    """
+    """Average visibility data in frequency
+
+    Creates a new entry in AIPS with the same name but with klass 'AVGF'
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param ratio: ratio between the old number of frequency channels and the new one, \
+    e.g. when going from 64 channels to 16, this number is 4 
+    :type ratio: float # maybe int?
+    """    
     avspc = AIPSTask('avspc')
     avspc.inname = data.name
     avspc.inclass = data.klass
@@ -87,8 +116,13 @@ def freq_aver(data, ratio):
     avspc.go()
 
 def run_indxr(data):
-    """
-    """
+    """Creates an index (NX) table and indexes the uv data file.
+
+    Also creates CL#1 with entries every 0.1 minutes.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    """    
     indxr = AIPSTask('indxr')
     indxr.inname = data.name
     indxr.inclass = data.klass
@@ -102,9 +136,25 @@ def run_indxr(data):
     indxr.go()
     
 def load_ty_tables(data, bif, eif, log):
-    """
-    Two softwares to produce the files, tsm before Oct15 and rdbetsm after.
-    """
+    """Retrieve and load TY tables from an external server.
+
+    Download TY data from an external repository, edit it in a suitable format, and then \
+    load it into AIPS using ANTAB. Calibration files are produced by two softwares, \
+    tsm before Oct15 and rdbetsm after.
+
+    Final system temperature table is stored as 'tsys.vlba'
+
+    A MORE EXTENSIVE DOCSTRING IS NEEDED.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param bif: first frequency IF to consider 
+    :type bif: int
+    :param eif: last frequency IF to consider
+    :type eif: end
+    :param log: pipeline log
+    :type log: file
+    """    
     # Obtain cal.vlba file
     YY = int(data.header.date_obs[2:4])
     MM = int(data.header.date_obs[5:7])
@@ -507,9 +557,21 @@ def load_ty_tables(data, bif, eif, log):
         
     
 def load_fg_tables(data, log):
-    """
-    Two softwares to produce the files, tsm before Oct15 and rdbetsm after.
-    """
+    """Retrieve and load FG tables from an external server.
+
+    Download FG data from an external repository, edit it in a suitable format, and then \
+    load it into AIPS using UVFLG. Calibration files are produced by two softwares, \
+    tsm before Oct15 and rdbetsm after.
+
+    Final flag table is stored as 'flags.vlba'
+
+    A MORE EXTENSIVE DOCSTRING IS NEEDED.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param log: pipeline log
+    :type log: file
+    """    
     # Obtain cal.vlba file
     YY = int(data.header.date_obs[2:4])
     MM = int(data.header.date_obs[5:7])
@@ -741,7 +803,19 @@ def load_fg_tables(data, log):
     os.system('rm ./tables*')
 
 def load_gc_tables(data, log): # , bk_antennas):
-    """
+    """Retrieve and load GC tables from an external file.
+
+    Look for relevant gain curves from an external file, edit them in a suitable format, \
+    and then load it into AIPS using ANTAB. 
+
+    Final gain curve table is stored as 'gaincurves.vlba'
+    
+    A MORE EXTENSIVE DOCSTRING IS NEEDED.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param log: pipeline log
+    :type log: file
     """
     # Read data
     good_url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/vlba_gains.key'
@@ -858,7 +932,13 @@ def load_gc_tables(data, log): # , bk_antennas):
 
     
 def tborder(data, log):
-    """ """
+    """Sort data in Time - Baseline order (TB)
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param log: pipeline log
+    :type log: file
+    """    
     
     uvsrt = AIPSTask('uvsrt')
     uvsrt.inname = data.name
@@ -881,7 +961,16 @@ def tborder(data, log):
     uvsrt.go()
 
 def remove_ascii_antname(data,filepath):
-    """ """
+    """Remove non-ASCII characters from antenna names.
+
+    Recovers the antenna names from the uvifts/idifits files, then runs the TABED \
+    task to edit the AN table in AIPS
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param filepath: path to the original uvfits/idifits file
+    :type filepath: str
+    """    
     # Recover antenna names from fits file
     backup_names = []
     hdul = fits.open(filepath)
@@ -921,7 +1010,16 @@ def remove_ascii_antname(data,filepath):
         tabed_antname.go()
     
 def remove_ascii_poltype(data, value = ''):
-    """ """
+    """Remove non-ASCII characters from polarization types.
+
+    Uses TABED to modify the antenna table. WARNING: it effectively empties the \
+    polarization field, which might not always be desirable.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param value: polarization type, defaults to ''
+    :type value: str, optional
+    """    """ """
     for i in range(len(data.table('AN',1))):
         # Replace polarization type row by row
         tabed_poltype = AIPSTask('TABED')

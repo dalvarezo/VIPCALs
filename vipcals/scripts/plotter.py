@@ -5,32 +5,39 @@ import numpy as np
 import os
 
 def ddhhmmss(time):
-    """Convert decimal dates into AIPS dd hh mm ss format."""
+    """Convert decimal dates into AIPS dd hh mm ss format.
+
+    :param time: decimal date
+    :type time: float
+    :return: 1D array with day, hour, minute and second
+    :rtype: ndarray
+    """    
     total_seconds = int(time * 24 * 60 * 60)
     days, remainder = divmod(total_seconds, 24 * 60 * 60)
     hours, remainder = divmod(remainder, 60 * 60)
     minutes, seconds = divmod(remainder, 60)
     return np.array([days,hours,minutes,seconds])
-
-
-def get_calib(number, scan_list, full_source_list):
-    """Gets information of the calibrator from the scan list."""
-    scan_time = scan_list[number].time
-    scan_time_interval = scan_list[number].time_interval
-    init_time = ddhhmmss(scan_time - 0.9*scan_time_interval/2)
-    final_time = ddhhmmss(scan_time + 0.9*scan_time_interval/2)
-    timerang = [None] + init_time.tolist() + final_time.tolist()
-    
-    source_id = scan_list[number].id
-    source_name = next(source for source in full_source_list \
-                       if source.id == source_id).name
-                       
-    return(str(source_name), timerang)
     
 
 def possm_plotter(filename, data, target, cal_scan, \
-                  gainuse = 1, bpver = 0, number = 0 ):
-    """Plot visibilities as a function of frequency to a PostScript file."""
+                  gainuse, bpver = 0):
+    """Plot visibilities as a function of frequency to a PostScript file.
+
+    :param filename: name of the output folder 
+    :type filename: str
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target: science target name
+    :type target: str
+    :param cal_scan: scan used for the calibration
+    :type cal_scan: Scan object
+    :param gainuse: CL version to apply
+    :type gainuse: int
+    :param bpver: BP table version to use, if = 0 then don't correct for bandpass, \
+    defaults to 0
+    :type bpver: int, optional
+    """    
+    """"""
     
     calib = cal_scan.name
     

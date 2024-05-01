@@ -8,18 +8,16 @@ def sampling_correct(data, solint = -3):
     """Digital sampling correction
     
     Correct cross correlations using auto correlations.
+    
     Creates SN#1 and CL#4.
-    
-    Parameters:
-    ----------
-    
-    data: (AIPSUVData)
-        visibility data
-        
-    solint: (float)
-        solution interval (min). If > 0, does not pay attention to 
-        scan boundaries.
-    """
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param solint: solution interval in minutes. \
+    If > 0, does not pay attention to scan boundaries. \
+    Defaults to -3
+    :type solint: float, optional
+    """    
     accor = AIPSTask('accor')
     accor.inname = data.name
     accor.inclass = data.klass

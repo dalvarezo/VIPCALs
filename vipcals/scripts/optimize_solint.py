@@ -8,7 +8,13 @@ from random import sample
 
 
 def ddhhmmss(time):
-    """Convert decimal dates into AIPS dd hh mm ss format."""
+    """Convert decimal dates into AIPS dd hh mm ss format.
+
+    :param time: decimal date
+    :type time: float
+    :return: 1D array with day, hour, minute and second
+    :rtype: ndarray
+    """   
     total_seconds = int(time * 24 * 60 * 60)
     days, remainder = divmod(total_seconds, 24 * 60 * 60)
     hours, remainder = divmod(remainder, 60 * 60)
@@ -21,11 +27,28 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
     
     Fringe fit of all IF's together, solving for delays and rates.
     The solution interval, the timerange, the source and theoutput SN version
-    need to be specified.    
+    need to be specified. 
+
+    Creates a SN table containing the SNR values
     
-    * I have set the delay and rate windows to 1000ns and 200hz so that the
-    tests run faster, we might consider to fine tune this
-    """
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param solint: solution interval in minutes, if 0 => solint = 10 min, \
+                   if > scan  => solint = scan; defaults to 0
+    :type solint: int, optional
+    :param timeran: time range in which the search is performed
+    :type timeran: AIPSList
+    :param source: name of the source on which to perform the fringe fit
+    :type source: str
+    :param output_version: output version of the SN table
+    :type output_version: int
+    :param delay_w: delay window in ns in which the search is performed, defaults to 1000
+    :type delay_w: int, optional
+    :param rate_w: rate window in hz in which the search is performed, defaults to 200
+    :type rate_w: int, optional 
+    """    
     optimiz_fring = AIPSTask('fring')
     optimiz_fring.inname = data.name
     optimiz_fring.inclass = data.klass
@@ -61,7 +84,21 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
     optimiz_fring.go()
 
 def get_optimal_scans(target, optimal_scans, full_source_list):
-    """ """
+    """Get the optimal scans for an specific target
+
+    Get the scans where the target has been observed from the optimal scan list. Optimal \
+    means that the maximum number of antennas was observing the source. 
+
+    :param target: source name
+    :type target: str
+    :param optimal_scans: list of scans in which the maximum number of antennas were \
+                          observing
+    :type optimal_scans: list of Scan objects
+    :param full_source_list: list containing all sources in the dataset
+    :type full_source_list: list of Source objects
+    :return: optimal scans for the target
+    :rtype: list of Scan objects
+    """    
     target_id = next(source for source in full_source_list \
                      if source.name == target).id
         
@@ -74,7 +111,24 @@ def get_optimal_scans(target, optimal_scans, full_source_list):
     return(target_optimal_scans)
         
 def optimize_solint(data, target, target_optimal_scans, refant):
-    """ """
+    """Find the optimal solution interval in which to fringe fit a target.
+
+    Runs a fringe fit in a selected number of scans of the target for five different \
+    solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal \
+    solution interval is the smallest time required for all baselines to reach and SNR \
+    of 6. If this condition is not met, then the solution interval is the scan length.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target: source name
+    :type target: str
+    :param target_optimal_scans: optimal scans for the target
+    :type target_optimal_scans: list of Scans objects
+    :param refant: reference antenna number
+    :type refant: int
+    :return: optimal solution interval in minutes
+    :rtype: float
+    """    
     # If there were no optimal scans for the target, then return 10 as
     # the solint. Not optimal, we should rethink it
     if len(target_optimal_scans) == 0:

@@ -6,7 +6,13 @@ import os
 
 
 def ddhhmmss(time):
-    """Convert decimal dates into AIPS dd hh mm ss format."""
+    """Convert decimal dates into AIPS dd hh mm ss format.
+
+    :param time: decimal date
+    :type time: float
+    :return: 1D array with day, hour, minute and second
+    :rtype: ndarray
+    """
     total_seconds = int(time * 24 * 60 * 60)
     days, remainder = divmod(total_seconds, 24 * 60 * 60)
     hours, remainder = divmod(remainder, 60 * 60)
@@ -14,24 +20,29 @@ def ddhhmmss(time):
     return np.array([days,hours,minutes,seconds])
 
 
-def get_calib(number, scan_list, full_source_list):
-    """Gets information of the calibrator from the scan list."""
-    scan_time = scan_list[number].time
-    scan_time_interval = scan_list[number].time_interval
-    init_time = ddhhmmss(scan_time - 0.9*scan_time_interval/2)
-    final_time = ddhhmmss(scan_time + 0.9*scan_time_interval/2)
-    timerang = [None] + init_time.tolist() + final_time.tolist()
-    
-    source_id = scan_list[number].id
-    source_name = next(source for source in full_source_list \
-                       if source.id == source_id).name
-                       
-    return(str(source_name), timerang)
-
-def calib_fring_fit(data, refant, cal_scan, number = 0, \
+def calib_fring_fit(data, refant, cal_scan, solint = 0, \
                     delay_w = 0, rate_w = 0):
-    """ """
-    calib_name = cal_scan.name
+    """Fringe fit the calibrator
+
+    Creates SN#5
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param cal_scan: scan of a bright calibrator
+    :type cal_scan: Scan object
+    :param solint: solution interval in minutes, if 0 => solint = 10 min, \
+                   if > scan  => solint = scan; defaults to 0
+    :type solint: int, optional
+    :param delay_w: delay window in ns in which the search is performed, defaults to 0 \
+                    (full Nyquist range)
+    :type delay_w: int, optional
+    :param rate_w: rate window in hz in which the search is performed, defaults to 0 \
+                   (full Nyquist range)
+    :type rate_w: int, optional 
+    """    
+    calib_name = cal_scan.name  # This is not neccesary! I should pass only the name!
     
     calib_fring = AIPSTask('fring')
     calib_fring.inname = data.name
@@ -45,7 +56,7 @@ def calib_fring_fit(data, refant, cal_scan, number = 0, \
     calib_fring.gainuse = 0
     calib_fring.doband = -1
 
-    calib_fring.solint = 0.5
+    calib_fring.solint = solint
 
     calib_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     calib_fring.aparm[1] = 2    # At least 2 antennas per solution
@@ -80,9 +91,28 @@ def calib_fring_fit(data, refant, cal_scan, number = 0, \
     
     clcal.go()
     
-def target_fring_fit(data, refant, target_name, solint = -1, delay_w = 0,\
+def target_fring_fit(data, refant, target_name, solint = 0, delay_w = 0,\
                      rate_w = 0):
-    """ """
+    """Fringe fit the science target
+
+    Creates SN#6
+    
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param target_name: target name
+    :type target_name: str
+    :param solint: solution interval in minutes, if 0 => solint = 10 min, \
+                   if > scan  => solint = scan; defaults to 0
+    :type solint: int, optional
+    :param delay_w: delay window in ns in which the search is performed, defaults to 0 \
+                    (full Nyquist range)
+    :type delay_w: int, optional
+    :param rate_w: rate window in hz in which the search is performed, defaults to 0 \
+                   (full Nyquist range)
+    :type rate_w: int, optional 
+    """    
     target_fring = AIPSTask('fring')
     target_fring.inname = data.name
     target_fring.inclass = data.klass
@@ -130,10 +160,21 @@ def target_fring_fit(data, refant, target_name, solint = -1, delay_w = 0,\
     
     clcal.go()
     
-def assess_fringe_fit(uvdata, log, version = 6):
-    """ """
-    an_table = uvdata.table('AN', 1)
-    sn_table = uvdata.table('SN', version)
+def assess_fringe_fit(data, log, version = 6):
+    """Print the number of failed solutions after fringe fit
+
+    Explore a solution table produced by FRING and print how many solutions failed. This \
+    is done by looking at the weights of each entry in the SN table.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param log: pipeline log
+    :type log: file
+    :param version: SN version to evaluate, defaults to 6
+    :type version: int, optional
+    """    
+    an_table = data.table('AN', 1)
+    sn_table = data.table('SN', version)
     
     antenna_dict = {}
     for ant in an_table:
