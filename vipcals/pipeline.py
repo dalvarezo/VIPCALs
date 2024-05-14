@@ -19,6 +19,7 @@ import scripts.plotter as plot
 import scripts.bandpass as bpas
 import scripts.fringe_fit as frng
 import scripts.optimize_solint as opti
+import scripts.export_data as expo
 
 from AIPSData import AIPSUVData
 
@@ -434,7 +435,11 @@ def pipeline(filepath, filename, sources, full_source_list, target,
 
     pipeline_log.write('Execution time: {:.2f} s. \n'.format(t14-t13))  
     print('Execution time: {:.2f} s. \n'.format(t14-t13))
-    
+
+    ##  Export data ##
+    expo.data_export(filename, uvdata, target_list, pipeline_log)
+
+
     ## Plot visibilities of target and calibrator ##
     
     disp.write_box(pipeline_log, 'Plotting visibilities')
