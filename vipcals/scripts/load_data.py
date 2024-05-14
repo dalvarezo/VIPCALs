@@ -202,7 +202,7 @@ def is_it_multifreq_if(file_path):
         
 
 def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
-              seq = 0, bif = 0, eif = 0):
+              seq = 1, bif = 0, eif = 0):
     """Load data from a uvfits/idifits file.
 
     :param file_path: path of the uvfits/idifts file
@@ -219,7 +219,7 @@ def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
     :type selfreq: int
     :param klass: class name whithin AIPS; defaults to ''
     :type klass: str, optional
-    :param seq: sequence number within AIPS; defaults to 0
+    :param seq: sequence number within AIPS; defaults to 1
     :type seq: int, optional
     :param bif: first IF to copy, 0 => 1; defaults to 0
     :type bif: int, optional

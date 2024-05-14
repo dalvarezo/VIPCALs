@@ -24,7 +24,7 @@ from AIPSData import AIPSUVData
 
 
 def pipeline(filepath, filename, sources, full_source_list, target,
-             disk_number, pipeline_log, klass = '', seq = 0, bif = 0, eif = 0,\
+             disk_number, pipeline_log, klass = '', seq = 1, bif = 0, eif = 0,\
              multi_id = False, selfreq = 0):
     """Main workflow of the pipeline 
 
@@ -44,7 +44,7 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     :type pipeline_log: file
     :param klass: class name whithin AIPS; defaults to ‘’
     :type klass: str, optional
-    :param seq:sequence number within AIPS; defaults to 0
+    :param seq:sequence number within AIPS; defaults to 1
     :type seq: int, optional
     :param bif: first IF to copy, 0 => 1; defaults to 0
     :type bif: int, optional

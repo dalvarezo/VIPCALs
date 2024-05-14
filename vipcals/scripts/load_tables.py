@@ -819,7 +819,7 @@ def load_gc_tables(data, log): # , bk_antennas):
     """
     # Read data
     good_url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/vlba_gains.key'
-    inputfile = open("vlba_gains.key", "r") 
+    inputfile = open("./catalogues/vlba_gains.key", "r") 
     readfile = inputfile.read() 
     # Split into list
     input_list = readfile.split("\n\n")
