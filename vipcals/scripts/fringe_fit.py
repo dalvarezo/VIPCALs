@@ -91,7 +91,7 @@ def calib_fring_fit(data, refant, cal_scan, solint = 0, \
     
     clcal.go()
     
-def target_fring_fit(data, refant, target_name, solint = 0, delay_w = 0,\
+def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w = 0,\
                      rate_w = 0):
     """Fringe fit the science target
 
@@ -106,10 +106,13 @@ def target_fring_fit(data, refant, target_name, solint = 0, delay_w = 0,\
     :param solint: solution interval in minutes, if 0 => solint = 10 min, \
                    if > scan  => solint = scan; defaults to 0
     :type solint: int, optional
-    :param delay_w: delay window in ns in which the search is performed, defaults to 0 \
+    :param version: CL table version in which to apply the solutions. SN version will \
+                    be (version - 3); defaults to 9
+    :type version: int, optional
+    :param delay_w: delay window in ns in which the search is performed; defaults to 0 \
                     (full Nyquist range)
     :type delay_w: int, optional
-    :param rate_w: rate window in hz in which the search is performed, defaults to 0 \
+    :param rate_w: rate window in hz in which the search is performed; defaults to 0 \
                    (full Nyquist range)
     :type rate_w: int, optional 
     """    
@@ -139,7 +142,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, delay_w = 0,\
     target_fring.dparm[2] = delay_w  # Delay window (ns)
     target_fring.dparm[3] = rate_w  # Rate window (mHz)
     
-    target_fring.snver = 6
+    target_fring.snver = version-3
     target_fring.msgkill = -4
     
     target_fring.go()
@@ -153,9 +156,9 @@ def target_fring_fit(data, refant, target_name, solint = 0, delay_w = 0,\
     
     clcal.opcode = 'calp'
     clcal.interpol = 'self'
-    clcal.snver = 6
+    clcal.snver = version-3
     clcal.gainver = 8
-    clcal.gainuse = 9
+    clcal.gainuse = version
     clcal.msgkill = -4
     
     clcal.go()

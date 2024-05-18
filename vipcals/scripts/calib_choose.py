@@ -106,7 +106,7 @@ def snr_fring_only_fft(data, refant, solint = 0, delay_w = 1000, \
     
     snr_fring.go()
     
-def snr_scan_list(data, full_source_list, log, version = 3):
+def snr_scan_list(data, full_source_list, version = 3):
     """Create a list of scans ordered by datapoints and SNR.
 
     Scans are first ordered by their SNR, then scans not using all antennas are dropped. \
@@ -118,8 +118,6 @@ def snr_scan_list(data, full_source_list, log, version = 3):
     :type data: AIPSUVData
     :param full_source_list: list containing all sources in the dataset
     :type full_source_list: list of Source objects
-    :param log: pipeline log
-    :type log: file
     :param version: SN table version containing the SNR values, defaults to 3
     :type version: int, optional
     :return: ordered list of scans with SNR > 5, ordered list of scans where the maximum \
@@ -190,33 +188,5 @@ def snr_scan_list(data, full_source_list, log, version = 3):
         for src in full_source_list:
             if scans.id == src.id:
                 scans.name = src.name
-    
-    # Since both scan_list and optimal_scan_list are ordered by SNR, print
-    # the ones that have been rejected due to few antennas
-    
-    if len(scan_list) != len(optimal_scan_list):
-        print('\n')
-        #log.write('\n')
-        for s in scan_list:
-            if s not in optimal_scan_list:
-                print('A scan of ' + str(s.name) + ' with median SNR: '\
-                      + '{:.2f} has been rejected '.format(np.median(s.snr)) \
-                      + "since it's missing in " \
-                      + str(max_n_antennas - len(s.antennas)) + ' antennas '\
-                      + 'out of ' + str(max_n_antennas) + '.\n')
-                    
-                log.write('A scan of ' + s.name + ' with median SNR: '\
-                      + '{:.2f} has been rejected '.format(np.median(s.snr)) \
-                      + "since it's missing in " \
-                      + str(max_n_antennas - len(s.antennas)) + ' antennas '\
-                      + 'out of ' + str(max_n_antennas) + '.\n')
-                    
-    # Print a warning if the SNR of the calibrator is < 40
-    if np.median(optimal_scan_list[0].snr) < 40:
-        print('\nWARNING: The chosen scan has a low SNR. A better '\
-              + 'calibrator might be found manually.\n')
-        
-        log.write('\nWARNING: The chosen scan has a low SNR. A better '\
-              + 'calibrator might be found manually.\n')
             
-    return(scan_list, optimal_scan_list)
+    return(scan_list, optimal_scan_list, max_n_antennas)

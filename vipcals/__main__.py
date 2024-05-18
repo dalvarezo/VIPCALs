@@ -7,6 +7,8 @@ import os
 
 import numpy as np
 
+from astropy.io import fits
+
 from AIPS import AIPS
 
 import scripts.load_data as load
@@ -18,10 +20,10 @@ parser = argparse.ArgumentParser(
                     description = 'Automated VLBI data calibration pipeline using AIPS')
 
 # Positional arguments
-parser.add_argument('userno', type = int)
-parser.add_argument('filepath', type = str)
-parser.add_argument('target', type = str)
-parser.add_argument('disk_number', type = int)
+parser.add_argument('-u', '--userno', type = int)
+parser.add_argument('-p', '--filepath', type = str)
+parser.add_argument('-t', '--target', nargs = '+')
+parser.add_argument('-d', '--disk_number', type = int)
 
 # Options
 op = parser.add_argument_group('options')
@@ -34,8 +36,8 @@ ti = time.time()
 args = parser.parse_args()
 AIPS.userno = args.userno
 filepath = args.filepath
-filename = args.target # By default is the target's name
-target = args.target
+filename_list = args.target # By default is the target's name
+target_list = args.target
 disk_number = args.disk_number
 load_all = args.load_all
 
@@ -53,44 +55,34 @@ if multifreq_id[0] == True:
         if load_all == False:
             calibs = load.find_calibrators(full_source_list)
             sources = calibs.copy()
-            sources.append(target)
+            sources += target_list
         if load_all == True:
             sources = [x.name for x in full_source_list]
-        # Timer per ID
-        t_id = time.time() 
+
         if multifreq_id[2][ids] > 1e10:
             klass_1 = str(multifreq_id[2][ids])[:2] + 'G'
         else:
             klass_1 = str(multifreq_id[2][ids])[:1] + 'G'
-        
-        filename_id = filename + '_' + klass_1
-        ## Open log ##
-        if os.path.exists('./' + filename_id) == True:
-            os.system('rm -rf ./' + filename_id) 
-            # Let's see how to manage this, this doesn't convince me
-        load.open_log(filename_id)
-        
-        pipeline_log = open('./' + filename_id + '/' + filename_id \
-                            + '_pipeline_log.txt', 'w')
-        pipeline_log.write(os.path.basename(filepath) + ' --- '\
-                            + '{:.2f} MB \n'.format\
-                            (os.path.getsize(filepath)/1024**2 ))
-            
+
+        # Define AIPS name
+        if len(target_list) == 1:
+            aips_name = target_list[0] + '_' + klass_1
+        else:
+            hdul = fits.open(filepath)
+            aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
+
         ## START THE PIPELINE ##         
-        pipeline(filepath, filename_id, sources, full_source_list, target,\
-                    disk_number, pipeline_log, klass = klass_1, \
+        pipeline(filepath, aips_name, sources, full_source_list, target_list,\
+                    disk_number, klass = klass_1, \
                     multi_id = True, selfreq = multifreq_id[2][ids]/1e6)
         
-        ## Timer ##    
-        tf = time.time()
+         # Copy logs
+        if len(target_list)>1:
+            load.copy_log(target_list, klass_1)
         
-        pipeline_log.write('\nScript run time: '\
-                            + '{:.2f} s. \n'.format(tf-t_id))
-        print('\nScript run time: {:.2f} s. \n'.format(tf-t_id))
-        pipeline_log.close()
     exit() # STOP the pipeline. This needs to be tweaked.
 
-    # If there are multiple IFs:   
+# If there are multiple IFs:   
 if multifreq_if[0] == True:
     
     klass_1 = multifreq_if[5] + 'G'
@@ -102,69 +94,52 @@ if multifreq_if[0] == True:
     if load_all == False:
         calibs = load.find_calibrators(full_source_list)
         sources = calibs.copy()
-        sources.append(target)
+        sources += target_list
     if load_all == True:
         sources = [x.name for x in full_source_list]
-    ## Open log ##
-    filename_1 = filename + '_' + klass_1
-    
-    if os.path.exists('./' + filename_1) == True:
-        os.system('rm -rf ./' + filename_1) 
-        # Let's see how to manage this, this doesn't convince me
-    
-    load.open_log(filename_1)
-    pipeline_log_1 = open('./' + filename_1 + '/' + filename_1 \
-                        + '_pipeline_log.txt', 'w')
-    pipeline_log_1.write(os.path.basename(filepath) + ' --- ' + klass_1 \
-                            + ' --- {:.2f} MB \n'.format\
-                            (os.path.getsize(filepath)/1024**2))
+
+    # Define AIPS name
+    if len(target_list) == 1:
+        aips_name = target_list[0] + '_' + klass_1
+    else:
+        hdul = fits.open(filepath)
+        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
     
     ## START THE PIPELINE ##
-    pipeline(filepath, filename_1, sources, full_source_list, target, \
-                disk_number, pipeline_log_1, klass = klass_1,\
+    pipeline(filepath, aips_name, sources, full_source_list, target_list, \
+                disk_number, klass = klass_1,\
                 bif = multifreq_if[1], eif = multifreq_if[2])
     
-    tf = time.time()
-    pipeline_log_1.write('\nScript run time: {:.2f} s. \n'.format(tf-ti))
-    pipeline_log_1.close()
-    print('\nScript run time: {:.2f} s. \n'.format(tf-ti))
-    
+    # Copy logs
+    if len(target_list)>1:
+        load.copy_log(target_list, klass_1)
+
     ## SECOND FREQUENCY ##
     ## Select sources to load ##
     full_source_list = load.get_source_list(filepath, multifreq_if[8])
     if load_all == False:
         calibs = load.find_calibrators(full_source_list)
         sources = calibs.copy()
-        sources.append(target)
+        sources += target_list
     if load_all == True:
         sources = [x.name for x in full_source_list]
     
-    ti_2 = time.time()
-    ## Open log ##
-    filename_2 = filename + '_' + klass_2
-    
-    if os.path.exists('./' + filename_2 ) == True:
-        os.system('rm -rf ./' + filename_2) 
-        # Let's see how to manage this, this doesn't convince me
-    
-    load.open_log(filename_2)
-    pipeline_log_2 = open('./' + filename_2 + '/' + filename_2 \
-                        + '_pipeline_log.txt', 'w')
-    pipeline_log_2.write(os.path.basename(filepath) + ' --- ' + klass_2 \
-                            + ' --- {:.2f} MB \n'.format\
-                            (os.path.getsize(filepath)/1024**2))
+    # Define AIPS name
+    if len(target_list) == 1:
+        aips_name = target_list[0] + '_' + klass_2
+    else:
+        hdul = fits.open(filepath)
+        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_2
         
     ## START THE PIPELINE ##  
-    pipeline(filepath, filename_2, sources, full_source_list, target, \
-                disk_number, pipeline_log_2, klass = klass_2, \
+    pipeline(filepath, aips_name, sources, full_source_list, target_list, \
+                disk_number, klass = klass_2, \
                     bif = multifreq_if[3], eif = multifreq_if[4])
-    
-    ## Timer ##    
-    tf_2 = time.time()
-    pipeline_log_2.write('\nScript run time: '\
-                            + '{:.2f} s. \n'.format(tf_2-ti_2))
-    pipeline_log_2.close()
-    print('\nScript run time: {:.2f} s. \n'.format(tf_2-ti_2))
+
+    # Copy logs
+    if len(target_list)>1:
+        load.copy_log(target_list, klass_2)
+
     # End the pipeline
     exit()
 
@@ -178,29 +153,21 @@ if multifreq_id[0] == False and multifreq_if[0] == False:
     if load_all == False:
         calibs = load.find_calibrators(full_source_list)
         sources = calibs.copy()
-        sources.append(target)
+        sources += target_list
     if load_all == True:
         sources = [x.name for x in full_source_list]
-    
-    ## Open log ##
-    
-    if os.path.exists('./' + filename) == True:
-        os.system('rm -rf ./' + filename) 
-        # Let's see how to manage this, this doesn't convince me
-    load.open_log(filename)
-    pipeline_log = open('./' + filename + '/' + filename \
-                        + '_pipeline_log.txt', 'w')
-    pipeline_log.write(os.path.basename(filepath) + ' --- '\
-                        + '{:.2f} MB \n'.format\
-                        (os.path.getsize(filepath)/1024**2 ))
+
+    # Define AIPS name
+    if len(target_list) == 1:
+        aips_name = target_list[0] 
+    else:
+        hdul = fits.open(filepath)
+        aips_name = hdul[0].header['OBSERVER'] 
         
     ## START THE PIPELINE ##               
-    pipeline(filepath, filename, sources, full_source_list, target, \
-                disk_number, pipeline_log, klass = klass_1)
+    pipeline(filepath, aips_name, sources, full_source_list, target_list, \
+                disk_number, klass = klass_1)
     
-    ## Timer ##    
-    tf = time.time()
-    
-    pipeline_log.write('\nScript run time: {:.2f} s. \n'.format(tf-ti))
-    print('\nScript run time: {:.2f} s. \n'.format(tf-ti))
-    pipeline_log.close()
+    # Copy logs
+    if len(target_list)>1:
+        load.copy_log(target_list, klass_1)

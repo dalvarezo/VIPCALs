@@ -35,15 +35,31 @@ class Source():
 
 
 def open_log(name):
-    """Create a directory and a log.txt to store the calibration results.
+    """Create a log.txt to store AIPS outputs.
 
-    :param name: name to be used for the directory
+    :param name: directory name
     :type name: str
     """    
-    """"""
-    if os.path.exists('./' + name) == False:
-        os.system('mkdir ' + name)
     AIPS.log = open('./' + name + '/' + name + '_AIPS_log.txt', 'w')
+
+def copy_log(target_list, klass):
+    """Copy AIPS log to all folders when multiple targets are selected
+
+    :param target_list: target names
+    :type target_list: list of str
+    :param klass: class name whithin AIPS
+    :type klass: str
+    """
+    filename_list = target_list.copy()
+    for i, name in enumerate(filename_list):
+        filename_list[i] = name + '_' + klass
+    
+    log_name = './' + filename_list[0] + '/' + filename_list[0] + '_AIPS_log.txt'
+    for name in filename_list[1:]:
+        os.system('cp ' + log_name\
+                  + ' ./' + name + '/' + name + '_AIPS_log.txt')
+
+
 
 def get_source_list(file_path, freq = 0):
     """Get a source list from a uvfits/idifits file.
@@ -241,15 +257,15 @@ def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
         fitld.selfreq = float(selfreq)    
     fitld.go()
 
-def print_listr(data, log):
+def print_listr(data, filename_list):
     """Print scan information in an external file.
 
     Runs the FITLD task and prints the output in scansum.txt
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param log: pipeline log
-    :type log: file
+    :param filename_list: list of folder names for the different science targets
+    :type log: list of str
     """    
     listr = AIPSTask('listr')
     listr.inname = data.name
@@ -260,9 +276,8 @@ def print_listr(data, log):
     listr.optype = 'SCAN'
     listr.xinc = 1
     listr.docrt = -2
-    listr.outprint = './' + log.name.split('/')[1] + '/scansum.txt'
-    listr.msgkill = -4
-    
-    listr.go()
-    
-    log.write('\nScan information printed in /scansum.txt \n')
+    for name in filename_list:
+        listr.outprint = './' + name + '/scansum.txt'
+        listr.msgkill = -4
+        
+        listr.go()

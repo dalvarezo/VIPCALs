@@ -26,34 +26,6 @@ class gc_entry():
         self.antenna = None
         self.entry = None
 
-def pop_message_ty(log, good_url):
-    """Helper function to pop a message when TY tables are not available.
-
-    :param log: pipeline_log
-    :type log: file
-    :param good_url: url from which the TY tables are obtained
-    :type good_url: str
-    """    
- 
-    log.write('System temperatures were not available in the file, ' \
-              + 'they have been retrieved from ' + good_url + '\n')
-        
-    print('\nSystem temperatures were not available in the file, they ' \
-          + 'have been retrieved from ' + good_url + '\n')
-
-def pop_message_fg(log, good_url):
-    """Helper function to pop a message when FG tables are not available.
-
-    :param log: pipeline_log
-    :type log: file
-    :param good_url: url from which the FG tables are obtained
-    :type good_url: str
-    """    
-    log.write('Flag information was not available in the file, ' \
-              + 'it has been retrieved from ' + good_url + '\n')
-
-    print('\nFlag information was not available in the file, it ' \
-          + 'has been retrieved from ' + good_url + '\n')
 
 def time_aver(data, oldtime, newtime):
     """Average visibility data in time
@@ -135,7 +107,7 @@ def run_indxr(data):
     
     indxr.go()
     
-def load_ty_tables(data, bif, eif, log):
+def load_ty_tables(data, bif, eif):
     """Retrieve and load TY tables from an external server.
 
     Download TY data from an external repository, edit it in a suitable format, and then \
@@ -152,8 +124,8 @@ def load_ty_tables(data, bif, eif, log):
     :type bif: int
     :param eif: last frequency IF to consider
     :type eif: end
-    :param log: pipeline log
-    :type log: file
+    :return: urls from which the calibration tables have been retrieved
+    :rtype: list of str
     """    
     # Obtain cal.vlba file
     YY = int(data.header.date_obs[2:4])
@@ -178,6 +150,8 @@ def load_ty_tables(data, bif, eif, log):
     # If the file is splitted in different letters, we will keep them here
     letters = []
     
+    # Here we store the urls from which the tables are retrieved
+    retrieved_urls = []
     
     # try the new format
     
@@ -193,7 +167,7 @@ def load_ty_tables(data, bif, eif, log):
                 os.system('zcat ./tables.vlba.gz > ./tables.vlba')
             else:
                 os.system('curl -f ' + url + ' > ./tables.vlba')  
-            pop_message_ty(log, good_url)
+            retrieved_urls.append(good_url)
     
     # try the old format... letter by letter
     
@@ -205,7 +179,7 @@ def load_ty_tables(data, bif, eif, log):
             if r.status_code != 404:
                 good_url = url
                 os.system('curl -f ' + url + ' > ./tables.vlba')  
-                pop_message_ty(log, good_url)
+                retrieved_urls.append(good_url)
                 break
             url = normal + 'cal.vlba.Z'
             r = requests.get(url)
@@ -213,7 +187,7 @@ def load_ty_tables(data, bif, eif, log):
                 good_url = url
                 os.system('curl -f ' + url + ' > ./tables.vlba.Z')  
                 os.system('zcat ./tables.vlba.Z > ./tables.vlba')
-                pop_message_ty(log, good_url)
+                retrieved_urls.append(good_url)
                 break
             url = normal + 'cal.vlba.gz'
             r = requests.get(url)
@@ -221,7 +195,7 @@ def load_ty_tables(data, bif, eif, log):
                 good_url = url
                 os.system('curl -f ' + url + ' > ./tables.vlba.gz')  
                 os.system('zcat ./tables.vlba.gz > ./tables.vlba')
-                pop_message_ty(log, good_url)
+                retrieved_urls.append(good_url)
                 break
                   
             # try all letters
@@ -232,7 +206,7 @@ def load_ty_tables(data, bif, eif, log):
                     good_url = url
                     os.system('curl -f ' + url + ' > ./tables' + s + '.vlba') 
                     letters.append(s)
-                    pop_message_ty(log, good_url)
+                    retrieved_urls.append(good_url)
             
             # Break the loop if it already found some tables
             if len(letters) != 0:
@@ -246,7 +220,7 @@ def load_ty_tables(data, bif, eif, log):
                     os.system('curl -f ' + url + ' > ./tables.vlba.Z')  
                     os.system('zcat ./tables.vlba.Z > ./tables' + s +'.vlba')
                     letters.append(s)
-                    pop_message_ty(log, good_url)
+                    retrieved_urls.append(good_url)
                     
             # Break the loop if it already found some tables
             if len(letters) != 0:
@@ -260,7 +234,7 @@ def load_ty_tables(data, bif, eif, log):
                     os.system('curl -f ' + url + ' > ./tables.vlba.gz')  
                     os.system('zcat ./tables.vlba.gz > ./tables' + s +'.vlba')
                     letters.append(s)
-                    pop_message_ty(log, good_url)
+                    retrieved_urls.append(good_url)
         
     # Extract TSYS information from tables.vlba into tsys.vlba
 
@@ -395,11 +369,9 @@ def load_ty_tables(data, bif, eif, log):
                     
         if 'Produced by:' not in cal_list[0]:
             print('\n\n ERROR WHILE READING THE CAL.VLBA FILE,' \
-                  + ' UNRECOGNIZED FORMAT \n')
-                
+                  + ' UNRECOGNIZED FORMAT \n')           
 
-                  
-                
+              
     # If there are letters:
     else:
         for s in letters:
@@ -545,18 +517,10 @@ def load_ty_tables(data, bif, eif, log):
     antab.msgkill = -4
     
     antab.go()
+
+    return(retrieved_urls)    
     
-    log.write('TY#1 created.\n')
-    print('TY#1 created.\n')
-    
-    # Move the temperature file to the target folder
-    os.system('mv ./tsys.vlba ./' + log.name.split('/')[1] + '/tsys.vlba')
-          
-    # And delete the tables from the main directory
-    os.system('rm ./tables*')
-        
-    
-def load_fg_tables(data, log):
+def load_fg_tables(data):
     """Retrieve and load FG tables from an external server.
 
     Download FG data from an external repository, edit it in a suitable format, and then \
@@ -569,8 +533,8 @@ def load_fg_tables(data, log):
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param log: pipeline log
-    :type log: file
+    :return: urls from which the calibration tables have been retrieved
+    :rtype: list of str
     """    
     # Obtain cal.vlba file
     YY = int(data.header.date_obs[2:4])
@@ -595,6 +559,9 @@ def load_fg_tables(data, log):
     # If the file is splitted in different letters, we will keep them here
     letters = []
 
+    # Here we store the urls from which the tables are retrieved
+    retrieved_urls = []
+
     # try the new format
     
     for url in [normal_new, compressed_new, compressed_gz_new]:
@@ -609,7 +576,7 @@ def load_fg_tables(data, log):
                 os.system('zcat ./tables.vlba.gz > ./tables.vlba')
             else:
                 os.system('curl -f ' + url + ' > ./tables.vlba')             
-            pop_message_fg(log, good_url)
+            retrieved_urls.append(good_url)
         
     if os.path.exists('./tables.vlba') == False:
         # try the old format... letter by letter
@@ -620,7 +587,7 @@ def load_fg_tables(data, log):
             if r.status_code != 404:
                 good_url = url
                 os.system('curl -f ' + url + ' > ./tables.vlba')  
-                pop_message_fg(log, good_url)
+                retrieved_urls.append(good_url)
                 break
             url = normal + 'cal.vlba.Z'
             r = requests.get(url)
@@ -628,7 +595,7 @@ def load_fg_tables(data, log):
                 good_url = url
                 os.system('curl -f ' + url + ' > ./tables.vlba.Z')  
                 os.system('zcat ./tables.vlba.Z > ./tables.vlba')
-                pop_message_fg(log, good_url)
+                retrieved_urls.append(good_url)
                 break
             url = normal + 'cal.vlba.gz'
             r = requests.get(url)
@@ -636,7 +603,7 @@ def load_fg_tables(data, log):
                 good_url = url
                 os.system('curl -f ' + url + ' > ./tables.vlba.gz')  
                 os.system('zcat ./tables.vlba.gz > ./tables.vlba')
-                pop_message_fg(log, good_url)
+                retrieved_urls.append(good_url)
                 break
                   
             # try all letters
@@ -647,7 +614,7 @@ def load_fg_tables(data, log):
                     good_url = url
                     os.system('curl -f ' + url + ' > ./tables' + s + '.vlba') 
                     letters.append(s)
-                    pop_message_fg(log, good_url)
+                    retrieved_urls.append(good_url)
             
             # Break the loop if it already found some tables
             if len(letters) != 0:
@@ -661,7 +628,7 @@ def load_fg_tables(data, log):
                     os.system('curl -f ' + url + ' > ./tables.vlba.Z')  
                     os.system('zcat ./tables.vlba.Z > ./tables' + s +'.vlba')
                     letters.append(s)
-                    pop_message_fg(log, good_url)
+                    retrieved_urls.append(good_url)
                     
             # Break the loop if it already found some tables
             if len(letters) != 0:
@@ -675,7 +642,7 @@ def load_fg_tables(data, log):
                     os.system('curl -f ' + url + ' > ./tables.vlba.gz')  
                     os.system('zcat ./tables.vlba.gz > ./tables' + s +'.vlba')
                     letters.append(s)
-                    pop_message_fg(log, good_url)
+                    retrieved_urls.append(good_url)
         
             
     # Extract FG information from tables.vlba into flags.vlba
@@ -792,17 +759,10 @@ def load_fg_tables(data, log):
     uvflg.msgkill = -4
     
     uvflg.go()
-      
-    log.write('FG#1 created.\n')
-    print('FG#1 created.\n')
-    
-    # Move the temperature file to the target folder
-    os.system('mv ./flags.vlba ./' + log.name.split('/')[1] + '/flags.vlba')
-    
-    # And delete the tables from the main directory
-    os.system('rm ./tables*')
 
-def load_gc_tables(data, log): # , bk_antennas):
+    return(retrieved_urls)
+
+def load_gc_tables(data): # , bk_antennas):
     """Retrieve and load GC tables from an external file.
 
     Look for relevant gain curves from an external file, edit them in a suitable format, \
@@ -898,11 +858,7 @@ def load_gc_tables(data, log): # , bk_antennas):
     if len(gain_curves) == 0:
         # It would be ideal if it could just take the gain curve from the 
         # closest date, or even interpolate between two dates.
-        print('WARNING: No gain curves were found at the observed date. No ' \
-              + 'GC table will be created.\n')
-        log.write('WARNING: No gain curves were found at the observed date. '\
-                  + 'No GC table will be created.\n')
-        return
+        return 404
             
     with open(r'./gaincurves.vlba', 'w') as fp:
         for item in gain_curves:
@@ -920,24 +876,13 @@ def load_gc_tables(data, log): # , bk_antennas):
     antab.msgkill = -4
     
     antab.go()
-        
-    # Move the GC file to the target folder
-    os.system('mv ./gaincurves.vlba ./' + log.name.split('/')[1] + '/gaincurves.vlba')
-    
-    log.write('\nGain curve information was not available in the file, it '\
-              + 'has been retrieved from ' + good_url + '\nGC#1 created.\n\n')
-    print('\nGain curve information was not available in the file, it has '\
-          + 'been retrieved from ' + good_url + '\nGC#1 created.\n')
-    
-
+    return 0
     
 def tborder(data, log):
     """Sort data in Time - Baseline order (TB)
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param log: pipeline log
-    :type log: file
     """    
     
     uvsrt = AIPSTask('uvsrt')
@@ -952,12 +897,7 @@ def tborder(data, log):
     
     uvsrt.sort = 'TB'
     uvsrt.msgkill = -4
-    
-    log.write('\nData was not in TB order. It has been reorder using ' \
-              + 'the UVSRT task\n')
-    print('\nData was not in TB order. It has been reorder using ' \
-              + 'the UVSRT task\n')
-    
+        
     uvsrt.go()
 
 def remove_ascii_antname(data,filepath):

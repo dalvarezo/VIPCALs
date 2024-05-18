@@ -24,25 +24,23 @@ import scripts.export_data as expo
 from AIPSData import AIPSUVData
 
 
-def pipeline(filepath, filename, sources, full_source_list, target,
-             disk_number, pipeline_log, klass = '', seq = 1, bif = 0, eif = 0,\
+def pipeline(filepath, aips_name, sources, full_source_list, target_list,
+             disk_number, klass = '', seq = 1, bif = 0, eif = 0,\
              multi_id = False, selfreq = 0):
     """Main workflow of the pipeline 
 
     :param filepath: path to the original uvfits/idifits file
     :type filepath: str
-    :param filename: name of the output folder
-    :type filename: str
+    :param aips_name: name for the catalogue entry in AIPS
+    :type aips_name: str
     :param sources: list with source names
     :type sources: list of str
     :param full_source_list: list containing all sources in the dataset
     :type full_source_list: list of Source objects
-    :param target: target name
-    :type target: str
+    :param target_list: target names
+    :type target_list: list of str
     :param disk_number:disk number whithin AIPS
     :type disk_number: int
-    :param pipeline_log: pipeline log
-    :type pipeline_log: file
     :param klass: class name whithin AIPS; defaults to ‘’
     :type klass: str, optional
     :param seq:sequence number within AIPS; defaults to 1
@@ -54,25 +52,50 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     :param selfreq: if there are multiple frequency ids, which one to load; defaults to 0
     :type selfreq: int, optional
     """    
-    
-    ## Check if the filename is too long, and rename ##
-    filename_short = filename
-    if len(filename) > 12:
-        name = filename.split('_')[0]
-        suffix = filename.split('_')[1]
+    ## PIPELINE STARTS
+    t_i = time.time()
+    ## Define folder names ##
+    filename_list = target_list.copy()
+    log_list = target_list.copy()
+    for i, name in enumerate(filename_list):
+        filename_list[i] = name + '_' + klass
+        
+    ## Open log(s) ##
+    # Pipeline log
+    for i, name in enumerate(filename_list):
+        if os.path.exists('./' + name) == True:
+            os.system('rm -rf ./' + name) 
+        os.system('mkdir ' + name)
+        # Let's see how to manage this, this doesn't convince me
+        log_list[i] = open('./' + name + '/' + name \
+                            + '_pipeline_log.txt', 'w+')
+        log_list[i].write(os.path.basename(filepath) + ' --- '\
+                            + '{:.2f} MB \n'.format\
+                            (os.path.getsize(filepath)/1024**2 ))
+        
+    # AIPS log is only opened for the first target, it will be copied once the pipeline 
+    # ends
+    load.open_log(filename_list[0])
+
+    ## Check if the AIPS catalogue name is too long, and rename ##
+    aips_name_short = aips_name
+    if len(aips_name) > 12:
+        name = aips_name.split('_')[0]
+        suffix = aips_name.split('_')[1]
         size_name = 12 - (len(suffix) + 1)
-        filename_short = name[:size_name] + '_' + suffix
+        aips_name_short = name[:size_name] + '_' + suffix
         
     ## Check if the test file already exists and delete it ##
     
-    uvdata = AIPSUVData(filename_short, klass, disk_number, seq)
+    uvdata = AIPSUVData(aips_name_short, klass, disk_number, seq)
     
     if uvdata.exists() == True:
         uvdata.zap()
 
 
     ## 1.- LOAD DATA ##
-    disp.write_box(pipeline_log, 'Loading data')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Loading data')
     
     ## Check if the filepath is > 46 characters
     if len(filepath.split('/')[-1]) > 46:
@@ -98,7 +121,7 @@ def pipeline(filepath, filename, sources, full_source_list, target,
         
         ## Load the dataset ##
         t0 = time.time()
-        load.load_data(shortpath, filename_short, sources, disk_number, multi_id,\
+        load.load_data(shortpath, aips_name_short, sources, disk_number, multi_id,\
         selfreq, klass = klass, bif = bif, eif = eif)
         t1 = time.time()   
         # IF load_data FAILS, THEN THE aux.uvfits FILE IS NOT REMOVED
@@ -108,14 +131,14 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     else:
         ## Load the dataset ##
         t0 = time.time()
-        load.load_data(filepath, filename_short, sources, disk_number, multi_id,\
+        load.load_data(filepath, aips_name_short, sources, disk_number, multi_id,\
         selfreq, klass = klass, bif = bif, eif = eif)
         t1 = time.time() 
  
-    
-    pipeline_log.write('\nData loaded! The loaded sources are ' + \
-                       str(list(set(sources))) + '.\n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t1-t0))
+    for pipeline_log in log_list:
+        pipeline_log.write('\nData loaded! The loaded sources are ' + \
+                        str(list(set(sources))) + '.\n')
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t1-t0))
     print('\nData loaded! The loaded sources are', list(set(sources)) ,'.\n')
     print('Execution time: {:.2f} s. \n'.format(t1-t0))
 
@@ -132,6 +155,11 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     ## Check for order
     if uvdata.header['sortord'] != 'TB':
         tabl.tborder(uvdata, pipeline_log)
+        for pipeline_log in log_list:
+            pipeline_log.write('\nData was not in TB order. It has been reorder using ' \
+                               + 'the UVSRT task\n')
+        print('\nData was not in TB order. It has been reorder using ' \
+              + 'the UVSRT task\n')
     
     ## Check for CL/NX tables
     if [1, 'AIPS CL'] not in uvdata.tables or [1, 'AIPS NX'] not in \
@@ -145,23 +173,86 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     #     os.system('rm ' + './' + filename + '/scansum.txt')
     # Not necessary necause I remove the whole directory beforehand,
     # but I need to think again about it
-    load.print_listr(uvdata, pipeline_log)
+    load.print_listr(uvdata, filename_list)
 
+    for pipeline_log in log_list:
+        pipeline_log.write('\nScan information printed in /scansum.txt \n')
     ## Check for TY/GC/FG tables
     
     if ([1, 'AIPS TY'] not in uvdata.tables or [1, 'AIPS GC'] \
     not in uvdata.tables or [1, 'AIPS FG'] not in uvdata.tables):
-        disp.write_box(pipeline_log, 'Loading external table information')
-        pipeline_log.write('\n')
+        for pipeline_log in log_list:
+            disp.write_box(pipeline_log, 'Loading external table information')
+            pipeline_log.write('\n')
     
     if [1, 'AIPS TY'] not in uvdata.tables:
-        tabl.load_ty_tables(uvdata, bif, eif, pipeline_log)
+        retrieved_urls = tabl.load_ty_tables(uvdata, bif, eif)
+        for pipeline_log in log_list:
+            for good_url in retrieved_urls:
+                pipeline_log.write('System temperatures were not available in the file, '\
+                                    + 'they have been retrieved from ' + good_url + '\n')
+            pipeline_log.write('TY#1 created.\n')
 
+        # Move the temperature file to the target folders
+        for name in filename_list:
+            os.system('cp ./tsys.vlba ./' + name + '/flags.vlba')
+    
+        # And delete the files from the main directory
+        os.system('rm ./tables*')
+        os.system('rm ./tsys.vlba')
+   
+        print('\nSystem temperatures were not available in the file, they ' \
+               + 'have been retrieved online.\n')
+        print('TY#1 created.\n')
+        
     if [1, 'AIPS GC'] not in uvdata.tables:
-        tabl.load_gc_tables(uvdata, pipeline_log)
+        load_gc_tables_code = tabl.load_gc_tables(uvdata)
+        good_url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/vlba_gains.key'
+
+        if load_gc_tables_code == 404:  # If no GC was found
+            for pipeline_log in log_list:
+                pipeline_log.write('WARNING: No gain curves were found at the '\
+                                    + 'observed date. No GC table will be created.\n') 
+            print('WARNING: No gain curves were found at the observed date. No ' \
+              + 'GC table will be created.\n')
+            
+            return  # END THE PIPELINE!
+        
+        for pipeline_log in log_list:
+            pipeline_log.write('\nGain curve information was not available in the '\
+                               + 'file, it has been retrieved from ' + good_url \
+                               + '\nGC#1 created.\n\n')
+            
+        # Move the gain curve file to the target folders
+        for name in filename_list:
+            os.system('cp ./gaincurves.vlba ./' + name + '/flags.vlba')
+    
+        # And delete the files from the main directory
+        os.system('rm ./gaincurves.vlba')           
+        
+        print('\nGain curve information was not available in the file, it has '\
+          + 'been retrieved from ' + good_url + '\nGC#1 created.\n')
+        
         
     if [1, 'AIPS FG'] not in uvdata.tables:
-        tabl.load_fg_tables(uvdata, pipeline_log)
+        retrieved_urls = tabl.load_fg_tables(uvdata)
+        for pipeline_log in log_list:
+            for good_url in retrieved_urls:
+                pipeline_log.write('Flag information was not available in the file, ' \
+                                    + 'it has been retrieved from ' + good_url + '\n')
+            pipeline_log.write('FG#1 created.\n')
+
+        # Move the flag file to the target folders
+        for name in filename_list:
+            os.system('cp ./flags.vlba ./' + name + '/flags.vlba')
+    
+        # And delete the files from the main directory
+        os.system('rm ./tables*')
+        os.system('rm ./flags.vlba')
+
+        print('\nFlag information was not available in the file, it ' \
+               + 'has been retrieved from online.\n')
+        print('FG#1 created.\n')
 
     ## If the time resolution is < 0.33s, average the dataset in time
     try:
@@ -170,19 +261,20 @@ def pipeline(filepath, filename, sources, full_source_list, target,
         time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'])
         
     if time_resol < 0.33:
-        avgdata = AIPSUVData(filename_short, 'AVGT', disk_number, seq)
+        avgdata = AIPSUVData(aips_name_short, 'AVGT', disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
         tabl.time_aver(uvdata, time_resol, 2)
-        uvdata = AIPSUVData(filename_short, 'AVGT', disk_number, seq)
+        uvdata = AIPSUVData(aips_name_short, 'AVGT', disk_number, seq)
         
-        disp.write_box(pipeline_log, 'Data averaging')
-        
-        pipeline_log.write('\nThe time resolution was ' \
-                           + '{:.2f}'.format(time_resol) \
-                           + 's. It has been averaged to 2s.\n')
+        for pipeline_log in log_list:
+            disp.write_box(pipeline_log, 'Data averaging')
+            
+            pipeline_log.write('\nThe time resolution was ' \
+                            + '{:.2f}'.format(time_resol) \
+                            + 's. It has been averaged to 2s.\n')
         print('\nThe time resolution was {:.2f}'.format(time_resol) \
-              + 's. It has been averaged to 2s.\n')
+            + 's. It has been averaged to 2s.\n')
         
             
     ## If there are more than 128 channels, average the dataset in frequency
@@ -192,19 +284,20 @@ def pipeline(filepath, filename, sources, full_source_list, target,
         no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'])
         
     if no_chan > 128:
-        avgdata = AIPSUVData(filename_short, 'AVGF', disk_number, seq)
+        avgdata = AIPSUVData(aips_name_short, 'AVGF', disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
         ratio = no_chan/32    # NEED TO ADD A CHECK IN CASE THIS FAILS
         
         if time_resol >= 0.33: # = If it was not written before
-            disp.write_box(pipeline_log, 'Data averaging')
+            for pipeline_log in log_list:
+                disp.write_box(pipeline_log, 'Data averaging')
         
         tabl.freq_aver(uvdata,ratio)
-        uvdata = AIPSUVData(filename_short, 'AVGF', disk_number, seq)
-        
-        pipeline_log.write('\nThere were ' + str(no_chan) + ' channels per '+ \
-                           'IF. It has been averaged to 32 channels.\n')
+        uvdata = AIPSUVData(aips_name_short, 'AVGF', disk_number, seq)
+        for pipeline_log in log_list:
+            pipeline_log.write('\nThere were ' + str(no_chan) + ' channels per '+ \
+                            'IF. It has been averaged to 32 channels.\n')
         print('\nThere were ' + str(no_chan) + ' channels per IF. It has '\
               'been averaged to 32 channels.\n')
 
@@ -219,11 +312,11 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     
     # Maybe this output could be written as a %, I just need to manually write
     # the case where 0 points are flagged
-    
-    pipeline_log.write('\nSystem temperatures clipped!. ' + str(flagged_tsys) \
-                       + ' Tsys points out of a total of ' \
-                       + str(original_tsys) + ' have been flagged. '\
-                       + 'TY#2 created.\n')
+    for pipeline_log in log_list:
+        pipeline_log.write('\nSystem temperatures clipped!. ' + str(flagged_tsys) \
+                        + ' Tsys points out of a total of ' \
+                        + str(original_tsys) + ' have been flagged. '\
+                        + 'TY#2 created.\n')
      
     print('\nSystem temperatures clipped!. ' + str(flagged_tsys) \
           + ' Tsys points out of a total of ' \
@@ -232,21 +325,24 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     
     
     t2 = time.time()  
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t2-t1))
+
+    for pipeline_log in log_list:
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t2-t1))
     print('Execution time: {:.2f} s. \n'.format(t2-t1))
 
     ## Choose refant ##
-    
-    disp.write_box(pipeline_log, 'Reference antenna search')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Reference antenna search')
     
     refant = rant.refant_choose(uvdata, sources, full_source_list, pipeline_log)
     t3=time.time()
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t3-t2))
+    for pipeline_log in log_list:
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t3-t2))
     print('Execution time: {:.2f} s. \n'.format(t3-t2))
 
     ## Ionospheric correction ##
-    
-    disp.write_box(pipeline_log, 'Ionospheric corrections')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Ionospheric corrections')
     
     YYYY = int(uvdata.header.date_obs[:4])
     MM = int(uvdata.header.date_obs[5:7])
@@ -255,76 +351,86 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     if date_obs > datetime(1998,6,1):
         iono.ionos_correct(uvdata)
         t4 = time.time()
-        pipeline_log.write('\nIonospheric corrections applied! CL#2 created.'\
-                           + '\n')
-        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t4-t3))
+        for pipeline_log in log_list:
+            pipeline_log.write('\nIonospheric corrections applied! CL#2 created.'\
+                            + '\n')
+            pipeline_log.write('Execution time: {:.2f} s. \n'.format(t4-t3))
         print('\nIonospheric corrections applied! CL#2 created.\n')
         print('Execution time: {:.2f} s. \n'.format(t4-t3))
         os.system('rm -rf /tmp/jplg*')
     else:
         t4 = time.time()
         iono.tacop(uvdata, 'CL', 1, 2)
-        pipeline_log.write('\nIonospheric corrections not applied! IONEX '\
-                           + 'files are not available for observations '\
-                           + 'older than June 1998. CL#2 will be copied '\
-                           + 'from CL#1.\n')
+        for pipeline_log in log_list:
+            pipeline_log.write('\nIonospheric corrections not applied! IONEX '\
+                            + 'files are not available for observations '\
+                            + 'older than June 1998. CL#2 will be copied '\
+                            + 'from CL#1.\n')
         print('\nIonospheric corrections not applied! IONEX files are not '\
               + 'available for observations older than June 1998. CL#2 '\
               + 'will be copied from CL#1.\n')
         
     ## Earth orientation parameters correction ##
-    
-    disp.write_box(pipeline_log, 'Earth orientation parameters corrections')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Earth orientation parameters corrections')
     
     eopc.eop_correct(uvdata)
     t5 = time.time()
-    pipeline_log.write('\nEarth orientation parameter corrections applied! '\
-                       + 'CL#3 created.\n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t5-t4))
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nEarth orientation parameter corrections applied! '\
+                        + 'CL#3 created.\n')
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t5-t4))
     print('\nEarth orientation parameter corrections applied! CL#3 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t5-t4))
     os.system('rm -rf /tmp/usno_finals.erp')
 
-        ## Digital sampling correction ##
+    ## Digital sampling correction ##
     
-    disp.write_box(pipeline_log, 'Digital sampling corrections')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Digital sampling corrections')
     
     accr.sampling_correct(uvdata)
     t6 = time.time()
-    pipeline_log.write('\nDigital sampling corrections applied! SN#1 and CL#4'\
-                       + ' created.\n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t6-t5))
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nDigital sampling corrections applied! SN#1 and CL#4'\
+                        + ' created.\n')
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t6-t5))
     print('\nDigital sampling corrections applied! SN#1 and CL#4 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t6-t5))
 
     ## Amplitude calibration ##
-    
-    disp.write_box(pipeline_log, 'Amplitude calibration')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Amplitude calibration')
     
     ampc.amp_cal(uvdata)
     t7 = time.time()
-    pipeline_log.write('\nAmplitude calibration applied! SN#2 and CL#5'\
-                       + ' created.\n')
-    pipeline_log.write('Execution time: {:.2f} s.\n'.format(t7-t6))
+    for pipeline_log in log_list:
+        pipeline_log.write('\nAmplitude calibration applied! SN#2 and CL#5'\
+                        + ' created.\n')
+        pipeline_log.write('Execution time: {:.2f} s.\n'.format(t7-t6))
     print('\nAmplitude calibration applied! SN#2 and CL#5 created.\n')
     print('Execution time: {:.2f} s.\n'.format(t7-t6))
 
     ## Parallatic angle correction ##
-    
-    disp.write_box(pipeline_log, 'Parallactic angle corrections')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Parallactic angle corrections')
     
     pang.pang_corr(uvdata)
     t8 = time.time()
-    pipeline_log.write('\nParallactic angle corrections applied! CL#6'\
-                       + ' created.\n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t8-t7))
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nParallactic angle corrections applied! CL#6'\
+                        + ' created.\n')
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t8-t7))
     print('\nParallactic angle corrections applied! CL#6 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t8-t7))
 
     ## Look for calibrator ##
     ## SNR fringe search ##
-    
-    disp.write_box(pipeline_log, 'Calibrator search')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Calibrator search')
     
     #snr_fring(uvdata, refant)
     cali.snr_fring_only_fft(uvdata, refant)
@@ -332,15 +438,46 @@ def pipeline(filepath, filename, sources, full_source_list, target,
     
     ## Get a list of scans ordered by SNR ##
     
-    scan_list, optimal_scan_list = cali.snr_scan_list(uvdata, full_source_list, \
-                                                      pipeline_log)
-    t9 = time.time()
+    scan_list, optimal_scan_list, max_n_antennas = cali.snr_scan_list(uvdata, \
+                                                                      full_source_list)
+    
+    # Since both scan_list and optimal_scan_list are ordered by SNR, print
+    # the ones that have been rejected due to few antennas
+    
+    if len(scan_list) != len(optimal_scan_list):
+        print('\n')
+        #log.write('\n')
+        for s in scan_list:
+            if s not in optimal_scan_list:
+                for pipeline_log in log_list:                  
+                    pipeline_log.write('A scan of ' + s.name + ' with median SNR: '\
+                            + '{:.2f} has been rejected '.format(np.median(s.snr)) \
+                            + "since it's missing in " \
+                            + str(max_n_antennas - len(s.antennas)) + ' antennas '\
+                            + 'out of ' + str(max_n_antennas) + '.\n')
+                
+                print('A scan of ' + str(s.name) + ' with median SNR: '\
+                      + '{:.2f} has been rejected '.format(np.median(s.snr)) \
+                      + "since it's missing in " \
+                      + str(max_n_antennas - len(s.antennas)) + ' antennas '\
+                      + 'out of ' + str(max_n_antennas) + '.\n')
+
+                    
+    # Print a warning if the SNR of the calibrator is < 40
+    if np.median(optimal_scan_list[0].snr) < 40:
+        for pipeline_log in log_list:
+            pipeline_log.write('\nWARNING: The chosen scan has a low SNR. A better '\
+                             + 'calibrator might be found manually.\n')
+            
+        print('\nWARNING: The chosen scan has a low SNR. A better '\
+              + 'calibrator might be found manually.\n')
     
     ## Check if snr_scan_list() returned an error and, if so, end the pipeline
     if scan_list == 404:
-        pipeline_log.write('\nNone of the scans reached a minimum SNR of ' \
-                           + '5 and the dataset could not be automatically ' \
-                           + 'calibrated.\nThe pipeline will stop now.\n')
+        for pipeline_log in log_list:
+            pipeline_log.write('\nNone of the scans reached a minimum SNR of ' \
+                              + '5 and the dataset could not be automatically ' \
+                              + 'calibrated.\nThe pipeline will stop now.\n')
             
         print('\nNone of the scans reached a minimum SNR of ' \
               + '5 and the dataset could not be automatically ' \
@@ -349,12 +486,14 @@ def pipeline(filepath, filename, sources, full_source_list, target,
         return()
     
     cal_scan = optimal_scan_list[0]
-    
-    pipeline_log.write('\nThe brightest source in the data set is ' \
-                       + str(cal_scan.name) + ' with median SNR:'\
-                       + ' {:.2f}.'.format(np.median(cal_scan.snr)) \
-                       + ' SN#3 created.\n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t9-t8))
+    t9 = time.time()
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nThe brightest source in the data set is ' \
+                        + str(cal_scan.name) + ' with median SNR:'\
+                        + ' {:.2f}.'.format(np.median(cal_scan.snr)) \
+                        + ' SN#3 created.\n')
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t9-t8))
     print('\nThe brightest source in the data set is '\
           + str(cal_scan.name) \
           + ' with median SNR: {:.2f}.'.format(np.median(cal_scan.snr)) \
@@ -363,101 +502,133 @@ def pipeline(filepath, filename, sources, full_source_list, target,
 
     ## Instrumental phase correction ##
     
-    disp.write_box(pipeline_log, 'Instrumental phase corrections')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Instrumental phase corrections')
     
     #inst.pulse_phasecal(uvdata, refant, cal_scan)
     inst.manual_phasecal(uvdata, refant, cal_scan)
     t10 = time.time()
     
-    pipeline_log.write('\nInstrumental phase correction applied using'\
-                       + ' the calibrator. SN#4 and CL#7 created.\n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t10-t9))
+    for pipeline_log in log_list:
+        pipeline_log.write('\nInstrumental phase correction applied using'\
+                        + ' the calibrator. SN#4 and CL#7 created.\n')
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t10-t9))
     print('\nInstrumental phase correction applied using the calibrator.'\
           + ' SN#4 and CL#7 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t10-t9))
 
     ## Fringe fit of the calibrator ##
-        
-    disp.write_box(pipeline_log, 'Calibrator fringe fit')
+    for pipeline_log in log_list:    
+        disp.write_box(pipeline_log, 'Calibrator fringe fit')
     
     frng.calib_fring_fit(uvdata, refant, cal_scan)
     t11 = time.time()
     
-    pipeline_log.write('\nFringe fit applied to the calibrator! '\
-                       + 'SN#5 and CL#8 created.\n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t11-t10))
+    for pipeline_log in log_list:
+        pipeline_log.write('\nFringe fit applied to the calibrator! '\
+                        + 'SN#5 and CL#8 created.\n')
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t11-t10))
     print('\nFringe fit applied to the calibrator! SN#5 and CL#8 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t11-t10))
 
     ## Bandpass correction ##
     
-    disp.write_box(pipeline_log, 'Bandpass correction')
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Bandpass correction')
     
     bpas.bp_correction(uvdata, refant, cal_scan)
     t12 = time.time()
     
-    pipeline_log.write('\nBandpass correction applied! BP#1 created.\n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t12-t11))
+    for pipeline_log in log_list:
+        pipeline_log.write('\nBandpass correction applied! BP#1 created.\n')
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t12-t11))
     print('\nBandpass correction applied! BP#1 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t12-t11))
     
-    ## Get optimal solution interval
+    ## Get optimal solution interval for each target
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Target fringe fit')
     
-    disp.write_box(pipeline_log, 'Target fringe fit')
-    
-    target_optimal_scans = opti.get_optimal_scans(target, optimal_scan_list, \
+    solint_list = []
+    for target in target_list:
+        target_optimal_scans = opti.get_optimal_scans(target, optimal_scan_list, \
                                                   full_source_list)
         
-    solint = opti.optimize_solint(uvdata, target, target_optimal_scans, \
-                                  refant)
+        solint_list.append(opti.optimize_solint(uvdata, target, target_optimal_scans, \
+                                                refant))
     t13 = time.time()
     
-    pipeline_log.write('\nThe optimal solution interval for the target is '\
-                       + str(solint) + ' minutes. \n')
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t13-t12))
-    print('\nThe optimal solution interval for the target is ' + str(solint) \
-          + ' minutes. \n')
+    for i, solint in enumerate(solint_list):
+        log_list[i].write('\nThe optimal solution interval for the target is '\
+                        + str(solint_list[i]) + ' minutes. \n')
+        log_list[i].write('Execution time: {:.2f} s. \n'.format(t13-t12))
+
+    for i, target in enumerate(target_list):    
+        print('\nThe optimal solution interval for ' + target + ' is ' \
+             + str(solint_list[i]) + ' minutes. \n')
     print('Execution time: {:.2f} s. \n'.format(t13-t12))
+
     ## Fringe fit of the target ##
     
     ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
-    
-    frng.target_fring_fit(uvdata, refant, target, solint=float(solint))
+    for i, target in enumerate(target_list): 
+        frng.target_fring_fit(uvdata, refant, target, solint=float(solint_list[i]), 
+                              version = 9+i)
+        log_list[i].write('\nFringe fit applied to the target! '\
+                        + 'SN#' + str(6+i) + ' and CL#' + str(9+i) + ' created.\n')
+        print('\nFringe fit applied to ' + target + '! SN#' + str(6+i) + \
+              ' and CL#' + str(9+i) + ' created.\n')   
     t14 = time.time()
     
-    pipeline_log.write('\nFringe fit applied to the target! '\
-                        + 'SN#6 and CL#9 created.\n')
-    print('\nFringe fit applied to the target! SN#6 and CL#9 created.\n')
+
     
     ## Print the ratio of bad to good solutions ##
-    frng.assess_fringe_fit(uvdata, pipeline_log)
-                     
+    for pipeline_log in log_list:
+        frng.assess_fringe_fit(uvdata, pipeline_log)               
 
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t14-t13))  
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t14-t13))  
     print('Execution time: {:.2f} s. \n'.format(t14-t13))
 
     ##  Export data ##
-    expo.data_export(filename, uvdata, target_list, pipeline_log)
+    for pipeline_log in log_list:
+        disp.write_box(pipeline_log, 'Exporting visibility data')
 
+    expo.data_export(filename_list, uvdata, target_list)
+    for i, target in enumerate(target_list): 
+        log_list[i].write('\n' + target + ' visibilites exported to ' + target + '.uvfits\n')
+        print('\n' + target + ' visibilites exported to ' + target + '.uvfits\n')
 
     ## Plot visibilities of target and calibrator ##
-    
-    disp.write_box(pipeline_log, 'Plotting visibilities')
+    for pipeline_log in log_list:    
+        disp.write_box(pipeline_log, 'Plotting visibilities')
     
     ## Uncalibrated ##
-    plot.possm_plotter(filename, uvdata, target, cal_scan, 1, bpver = 0)
+    for i, target in enumerate(target_list):
+        plot.possm_plotter(filename_list[i], uvdata, target, cal_scan, 1, bpver = 0, \
+                           flag_edge=False)
     
-    pipeline_log.write('\nUncalibrated visibilities plotted in /' + filename \
+        log_list[i].write('\nUncalibrated visibilities plotted in /' + filename_list[i] \
                         + '/CL1_possm.ps\n')
-    print('\nUncalibrated visibilities plotted in /' + filename \
-          + '/CL1_possm.ps\n')
+        print('\nUncalibrated visibilities plotted in /' + filename_list[i] \
+            + '/CL1_possm.ps\n')
+        
     ## Calibrated ##
-    plot.possm_plotter(filename, uvdata, target, cal_scan, 9, bpver = 1)
-    
-    pipeline_log.write('Calibrated visibilities plotted in /' + filename \
-                        + '/CL9_possm.ps\n')
-    print('Calibrated visibilities plotted in /' + filename \
-          + '/CL9_possm.ps\n')
+    for i, target in enumerate(target_list):
+        plot.possm_plotter(filename_list[i], uvdata, target, cal_scan, 9+i, bpver = 1)
+        
+        pipeline_log.write('Calibrated visibilities plotted in /' + filename_list[i] \
+                            + '/CL' + str(9+i) + '_possm.ps\n')
+        print('Calibrated visibilities plotted in /' + filename_list[i] \
+            + '/CL' + str(9+i) + '_possm.ps\n')
     t15 = time.time()
-    pipeline_log.write('Execution time: {:.2f} s. \n'.format(t15-t14))
+    for pipeline_log in log_list:
+        pipeline_log.write('Execution time: {:.2f} s. \n'.format(t15-t14))
     print('Execution time: {:.2f} s. \n'.format(t15-t14))
+
+    ## Total execution time ##
+    tf = time.time()
+    for pipeline_log  in log_list:
+        pipeline_log.write('\nScript run time: '\
+                         + '{:.2f} s. \n'.format(tf-t_i))
+        pipeline_log.close()
+    print('\nScript run time: {:.2f} s. \n'.format(tf-t_i))
