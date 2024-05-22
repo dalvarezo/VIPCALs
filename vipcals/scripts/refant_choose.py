@@ -37,7 +37,7 @@ class Scan():
     
     
     
-def refant_choose(data, sources, full_source_list, pipeline_log):
+def refant_choose(data, sources, full_source_list, log_list):
     """Choose a suitable reference antenna
 
     It chooses a reference antenna based on its availability, stability of system \
@@ -49,8 +49,8 @@ def refant_choose(data, sources, full_source_list, pipeline_log):
     :type sources: list of str
     :param full_source_list: list containing all sources in the dataset
     :type full_source_list: list of Source objects
-    :param pipeline_log: pipeline log
-    :type pipeline_log: file
+    :param log: list of pipeline logs
+    :type log_list: list of file
     :return: reference antenna number
     :rtype: int
     """    
@@ -136,14 +136,15 @@ def refant_choose(data, sources, full_source_list, pipeline_log):
         for scn in scan_list:
             if antennas_list[ant].id not in scn.antennas:
                 bad_antennas.append(ant)
-                
-    pipeline_log.write('\n')
+
+    for pipeline_log in log_list:            
+        pipeline_log.write('\n')
     for element in list(set(bad_antennas)):
-        
-        pipeline_log.write(antennas_list[element].name + ' has been '\
-                           + 'discarded in the search. It is not available ' \
-                           + 'in ' + str(bad_antennas.count(element))\
-                           + ' scans out of ' + str(len(scan_list)) + '.\n')
+        for pipeline_log in log_list:
+            pipeline_log.write(antennas_list[element].name + ' has been '\
+                            + 'discarded in the search. It is not available ' \
+                            + 'in ' + str(bad_antennas.count(element))\
+                            + ' scans out of ' + str(len(scan_list)) + '.\n')
             
         print(antennas_list[element].name + ' has been discarded in '\
               + 'the search. It is not available in ' \
@@ -222,11 +223,12 @@ def refant_choose(data, sources, full_source_list, pipeline_log):
         for ant in antennas_list:
             if antennas_list[ant].name == 'FD':
                 refant = antennas_list[ant].id
-                pipeline_log.write('WARNING: No antenna was available through'\
-                                   + ' the entire observation. The chosen '\
-                                   + 'reference antenna is FD. Be aware that '\
-                                   + 'some data could be lost and that a '\
-                                   + 'better choice could be made.\n')
+                for pipeline_log in log_list:
+                    pipeline_log.write('WARNING: No antenna was available through'\
+                                    + ' the entire observation. The chosen '\
+                                    + 'reference antenna is FD. Be aware that '\
+                                    + 'some data could be lost and that a '\
+                                    + 'better choice could be made.\n')
                                        
                 print('WARNING: No antenna was available through the entire '\
                       + 'observation. The chosen reference antenna is FD. Be '\
@@ -240,12 +242,13 @@ def refant_choose(data, sources, full_source_list, pipeline_log):
             for ant in antennas_list:
                 if antennas_list[ant].name == 'LA':
                     refant = antennas_list[ant].id
-                    pipeline_log.write('WARNING: No antenna was available '\
-                                       + 'through the entire observation. The'\
-                                       + ' chosen reference antenna is LA. Be'\
-                                       + ' aware that some data could be lost'\
-                                       + ' and that a better choice could be '\
-                                       + 'made.\n')
+                    for pipeline_log in log_list:
+                        pipeline_log.write('WARNING: No antenna was available '\
+                                        + 'through the entire observation. The'\
+                                        + ' chosen reference antenna is LA. Be'\
+                                        + ' aware that some data could be lost'\
+                                        + ' and that a better choice could be '\
+                                        + 'made.\n')
                                            
                     print('WARNING: No antenna was available through the ' \
                           + 'entire observation. The chosen reference ' \
@@ -260,12 +263,13 @@ def refant_choose(data, sources, full_source_list, pipeline_log):
             for ant in antennas_list:
                 if antennas_list[ant].name == 'KP':
                     refant = antennas_list[ant].id
-                    pipeline_log.write('WARNING: No antenna was available '\
-                                       + 'through the entire observation. The'\
-                                       + ' chosen reference antenna is KP. Be'\
-                                       + ' aware that some data could be lost'\
-                                       + ' and that a better choice could be '\
-                                       + 'made.\n')
+                    for pipeline_log in log_list:
+                        pipeline_log.write('WARNING: No antenna was available '\
+                                        + 'through the entire observation. The'\
+                                        + ' chosen reference antenna is KP. Be'\
+                                        + ' aware that some data could be lost'\
+                                        + ' and that a better choice could be '\
+                                        + 'made.\n')
                                            
                     print('WARNING: No antenna was available through the ' \
                           + 'entire observation. The chosen reference ' \
@@ -285,11 +289,12 @@ def refant_choose(data, sources, full_source_list, pipeline_log):
             median_tsys = np.nanmedian(antennas_list[ant].tsys)
             refant = antennas_list[ant].id
     
-    pipeline_log.write('The chosen reference antenna is ' + final_list[0][0]\
-                       + '. It is available for all scans, its median '\
-                       + 'temperature is {:.2f} K'.format(median_tsys) \
-                       + ', with a median dispersion of '\
-                       + '{:.2f} K.\n'.format(final_list[0][1]))
+    for pipeline_log in log_list:
+        pipeline_log.write('The chosen reference antenna is ' + final_list[0][0]\
+                        + '. It is available for all scans, its median '\
+                        + 'temperature is {:.2f} K'.format(median_tsys) \
+                        + ', with a median dispersion of '\
+                        + '{:.2f} K.\n'.format(final_list[0][1]))
     print('The chosen reference antenna is ' + final_list[0][0] + '. It is '\
           + 'available for all scans, its median temperature is  '\
           + '{:.2f} K'.format(median_tsys) + ', with a median dispersion of '\

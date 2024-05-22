@@ -83,11 +83,39 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
     
     optimiz_fring.go()
 
+def get_scan_length(data, target):
+    """Get scan length in minutes for a certain target.
+
+    It assumes all scans of the same target have the same duration.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target: source name
+    :type target: str
+    :return: scan length in minutes
+    :rtype: float
+    """    
+    nx_table = data.table('NX',1)
+    su_table = data.table('SU',1)
+    # Look for the code that identifies the source
+    for entry in su_table:
+        if entry['source'].replace(" ","") == target:
+            id = entry['id__no']
+            break
+    # Look for the scan length
+    for scan in nx_table:
+        if scan['source_id'] == id:
+            scan_length = np.round(scan['time_interval'] * 24 * 60, 1)
+
+    return(scan_length)
+
+
 def get_optimal_scans(target, optimal_scans, full_source_list):
     """Get the optimal scans for an specific target
 
     Get the scans where the target has been observed from the optimal scan list. Optimal \
-    means that the maximum number of antennas was observing the source. 
+    means that the maximum number of antennas was observing the source. If there are not 
+    any scans in which all antennas were observed, returns an error code.
 
     :param target: source name
     :type target: str
@@ -105,11 +133,16 @@ def get_optimal_scans(target, optimal_scans, full_source_list):
     target_optimal_scans = list(filter(lambda x: x.id == target_id,\
                                        optimal_scans))
         
+    # Don't return more than 5
     if len(target_optimal_scans) > 5:
         target_optimal_scans = sample(target_optimal_scans, 5)
-        
-    return(target_optimal_scans)
-        
+    
+    if len(target_optimal_scans) > 0:
+        return(target_optimal_scans)
+    # Return error code if there are not optimal scans
+    if len(target_optimal_scans) == 0:
+        return 404
+
 def optimize_solint(data, target, target_optimal_scans, refant):
     """Find the optimal solution interval in which to fringe fit a target.
 
@@ -129,10 +162,14 @@ def optimize_solint(data, target, target_optimal_scans, refant):
     :return: optimal solution interval in minutes
     :rtype: float
     """    
-    # If there were no optimal scans for the target, then return 10 as
-    # the solint. Not optimal, we should rethink it
+
+
+    # If there were no optimal scans for the target, i.e. no scans in which all antennas 
+    # were observing, then print a message and return the scan length as
+    # the solint. 
     if len(target_optimal_scans) == 0:
-        return(10)
+        return(scan_length)
+
     # Get scan length (assuming them equal) in minutes
     scan_length = target_optimal_scans[0].time_interval*24*60
     for solint in np.round([scan_length/5.1, scan_length/4.1, \

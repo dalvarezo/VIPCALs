@@ -24,11 +24,11 @@ def print_box(s):
         print(f'// {line.center(box_width - 8)} //')
     print(box + '\n')
     
-def write_box(log, s):
+def write_box(log_list, s):
     """Write some text inside a box in the log file
 
-    :param log: pipeline log
-    :type log: file
+    :param log: list of the pipeline logs
+    :type log: list of file
     :param s: text to display in the box
     :type s: str
     """    
@@ -41,7 +41,8 @@ def write_box(log, s):
     box = '//' + '/' * (box_width - 6) + '//\n'
 
     # Print the box with the lines centered inside
-    log.write('\n' + box)
-    for line in lines:
-        log.write(f'// {line.center(box_width - 8)} //\n')
-    log.write(box)
+    for log in log_list:
+        log.write('\n' + box)
+        for line in lines:
+            log.write(f'// {line.center(box_width - 8)} //\n')
+        log.write(box)
