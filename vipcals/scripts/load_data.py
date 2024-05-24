@@ -218,7 +218,7 @@ def is_it_multifreq_if(file_path):
         
 
 def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
-              seq = 1, bif = 0, eif = 0):
+              seq = 1, bif = 0, eif = 0, l_a = False):
     """Load data from a uvfits/idifits file.
 
     :param file_path: path of the uvfits/idifts file
@@ -241,6 +241,8 @@ def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
     :type bif: int, optional
     :param eif: highest IF to copy,  0 => all higher than bif; defaults to 0
     :type eif: int, optional
+    :param l_a: load all sources; default False
+    :type l_a: bool, optional
     """      
     fitld = AIPSTask('fitld')
     fitld.datain = file_path
@@ -248,7 +250,8 @@ def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
     fitld.outdisk = disk
     fitld.outclass = klass
     fitld.outseq = seq
-    fitld.sources = AIPSList(sources)
+    if l_a == False:
+        fitld.sources = AIPSList(sources)
     fitld.bif = bif
     fitld.eif = eif
     fitld.clint = 0.1

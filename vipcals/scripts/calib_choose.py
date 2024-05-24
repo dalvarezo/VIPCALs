@@ -160,7 +160,7 @@ def snr_scan_list(data, full_source_list, version = 3):
     # and stop the pipeline
     
     if len(scan_list) == 0:
-        return(404,404)
+        return(404,404,404)
     
     for scans in scan_list:
         if len(scans.antennas) ==  max_n_antennas:

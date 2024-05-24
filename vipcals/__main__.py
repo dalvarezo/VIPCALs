@@ -81,7 +81,7 @@ if multifreq_id[0] == True:
         pipeline(filepath, aips_name, sources, full_source_list, target_list,\
                     disk_number, klass = klass_1, \
                     multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
-                    input_calibrator = inp_cal)
+                    input_calibrator = inp_cal, load_all = load_all)
         
          # Copy logs
         if len(target_list)>1:
@@ -116,7 +116,7 @@ if multifreq_if[0] == True:
     pipeline(filepath, aips_name, sources, full_source_list, target_list, \
                 disk_number, klass = klass_1,\
                 bif = multifreq_if[1], eif = multifreq_if[2], \
-                input_calibrator = inp_cal)
+                input_calibrator = inp_cal, load_all = load_all)
     
     # Copy logs
     if len(target_list)>1:
@@ -143,7 +143,7 @@ if multifreq_if[0] == True:
     pipeline(filepath, aips_name, sources, full_source_list, target_list, \
                 disk_number, klass = klass_2, \
                 bif = multifreq_if[3], eif = multifreq_if[4], \
-                input_calibrator = inp_cal)
+                input_calibrator = inp_cal, load_all = load_all)
 
     # Copy logs
     if len(target_list)>1:
@@ -175,7 +175,8 @@ if multifreq_id[0] == False and multifreq_if[0] == False:
         
     ## START THE PIPELINE ##               
     pipeline(filepath, aips_name, sources, full_source_list, target_list, \
-                disk_number, klass = klass_1, input_calibrator = inp_cal)
+                disk_number, klass = klass_1, input_calibrator = inp_cal, \
+                load_all = load_all)
     
     # Copy logs
     if len(target_list)>1:

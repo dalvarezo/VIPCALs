@@ -26,7 +26,8 @@ from AIPSData import AIPSUVData
 
 def pipeline(filepath, aips_name, sources, full_source_list, target_list,
              disk_number, klass = '', seq = 1, bif = 0, eif = 0,\
-             multi_id = False, selfreq = 0, input_calibrator = 'NONE'):
+             multi_id = False, selfreq = 0, input_calibrator = 'NONE', \
+             load_all = False):
     """Main workflow of the pipeline 
 
     :param filepath: path to the original uvfits/idifits file
@@ -54,6 +55,8 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     :param input_calibrator: force the pipeline to use this source as calibrator; \
                              defaults to 'NONE'
     :type input_calibrator: str, optional
+    :param load_all: load all sources on the dataset; default = False
+    :type load_all: bool, optional
     """    
     ## PIPELINE STARTS
     t_i = time.time()
@@ -124,7 +127,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         ## Load the dataset ##
         t0 = time.time()
         load.load_data(shortpath, aips_name_short, sources, disk_number, multi_id,\
-        selfreq, klass = klass, bif = bif, eif = eif)
+        selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
         t1 = time.time()   
         # IF load_data FAILS, THEN THE aux.uvfits FILE IS NOT REMOVED
         # I NEED TO CHECK AND REMOVE IT BEFOREHAND IF IT ALREADY EXISTS
@@ -134,7 +137,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         ## Load the dataset ##
         t0 = time.time()
         load.load_data(filepath, aips_name_short, sources, disk_number, multi_id,\
-        selfreq, klass = klass, bif = bif, eif = eif)
+        selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
         t1 = time.time() 
  
     for pipeline_log in log_list:
@@ -441,6 +444,19 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         scan_list, optimal_scan_list, max_n_antennas = cali.snr_scan_list(uvdata, \
                                                                         full_source_list)
         
+        ## Check if snr_scan_list() returned an error and, if so, end the pipeline
+        if scan_list == 404:
+            for pipeline_log in log_list:
+                pipeline_log.write('\nNone of the scans reached a minimum SNR of ' \
+                                + '5 and the dataset could not be automatically ' \
+                                + 'calibrated.\nThe pipeline will stop now.\n')
+                
+            print('\nNone of the scans reached a minimum SNR of ' \
+                + '5 and the dataset could not be automatically ' \
+                + 'calibrated.\nThe pipeline will stop now.\n')
+                
+            return()
+        
         # Since both scan_list and optimal_scan_list are ordered by SNR, print
         # the ones that have been rejected due to few antennas
         
@@ -472,19 +488,6 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
                 
             print('\nWARNING: The chosen scan has a low SNR. A better '\
                 + 'calibrator might be found manually.\n')
-        
-        ## Check if snr_scan_list() returned an error and, if so, end the pipeline
-        if scan_list == 404:
-            for pipeline_log in log_list:
-                pipeline_log.write('\nNone of the scans reached a minimum SNR of ' \
-                                + '5 and the dataset could not be automatically ' \
-                                + 'calibrated.\nThe pipeline will stop now.\n')
-                
-            print('\nNone of the scans reached a minimum SNR of ' \
-                + '5 and the dataset could not be automatically ' \
-                + 'calibrated.\nThe pipeline will stop now.\n')
-                
-            return()
         
         cal_scan = optimal_scan_list[0]
         t9 = time.time()
