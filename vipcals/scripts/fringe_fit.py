@@ -91,8 +91,8 @@ def calib_fring_fit(data, refant, cal_scan, solint = 0, \
     
     clcal.go()
     
-def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w = 0,\
-                     rate_w = 0):
+def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w = 1000,\
+                     rate_w = 200):
     """Fringe fit the science target
 
     Creates SN#6
@@ -107,13 +107,11 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
                    if > scan  => solint = scan; defaults to 0
     :type solint: int, optional
     :param version: CL table version in which to apply the solutions. SN version will \
-                    be (version - 3); defaults to 9
+                    be ('version' - 3); defaults to 9
     :type version: int, optional
-    :param delay_w: delay window in ns in which the search is performed; defaults to 0 \
-                    (full Nyquist range)
+    :param delay_w: delay window in ns in which the search is performed; defaults to 1000\
     :type delay_w: int, optional
-    :param rate_w: rate window in hz in which the search is performed; defaults to 0 \
-                   (full Nyquist range)
+    :param rate_w: rate window in hz in which the search is performed; defaults to 200 \
     :type rate_w: int, optional 
     """    
     target_fring = AIPSTask('fring')
@@ -132,7 +130,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
 
     target_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     target_fring.aparm[1] = 2    # At least 2 antennas per solution
-    target_fring.aparm[5] = 0    # Solve IFs separatedly
+    target_fring.aparm[5] = 0    # Solve IFs separately
     target_fring.aparm[6] = 2    # Amount of information printed
     target_fring.aparm[7] = 5    # SNR cutoff   
     target_fring.aparm[9] = 1    # Exhaustive search
@@ -162,6 +160,8 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
     clcal.msgkill = -4
     
     clcal.go()
+
+    return(target_fring.refant, str(target_fring.dparm[2]), str(target_fring.dparm[3]))
     
 def assess_fringe_fit(data, log, version = 6):
     """Print the number of failed solutions after fringe fit

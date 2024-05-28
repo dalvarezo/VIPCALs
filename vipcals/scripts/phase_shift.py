@@ -28,8 +28,7 @@ def uv_shift(data, target, new_coord):
         if target == entry['source'].replace(' ',''):
             old_coord = SkyCoord(entry['raepo'], entry['decepo'], unit = 'deg')
 
-    shift_1 = np.cos(old_coord.dec.arcsec) \
-                * (new_coord.ra.arcsec - old_coord.ra.arcsec)
+    shift_1 = np.cos(old_coord.dec.rad) * (new_coord.ra.arcsec - old_coord.ra.arcsec)
     shift_2 = new_coord.dec.arcsec - old_coord.dec.arcsec
 
     uvfix = AIPSTask('uvfix')

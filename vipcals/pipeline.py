@@ -178,14 +178,6 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         tabl.run_indxr(uvdata)
         print('\nINDXR was run, NX#1 and CL#1 were created.\n')
         
-    ## Print scan information ##    
-    # Remove the scanlist if it already exists
-    # if os.path.exists('./' + filename + '/scansum.txt'):
-    #     os.system('rm ' + './' + filename + '/scansum.txt')
-    # Not necessary necause I remove the whole directory beforehand,
-    # but I need to think again about it
-    load.print_listr(uvdata, filename_list)
-
     for pipeline_log in log_list:
         pipeline_log.write('\nScan information printed in /scansum.txt \n')
     ## Check for TY/GC/FG tables
@@ -323,6 +315,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
 
     if shift_coords != 'NONE':
         disp.write_box(log_list, 'Shifting phase center')
+        print('\nShifting phace center\n')
         for i, target in enumerate(target_list):
             if shift_coords[i] == SkyCoord(0, 0, unit = 'deg'):
                 continue
@@ -352,6 +345,14 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
                               + ' are: ' + shift_coords[i].to_string(style = 'hmsdms') \
                               + '\n')
 
+
+    ## Print scan information ##    
+    # Remove the scanlist if it already exists
+    # if os.path.exists('./' + filename + '/scansum.txt'):
+    #     os.system('rm ' + './' + filename + '/scansum.txt')
+    # Not necessary necause I remove the whole directory beforehand,
+    # but I need to think again about it
+    load.print_listr(uvdata, filename_list)
     ## Smooth the TY table ##    
     
     disp.write_box(log_list, 'Flagging system temperatures')
@@ -656,11 +657,21 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     
     ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
     for i, target in enumerate(target_list): 
-        frng.target_fring_fit(uvdata, refant, target, solint=float(solint_list[i]), 
-                              version = 9+i)
-        log_list[i].write('\nFringe fit applied to the target! '\
+        tfring_params = frng.target_fring_fit(uvdata, refant, target, \
+                                              solint=float(solint_list[i]), version = 9+i)
+        
+        log_list[i].write('\nFringe search performed on ' + target + '. Windows for ' \
+                         + 'the search were ' + tfring_params[1] + ' ns and ' \
+                         + tfring_params[2] + ' mHz.\n')
+        
+        log_list[i].write('\nFringe fit corrections applied to the target! '\
                         + 'SN#' + str(6+i) + ' and CL#' + str(9+i) + ' created.\n')
-        print('\nFringe fit applied to ' + target + '! SN#' + str(6+i) + \
+        
+        print('\nFringe search performed on ' + target + '. Windows for ' \
+             + 'the search were ' + tfring_params[1] + ' ns and ' \
+             + tfring_params[2] + ' mHz.\n')
+        
+        print('\nFringe fit corrections applied to ' + target + '! SN#' + str(6+i) + \
               ' and CL#' + str(9+i) + ' created.\n')   
     t14 = time.time()
     
@@ -676,7 +687,8 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
 
     expo.data_export(filename_list, uvdata, target_list)
     for i, target in enumerate(target_list): 
-        log_list[i].write('\n' + target + ' visibilites exported to ' + target + '.uvfits\n')
+        log_list[i].write('\n' + target + ' visibilites exported to ' + target \
+                         + '.uvfits\n')
         print('\n' + target + ' visibilites exported to ' + target + '.uvfits\n')
 
     ## Plot visibilities of target and calibrator ## 
