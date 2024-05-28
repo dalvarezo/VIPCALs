@@ -12,11 +12,6 @@ from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
 
-
-### I dont like to download the data into the current directory, Id prefer
-### to do it in some cache folder or something like that, and then leave
-### tsys.vlba, flag.vlba and similars in the target folder
-
 class gc_entry():
     """Entries from the master gain curve (vlba_gains.key)"""
     def __init__(self):

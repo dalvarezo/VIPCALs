@@ -3,6 +3,8 @@ import time
 import numpy as np
 from datetime import datetime
 
+from astropy.coordinates import SkyCoord
+
 import scripts.load_data as load
 import scripts.display as disp
 import scripts.load_tables as tabl
@@ -20,6 +22,7 @@ import scripts.bandpass as bpas
 import scripts.fringe_fit as frng
 import scripts.optimize_solint as opti
 import scripts.export_data as expo
+import scripts.phase_shift as shft
 
 from AIPSData import AIPSUVData
 
@@ -27,7 +30,7 @@ from AIPSData import AIPSUVData
 def pipeline(filepath, aips_name, sources, full_source_list, target_list,
              disk_number, klass = '', seq = 1, bif = 0, eif = 0,\
              multi_id = False, selfreq = 0, input_calibrator = 'NONE', \
-             load_all = False):
+             load_all = False, shift_coords = 'None'):
     """Main workflow of the pipeline 
 
     :param filepath: path to the original uvfits/idifits file
@@ -57,6 +60,9 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     :type input_calibrator: str, optional
     :param load_all: load all sources on the dataset; default = False
     :type load_all: bool, optional
+    :param shift_coords: list of new coordinates for the targets, as Astropy SkyCoord \
+                         objects,in case a phase shift was necessary; defaults to 'NONE'
+    :type shift_coords: list of SkyCoord
     """    
     ## PIPELINE STARTS
     t_i = time.time()
@@ -311,6 +317,41 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
               'been averaged to 32 channels.\n')
 
     
+    ## Shift phase center if necessary ##
+    # No shift will be done if the new coordinates are 0h0m0s +0d0m0s, in that case the
+    # source will not be altered
+
+    if shift_coords != 'NONE':
+        disp.write_box(log_list, 'Shifting phase center')
+        for i, target in enumerate(target_list):
+            if shift_coords[i] == SkyCoord(0, 0, unit = 'deg'):
+                continue
+                
+            old_seq = uvdata.seq    
+            # Delete the data if it already existed
+            if AIPSUVData(uvdata.name, uvdata.klass, \
+                          uvdata.disk, uvdata.seq + 1).exists(): 
+                AIPSUVData(uvdata.name, uvdata.klass, \
+                          uvdata.disk, uvdata.seq + 1).zap()
+            # Shift
+            shft.uv_shift(uvdata, target, shift_coords[i])
+         
+            uvdata = AIPSUVData(uvdata.name, uvdata.klass, \
+                                uvdata.disk, old_seq + 1)
+            
+            ## Reorder data
+            #tabl.tborder(uvdata, pipeline_log)
+            ## Run indxr
+            #uvdata.zap_table('CL', 1)
+            #tabl.run_indxr(uvdata)
+            # Remove previous dataset
+            AIPSUVData(uvdata.name, uvdata.klass, \
+                                uvdata.disk, uvdata.seq - 1).zap()
+            
+            log_list[i].write('\nThe new coordinates for the phase center of ' + target \
+                              + ' are: ' + shift_coords[i].to_string(style = 'hmsdms') \
+                              + '\n')
+
     ## Smooth the TY table ##    
     
     disp.write_box(log_list, 'Flagging system temperatures')

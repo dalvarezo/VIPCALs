@@ -74,7 +74,7 @@ def data_export(filename_list, data, target_list, flag_edge = True, flag_frac = 
         fittp.inname = target
         fittp.inclass = 'SPLIT'
         fittp.indisk = data.disk
-        fittp.inseq = 1
+        fittp.inseq = data.seq
         fittp.dataout = './' + filename_list[i] + '/' + target + '.uvfits'
         fittp.msgkill = -4        
         fittp.go()
