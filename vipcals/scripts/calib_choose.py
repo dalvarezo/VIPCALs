@@ -77,7 +77,6 @@ def snr_fring_only_fft(data, refant, solint = 0, delay_w = 1000, \
     :param rate_w: rate window in hz in which the search is performed, defaults to 200
     :type rate_w: int, optional  
     """    
-
     snr_fring = AIPSTask('fring')
     snr_fring.inname = data.name
     snr_fring.inclass = data.klass
@@ -112,7 +111,7 @@ def snr_scan_list(data, full_source_list, version = 3):
     Scans are first ordered by their SNR, then scans not using all antennas are dropped. \
     If there are no scans with all antennas available, only the ones with the maximum \
     number of antennas are taken into account. A warning will be printed if the best \
-    scans has an SNR below 40.
+    scan has an SNR below 40.
 
     :param data: visibility data
     :type data: AIPSUVData

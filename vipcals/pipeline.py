@@ -308,14 +308,13 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         print('\nThere were ' + str(no_chan) + ' channels per IF. It has '\
               'been averaged to 32 channels.\n')
 
-    
     ## Shift phase center if necessary ##
     # No shift will be done if the new coordinates are 0h0m0s +0d0m0s, in that case the
     # source will not be altered
 
     if shift_coords != 'NONE':
         disp.write_box(log_list, 'Shifting phase center')
-        print('\nShifting phace center\n')
+        print('\nShifting phase center\n')
         for i, target in enumerate(target_list):
             if shift_coords[i] == SkyCoord(0, 0, unit = 'deg'):
                 continue
@@ -384,7 +383,9 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     ## Choose refant ##
     disp.write_box(log_list, 'Reference antenna search')
     
-    refant = rant.refant_choose(uvdata, sources, full_source_list, log_list)
+    refant = rant.refant_choose_snr(uvdata, sources, target_list, full_source_list, \
+                                    log_list)
+
     t3=time.time()
     for pipeline_log in log_list:
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t3-t2))

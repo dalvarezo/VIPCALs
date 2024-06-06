@@ -114,7 +114,7 @@ def get_optimal_scans(target, optimal_scans, full_source_list):
     """Get the optimal scans for an specific target
 
     Get the scans where the target has been observed from the optimal scan list. Optimal \
-    means that the maximum number of antennas was observing the source. If there are not 
+    means that the maximum number of antennas were observing the source. If there are not 
     any scans in which all antennas were observed, returns an error code.
 
     :param target: source name
@@ -149,7 +149,7 @@ def optimize_solint(data, target, target_optimal_scans, refant):
     Runs a fringe fit in a selected number of scans of the target for five different \
     solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal \
     solution interval is the smallest time required for all baselines to reach and SNR \
-    of 6. If this condition is not met, then the solution interval is the scan length.
+    of 6. 
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -162,14 +162,6 @@ def optimize_solint(data, target, target_optimal_scans, refant):
     :return: optimal solution interval in minutes
     :rtype: float
     """    
-
-
-    # If there were no optimal scans for the target, i.e. no scans in which all antennas 
-    # were observing, then print a message and return the scan length as
-    # the solint. 
-    if len(target_optimal_scans) == 0:
-        return(scan_length)
-
     # Get scan length (assuming them equal) in minutes
     scan_length = target_optimal_scans[0].time_interval*24*60
     for solint in np.round([scan_length/5.1, scan_length/4.1, \
