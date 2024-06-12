@@ -120,15 +120,15 @@ def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
             pipeline_log.write('\nWARNING: No antenna was available for all scans\n')
         print('\nWARNING: No antenna was available for all scans\n')
 
-    # Drop antennas if not available on the targets scans, or not available in the max
-    # number of scans
+    # Drop antennas if not available on the targets scans, --- or not available in the max
+    # number of scans --- omitted this second part for now
     target_ids = [x.id for x in full_source_list if x.name in target_list]
     target_scans = [x for x in scan_list if x.source_id in target_ids]
     bad_antennas = []
     for ant in antennas_list:
-        if len(antennas_list[ant].scans_obs) < len(scan_list):
-            bad_antennas.append(ant)
-            continue
+        #if len(antennas_list[ant].scans_obs) < len(scan_list):
+        #    bad_antennas.append(ant)
+        #    continue
         for scan in target_scans:
             if scan.number not in antennas_list[ant].scans_obs:
                 bad_antennas.append(ant)
@@ -140,8 +140,8 @@ def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
     snr_dict = {}
     for i in antennas_list:
         snr_dict[i] = {}
-        for j in antennas_list:
-            snr_dict[i][j] = []
+        for j in range(len(an_table)):
+            snr_dict[i][j+1] = []
 
     for ant in antennas_list:
         dummy_fring(data, ant, target_list)
@@ -154,8 +154,8 @@ def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
 
     # Get the mean value over sources
     for i in antennas_list:
-        for j in antennas_list:
-            snr_dict[i][j] = np.mean(snr_dict[i][j])
+        for j in range(len(an_table)):
+            snr_dict[i][j+1] = np.mean(snr_dict[i][j+1])
 
     # Order by median SNR (computed over baselines)
     median_snr_dict = {}
