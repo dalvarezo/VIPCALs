@@ -14,7 +14,7 @@ from AIPS import AIPS
 
 import scripts.load_data as load
 
-from pipeline_tests import pipeline
+from pipeline import pipeline
 
 parser = argparse.ArgumentParser(
                     prog = 'VIPCALs',
@@ -30,6 +30,7 @@ parser.add_argument('-t', '--target', nargs = '+')
 # Optional arguments
 opargs = parser.add_argument_group('optional arguments')
 parser.add_argument('-c', '--calibrator', required = False, type = str, default = 'NONE')
+parser.add_argument('-r', '--refant', required = False, type = str, default = 'NONE')
 parser.add_argument('-s', '--shift', required = False, type = str, nargs = '+',\
                      default = 'NONE')
 
@@ -50,6 +51,7 @@ disk_number = args.disk_number
 inp_cal = args.calibrator
 load_all = args.load_all
 shifts = args.shift
+def_refant = args.refant
 
 ## Input sanity check ##
 
@@ -101,8 +103,8 @@ if multifreq_id[0] == True:
         pipeline(filepath, aips_name, sources, full_source_list, target_list,\
                     disk_number, klass = klass_1, \
                     multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
-                    input_calibrator = inp_cal, load_all = load_all, \
-                    shift_coords = shifts)
+                    default_refant = def_refant, input_calibrator = inp_cal, \
+                    load_all = load_all, shift_coords = shifts)
         
          # Copy logs
         if len(target_list)>1:
@@ -135,9 +137,10 @@ if multifreq_if[0] == True:
     
     ## START THE PIPELINE ##
     pipeline(filepath, aips_name, sources, full_source_list, target_list, \
-                disk_number, klass = klass_1,\
-                bif = multifreq_if[1], eif = multifreq_if[2], \
-                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
+             disk_number, klass = klass_1,\
+             bif = multifreq_if[1], eif = multifreq_if[2], \
+             default_refant = def_refant, input_calibrator = inp_cal, \
+             load_all = load_all, shift_coords = shifts)
     
     # Copy logs
     if len(target_list)>1:
@@ -162,9 +165,9 @@ if multifreq_if[0] == True:
         
     ## START THE PIPELINE ##  
     pipeline(filepath, aips_name, sources, full_source_list, target_list, \
-                disk_number, klass = klass_2, \
-                bif = multifreq_if[3], eif = multifreq_if[4], \
-                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
+             disk_number, klass = klass_2, \
+             bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
+             input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
 
     # Copy logs
     if len(target_list)>1:
@@ -196,8 +199,8 @@ if multifreq_id[0] == False and multifreq_if[0] == False:
         
     ## START THE PIPELINE ##               
     pipeline(filepath, aips_name, sources, full_source_list, target_list, \
-                disk_number, klass = klass_1, input_calibrator = inp_cal, \
-                load_all = load_all, shift_coords = shifts)
+             disk_number, klass = klass_1, default_refant = def_refant, \
+             input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
     
     # Copy logs
     if len(target_list)>1:

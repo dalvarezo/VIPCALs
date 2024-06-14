@@ -28,9 +28,9 @@ from AIPSData import AIPSUVData
 
 
 def pipeline(filepath, aips_name, sources, full_source_list, target_list,
-             disk_number, klass = '', seq = 1, bif = 0, eif = 0,\
-             multi_id = False, selfreq = 0, input_calibrator = 'NONE', \
-             load_all = False, shift_coords = 'None'):
+             disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
+             multi_id = False, selfreq = 0, default_refant = 'NONE', \
+             input_calibrator = 'NONE', load_all = False, shift_coords = 'None'):
     """Main workflow of the pipeline 
 
     :param filepath: path to the original uvfits/idifits file
@@ -55,6 +55,9 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     :type eif: int, optional
     :param selfreq: if there are multiple frequency ids, which one to load; defaults to 0
     :type selfreq: int, optional
+    :param default_refant: force the pipeline to choose this reference antenna by giving \
+                           its antenna code; defaults to 'NONE'
+    :type default_refant: str, optional
     :param input_calibrator: force the pipeline to use this source as calibrator; \
                              defaults to 'NONE'
     :type input_calibrator: str, optional
@@ -383,8 +386,16 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     ## Choose refant ##
     disp.write_box(log_list, 'Reference antenna search')
     
-    refant = rant.refant_choose_snr(uvdata, sources, target_list, full_source_list, \
-                                    log_list)
+    if default_refant == 'NONE':
+        refant = rant.refant_choose_snr(uvdata, sources, target_list, full_source_list, \
+                                        log_list)
+    else:
+        refant = [x['nosta'] for x in uvdata.table('AN',1) \
+                  if default_refant in x['anname']][0]
+        for pipeline_log in log_list:
+            pipeline_log.write(default_refant + ' has been manually selected as the ' \
+                               + 'reference antenna.\n')
+        print(default_refant + ' has been manually selected as the reference antenna.\n')
 
     t3=time.time()
     for pipeline_log in log_list:
