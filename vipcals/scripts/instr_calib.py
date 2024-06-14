@@ -4,6 +4,38 @@ from AIPSTask import AIPSTask, AIPSList
 import numpy as np
 import os
 
+def tacop(data, ext, invers, outvers):
+    """Copy one calibration table to another.
+
+    Copies one AIPS calibration table from one version to another one.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param ext: table extension
+    :type ext: str
+    :param invers: input version
+    :type invers: int
+    :param outvers: output version
+    :type outvers: int
+    """    
+    tacop = AIPSTask('tacop')
+    tacop.inname = data.name
+    tacop.inclass = data.klass 
+    tacop.indisk = data.disk
+    tacop.inseq = data.seq
+    
+    tacop.outname = data.name
+    tacop.outclass = data.klass 
+    tacop.outdisk = data.disk
+    tacop.outseq = data.seq
+    
+    tacop.inext = ext
+    tacop.invers = invers
+    tacop.outvers = outvers
+    tacop.msgkill = -4
+    
+    tacop.go()
+
 def ddhhmmss(time):
     """Convert decimal dates into AIPS dd hh mm ss format.
 
@@ -81,7 +113,7 @@ def manual_phasecal(data, refant, cal_scan):
     
     Creates SN#4 and CL#7
 
-    :param data: _description_
+    :param data: visibility data
     :type data: AIPSUVData
     :param refant: reference antenna number
     :type refant: int
@@ -139,4 +171,97 @@ def manual_phasecal(data, refant, cal_scan):
     clcal.msgkill = -4
     
     clcal.go()
+    
+def manual_phasecal_multi(data, refant, calib_scans):
+    """Correct instrumental phase delay with multiple calibrators without the PC table.
+    
+    Runs a fringe fit on a short scan of the calibrators, creating multiple SN tables.
+    Then, merges the solutions in SN#4 and interpolates them to the other sources using 
+    CLCAL.
+    
+    Creates SN#4 and CL#7
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param calib_scans: list of scans used for the calibration
+    :type calib_scans: list of Scan object
+    """        
+
+    for n, scan in enumerate(calib_scans):
+        calib = scan.name
+        scan_time = scan.time
+        scan_time_interval = scan.time_interval
+        init_time = ddhhmmss(scan_time - 0.9*scan_time_interval/2)
+        final_time = ddhhmmss(scan_time + 0.9*scan_time_interval/2)
+        timer = [None] + init_time.tolist() + final_time.tolist()
+        
+        phasecal_fring = AIPSTask('fring')
+        phasecal_fring.inname = data.name
+        phasecal_fring.inclass = data.klass
+        phasecal_fring.indisk = data.disk
+        phasecal_fring.inseq = data.seq
+        phasecal_fring.refant = refant
+        phasecal_fring.docalib = 1    # Apply CL tables
+        phasecal_fring.gainuse = 0    # Apply the latest CL table    
+        
+        phasecal_fring.calsour = AIPSList([calib])
+        phasecal_fring.timerang = timer
+        
+        phasecal_fring.antennas = AIPSList(scan.calib_antennas)
+
+        phasecal_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
+        phasecal_fring.aparm[1] = 2    # At least 2 antennas per solution
+        phasecal_fring.aparm[5] = 0    # Solve IFs separatedly
+        phasecal_fring.aparm[6] = 2    # Amount of information printed
+        phasecal_fring.aparm[7] = 5    # SNR cutoff   
+        
+        phasecal_fring.dparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
+        phasecal_fring.dparm[1] = 1    # Number of baseline combinations searched
+        phasecal_fring.dparm[2] = 500    # Delay window (ns)
+        phasecal_fring.dparm[9] = 1    # Do NOT fit rates 
+        
+        phasecal_fring.snver = 4 + n
+        phasecal_fring.msgkill = -2
+        
+        phasecal_fring.go()
+    
+    # Merge tables
+
+    clcal_merge = AIPSTask('clcal')
+    clcal_merge.inname = data.name
+    clcal_merge.inclass = data.klass
+    clcal_merge.indisk = data.disk
+    clcal_merge.inseq = data.seq
+
+    clcal_merge.opcode = 'MERG'
+    clcal_merge.snver = 4
+    clcal_merge.invers = 4+n
+    clcal_merge.refant = refant
+
+    clcal_merge.go()
+
+    # Apply solutions
+
+    clcal_apply = AIPSTask('clcal')
+    clcal_apply.inname = data.name
+    clcal_apply.inclass = data.klass
+    clcal_apply.indisk = data.disk
+    clcal_apply.inseq = data.seq
+    clcal_apply.opcode = 'calp'
+    clcal_apply.interpol = '2pt'
+    clcal_apply.snver = 4 + n + 1
+    clcal_apply.gainver = 6
+    clcal_apply.gainuse = 7
+    clcal_apply.msgkill = -4
+    
+    clcal_apply.go()
+    
+    # Remove previous tables and leave only the merged one
+    for i in range (4, 4+n+1):
+        data.zap_table('SN', i)
+
+    tacop(data, 'SN', 4+n+1, 4)
+    data.zap_table('SN', 4+n+1)
     

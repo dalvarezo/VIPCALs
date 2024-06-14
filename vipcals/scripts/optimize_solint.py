@@ -162,6 +162,9 @@ def optimize_solint(data, target, target_optimal_scans, refant):
     :return: optimal solution interval in minutes
     :rtype: float
     """    
+    ###
+    ### NOT THE OPTIMAL SCANS ANYMORE! IF IT WORKS I NEED TO CHANGE THE DOCSTRING
+    ###
     # Get scan length (assuming them equal) in minutes
     scan_length = target_optimal_scans[0].time_interval*24*60
     for solint in np.round([scan_length/5.1, scan_length/4.1, \

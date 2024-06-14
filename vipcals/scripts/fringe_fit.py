@@ -20,7 +20,7 @@ def ddhhmmss(time):
     return np.array([days,hours,minutes,seconds])
 
 
-def calib_fring_fit(data, refant, cal_scan, solint = 0, \
+def calib_fring_fit(data, refant, calib_scans, solint = 0, \
                     delay_w = 0, rate_w = 0):
     """Fringe fit the calibrator
 
@@ -30,8 +30,8 @@ def calib_fring_fit(data, refant, cal_scan, solint = 0, \
     :type data: AIPSUVData
     :param refant: reference antenna number
     :type refant: int
-    :param cal_scan: scan of a bright calibrator
-    :type cal_scan: Scan object
+    :param calib_scans: list of scans of bright calibrators
+    :type calib_scans: list of Scan object
     :param solint: solution interval in minutes, if 0 => solint = 10 min, \
                    if > scan  => solint = scan; defaults to 0
     :type solint: int, optional
@@ -42,7 +42,8 @@ def calib_fring_fit(data, refant, cal_scan, solint = 0, \
                    (full Nyquist range)
     :type rate_w: int, optional 
     """    
-    calib_name = cal_scan.name  # This is not neccesary! I should pass only the name!
+    calib_names = [x.name for x in calib_scans]
+    # This is not neccesary! I could pass only the name!
     
     calib_fring = AIPSTask('fring')
     calib_fring.inname = data.name
@@ -50,7 +51,7 @@ def calib_fring_fit(data, refant, cal_scan, solint = 0, \
     calib_fring.indisk = data.disk
     calib_fring.inseq = data.seq
     calib_fring.refant = refant
-    calib_fring.calsour = AIPSList([calib_name])
+    calib_fring.calsour = AIPSList(calib_names)
     
     calib_fring.docalib = 1
     calib_fring.gainuse = 0
@@ -80,7 +81,7 @@ def calib_fring_fit(data, refant, cal_scan, solint = 0, \
     clcal.inclass = data.klass
     clcal.indisk = data.disk
     clcal.inseq = data.seq
-    clcal.sources = AIPSList([calib_name])
+    clcal.sources = AIPSList(calib_names)
     
     clcal.opcode = 'calp'
     clcal.interpol = 'self'

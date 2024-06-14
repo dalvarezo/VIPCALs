@@ -13,6 +13,7 @@ class SNRScan():
         self.time = None
         self.time_interval = None
         self.antennas = []
+        self.calib_antennas = []
 
 def snr_fring(data, refant, solint = 0):
     """Short fringe fit to select a bright calibrator.
@@ -105,6 +106,109 @@ def snr_fring_only_fft(data, refant, solint = 0, delay_w = 1000, \
     
     snr_fring.go()
     
+
+def snr_scan_list_v2(data, full_source_list, version = 3):
+    """Create a list of scans ordered by SNR.
+
+    Scans are returned ordered by their SNR. A warning will be printed \
+    if the best scan has an SNR below 40.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param full_source_list: list containing all sources in the dataset
+    :type full_source_list: list of Source objects
+    :param version: SN table version containing the SNR values, defaults to 3
+    :type version: int, optional
+    :return: ordered list of scans with SNR > 5
+    :rtype: list of SNRScan objects
+    """    
+    max_n_antennas = len(data.table('AN', 1))
+    snr_table = data.table('SN', version)
+    scan_list = []
+    optimal_scan_list = []
+    time_list = []
+    for entry in snr_table:
+        if entry['time'] not in time_list:
+            a = SNRScan()
+            a.time = entry['time']
+            a.time_interval = entry['time_interval']
+            scan_list.append(a)
+            time_list.append(a.time)
+            
+        element = next(scan for scan in scan_list \
+                       if scan.time == entry['time'])
+        element.id = entry['source_id']
+        element.antennas.append(entry['antenna_no'])
+        try:
+            element.snr.append(entry['weight_1'][0])
+        except TypeError: # Single IF datasets
+            element.snr.append(entry['weight_1'])
+    # Order them by SNR
+    scan_list.sort(key=lambda x: np.median(x.snr),\
+                   reverse=True)
+    # Drop no detections (SNR less than five)
+    # Causes problems later on, better keep them
+    #aux_list = []
+    #for s in scan_list:
+    #    if np.median(s.snr) > 5:
+    #        aux_list.append(s)
+    #scan_list = aux_list
+    # If there are no scans, tell the main worflow to print an error message
+    # and stop the pipeline
+    if len(scan_list) == 0:
+        return(404)
+    # Right now, the median includes the value at the reference 
+    # antenna, which is always (SNR threshold + 1). This should be fixed.
+    # Assign source names to both lists
+    for scans in scan_list:
+        for src in full_source_list:
+            if scans.id == src.id:
+                scans.name = src.name
+    for scans in optimal_scan_list:
+        for src in full_source_list:
+            if scans.id == src.id:
+                scans.name = src.name
+    return(scan_list)
+
+def get_calib_scans(data, ordered_scan_list, refant):
+    """Get the scans that will be used for calibration steps.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param ordered_scan_list: scan list ordered by SNR
+    :type ordered_scan_list: lists of SNRScan objects
+    """    
+    # Retrieve all antennas
+    an_table = data.table('AN', 1)
+    all_antennas = [x['nosta'] for x in an_table]
+    covered_antennas = []
+    # Drop scans not available for the reference antenna
+    aux_list = []
+    for s in ordered_scan_list:
+        if refant in s.antennas:
+            aux_list.append(s)
+    scan_list = aux_list
+    # If there are no scans, tell the main worflow to print an error message
+    # and stop the pipeline
+    # How do I do this?
+    #if len(scan_list) == 0:
+    #    return(405,405)
+    # Fill the calib_scan_list until all antennas are covered
+    calib_scan_list = []
+    for s in scan_list:
+        s.calib_antennas = [x for x in s.antennas if x not in covered_antennas] + [refant]
+        if len(s.calib_antennas) > 1:
+            calib_scan_list.append(s)
+            covered_antennas += s.calib_antennas
+            covered_antennas = list(set(covered_antennas))
+        if set(covered_antennas) == set(all_antennas):
+            break
+    return(calib_scan_list)
+
+
+
 def snr_scan_list(data, full_source_list, version = 3):
     """Create a list of scans ordered by datapoints and SNR.
 
@@ -121,7 +225,7 @@ def snr_scan_list(data, full_source_list, version = 3):
     :type version: int, optional
     :return: ordered list of scans with SNR > 5, ordered list of scans where the maximum \
              number of antennas was observing
-    :rtype: tuple of lists of Scan objects
+    :rtype: tuple of lists of SNRScan objects
     """    
     max_n_antennas = len(data.table('AN', 1))
     snr_table = data.table('SN', version)
@@ -149,11 +253,12 @@ def snr_scan_list(data, full_source_list, version = 3):
     scan_list.sort(key=lambda x: np.median(x.snr),\
                    reverse=True)
     # Drop no detections (SNR less than five)
-    aux_list = []
-    for s in scan_list:
-        if np.median(s.snr) > 5:
-            aux_list.append(s)
-    scan_list = aux_list
+    # Causes problems later on, better keep them
+    #aux_list = []
+    #for s in scan_list:
+    #    if np.median(s.snr) > 5:
+    #        aux_list.append(s)
+    #scan_list = aux_list
     
     # If there are no scans, tell the main worflow to print an error message
     # and stop the pipeline

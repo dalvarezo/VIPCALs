@@ -19,7 +19,7 @@ def ddhhmmss(time):
     return np.array([days,hours,minutes,seconds])
     
 
-def possm_plotter(filename, data, target, cal_scan, \
+def possm_plotter(filename, data, target, cal_scans, \
                   gainuse, bpver = 0, flag_edge = True, flag_frac = 0.1):
     """Plot visibilities as a function of frequency to a PostScript file.
 
@@ -29,8 +29,8 @@ def possm_plotter(filename, data, target, cal_scan, \
     :type data: AIPSUVData
     :param target: science target name
     :type target: str
-    :param cal_scan: scan used for the calibration
-    :type cal_scan: Scan object
+    :param cal_scans: list of scans used for the calibration
+    :type cal_scans: list of Scan object
     :param gainuse: CL version to apply
     :type gainuse: int
     :param bpver: BP table version to use, if = 0 then don't correct for bandpass, \
@@ -43,7 +43,7 @@ def possm_plotter(filename, data, target, cal_scan, \
     :type flag_frac: float, optional
     """    
     
-    calib = cal_scan.name
+    calib_names = [x.name for x in cal_scans]
     
     possm = AIPSTask('possm')
     possm.inname = data.name
@@ -51,7 +51,7 @@ def possm_plotter(filename, data, target, cal_scan, \
     possm.indisk = data.disk
     possm.inseq = data.seq
 
-    possm.sources = AIPSList([calib, target])
+    possm.sources = AIPSList(calib_names + [target])
     possm.stokes = 'RRLL'
     possm.solint = -1
     

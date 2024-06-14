@@ -14,7 +14,7 @@ from AIPS import AIPS
 
 import scripts.load_data as load
 
-from pipeline import pipeline
+from pipeline_tests import pipeline
 
 parser = argparse.ArgumentParser(
                     prog = 'VIPCALs',

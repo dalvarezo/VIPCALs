@@ -20,7 +20,7 @@ def ddhhmmss(time):
     return np.array([days,hours,minutes,seconds])
     
 
-def bp_correction(data,refant, cal_scan):
+def bp_correction(data,refant, calib_scans):
     """Apply complex bandpass correction to the data.
 
     Generates BP#1
@@ -29,15 +29,16 @@ def bp_correction(data,refant, cal_scan):
     :type data: AIPSUVData
     :param refant: reference antenna number
     :type refant: int
-    :param cal_scan: scan used for the calibration
-    :type cal_scan: Scan object
+    :param cal_scan: scans used for the calibration
+    :type cal_scan: list of Scan object
     """    
-    calib = cal_scan.name
-    scan_time = cal_scan.time
-    scan_time_interval = cal_scan.time_interval
-    init_time = ddhhmmss(scan_time - 0.9*scan_time_interval/2)
-    final_time = ddhhmmss(scan_time + 0.9*scan_time_interval/2)
-    timer = [None] + init_time.tolist() + final_time.tolist()
+    calib_names = [x.name for x in calib_scans]
+    if len(calib_scans) == 1:
+        scan_time = calib_scans[0].time
+        scan_time_interval = calib_scans[0].time_interval
+        init_time = ddhhmmss(scan_time - 0.9*scan_time_interval/2)
+        final_time = ddhhmmss(scan_time + 0.9*scan_time_interval/2)
+        timer = [None] + init_time.tolist() + final_time.tolist()
     	
     bpass = AIPSTask('bpass')
     bpass.inname = data.name
@@ -45,13 +46,14 @@ def bp_correction(data,refant, cal_scan):
     bpass.indisk = data.disk
     bpass.inseq = data.seq
     bpass.refant = refant    
-    bpass.calsour = AIPSList([calib])
-    bpass.timerang = timer
+    bpass.calsour = AIPSList(calib_names)
+    if len(calib_scans) == 1:
+        bpass.timerang = timer
     bpass.docalib = 1
     bpass.solint = -1  # Whole timerange
     
     bpass.bpassprm[1:] = [0,0,0,0,0,0,0,0,0,0,0]  # Reset parameters
-    bpass.bpassprm[5] = 1  # Not divide by channel 0
+    bpass.bpassprm[5] = 0  # Divide by channel 0 (central 75 per cent of channels)
     bpass.bpassprm[9] = 1  # Interpolate over flagged channels
     bpass.bpassprm[10] = 6  # normalize amplitudes and zero average 
                             # phase using all channels in power, not
