@@ -8,7 +8,7 @@ from AIPSTask import AIPSTask, AIPSList
 def uv_shift(data, target, new_coord):
     """Shift the phase center of a dataset.
 
-    The produced dataset has the same AISP name and class, but the sequence number 
+    The produced dataset has the same AIPS name and class, but the sequence number 
     increases by one for every shifted source. If the new coordinates are 0h0m0s +0d0m0s,
     then no shift is produced.
 

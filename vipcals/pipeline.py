@@ -702,10 +702,12 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
                          + '.uvfits\n')
         print('\n' + target + ' visibilites exported to ' + target + '.uvfits\n')
 
-    ## Plot visibilities of target and calibrator ## 
+    ## PLOTS ##
+
+    ## Plot visibilities as a function of frequency of target and calibrator ## 
     disp.write_box(log_list, 'Plotting visibilities')
     
-    ## Uncalibrated ##
+        ## Uncalibrated ##
     for i, target in enumerate(target_list):
         plot.possm_plotter(filename_list[i], uvdata, target, calibrator_scans, 1, \
                            bpver = 0, flag_edge=False)
@@ -715,7 +717,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         print('\nUncalibrated visibilities plotted in /' + filename_list[i] \
             + '/CL1_possm.ps\n')
         
-    ## Calibrated ##
+        ## Calibrated ##
     for i, target in enumerate(target_list):
         plot.possm_plotter(filename_list[i], uvdata, target, calibrator_scans, 9+i, \
                            bpver = 1)
@@ -724,6 +726,25 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
                             + '/CL' + str(9+i) + '_possm.ps\n')
         print('Calibrated visibilities plotted in /' + filename_list[i] \
             + '/CL' + str(9+i) + '_possm.ps\n')
+        
+    ## Plot uv coverage ##
+    for i, target in enumerate(target_list):
+        plot.uvplt_plotter(filename_list[i], uvdata, target)
+
+        pipeline_log.write('UV coverage plotted in /' + filename_list[i] \
+                          + '/' + target + '_UVPLT.ps\n')
+        print('UV coverage plotted in /' + filename_list[i] \
+             + '/' + target + '_UVPLT.ps\n')
+        
+    ## Plot visibilities as a function of time of target## 
+    for i, target in enumerate(target_list):
+        plot.vplot_plotter(filename_list[i], uvdata, target, 9+i)     
+        
+        pipeline_log.write('Visibilities as a function of time plotted in ' \
+                           + '/' + filename_list[i]  + '/' + target + '_VPLOT.ps\n')
+        print('Visibilities as a function of time plotted in ' \
+             + '/' + filename_list[i]  + '/' + target + '_VPLOT.ps\n')
+
     t15 = time.time()
     for pipeline_log in log_list:
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t15-t14))

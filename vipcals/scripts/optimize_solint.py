@@ -174,6 +174,13 @@ def optimize_solint(data, target, target_optimal_scans, refant):
         for a in target_optimal_scans[0].antennas:
             snr_dict[a] = []
         for i, scan in enumerate(target_optimal_scans):
+            # If there are any antennas not initialized in the dictionary, then do so
+            # This  might happen when different scans have different available antennas
+            # I could avoid this but using only the ones with the max number of antennas
+            # available....
+            for a in target_optimal_scans[i].antennas:
+                if a not in snr_dict.keys():
+                    snr_dict[a] = []
             # Get the timerange of the scan
             scan_time = scan.time
             scan_time_interval = scan.time_interval

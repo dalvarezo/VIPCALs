@@ -65,9 +65,12 @@ if shifts != 'NONE':
     for i, coord in enumerate(shifts):
         ra = coord.split(',')[0]
         dec = coord.split(',')[1]
-        shifts[i] =  SkyCoord(ra, dec, unit = 'deg')
-
-# I NEED TO PRINT AN ERROR MESSAGE IF COORDINATES CANNOT BE CONVERTED
+        try:
+            shifts[i] =  SkyCoord(ra, dec, unit = 'deg')
+        except: 
+            print('\nThere was an error while reading the phase-shift coordinates.' \
+                  + ' Please make sure that the input is correct.\n')
+            exit()
 
 ## Check for multiband datasets ##
 # In IDs    
