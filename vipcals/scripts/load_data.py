@@ -34,30 +34,28 @@ class Source():
             self.band = 'K'
 
 
-def open_log(name):
+def open_log(path, name):
     """Create a log.txt to store AIPS outputs.
 
-    :param name: directory name
+    :param path: directory path
+    :type path: str
+    :param name: source name
     :type name: str
     """    
-    AIPS.log = open('./' + name + '/' + name + '_AIPS_log.txt', 'w')
+    AIPS.log = open(path + '/' + name + '_AIPS_log.txt', 'w')
 
-def copy_log(target_list, klass):
+def copy_log(path_list, filename_list):
     """Copy AIPS log to all folders when multiple targets are selected
 
-    :param target_list: target names
-    :type target_list: list of str
-    :param klass: class name whithin AIPS
-    :type klass: str
-    """
-    filename_list = target_list.copy()
-    for i, name in enumerate(filename_list):
-        filename_list[i] = name + '_' + klass
-    
-    log_name = './' + filename_list[0] + '/' + filename_list[0] + '_AIPS_log.txt'
-    for name in filename_list[1:]:
+    :param path_list: list of filepaths for each source
+    :type path_list: list of str
+    :param filename_list: list of file names
+    :type filename_list: list of str
+    """ 
+    log_name = path_list[0] + '/' + filename_list[0] + '_AIPS_log.txt'
+    for i, name in enumerate(filename_list[1:]):
         os.system('cp ' + log_name\
-                  + ' ./' + name + '/' + name + '_AIPS_log.txt')
+                  + ' ' + path_list[i+1] + '/' + name + '_AIPS_log.txt')
 
 
 
@@ -66,7 +64,7 @@ def get_source_list(file_path, freq = 0):
 
     :param file_path: path of the uvfits/idifts file
     :type file_path: str
-    :param freq: if there are multiple frequency ids, which one to chhose; defaults to 0
+    :param freq: if there are multiple frequency ids, which one to choose; defaults to 0
     :type freq: int, optional
     :return: list of sources contained in the file
     :rtype: list of Source objects
@@ -150,8 +148,6 @@ def find_calibrators(full_source_list):
         for src in full_source_list:
             calibs.append(src.name)
         return(calibs)
-    
-    # Might not be optimal if the dataset has very different frequencies...
     
 def is_it_multifreq_id(file_path):
     """Check if the file contains multiple bands splitted in IDs.
@@ -260,13 +256,15 @@ def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
         fitld.selfreq = float(selfreq)    
     fitld.go()
 
-def print_listr(data, filename_list):
+def print_listr(data, path_list, filename_list):
     """Print scan information in an external file.
 
     Runs the FITLD task and prints the output in scansum.txt
 
     :param data: visibility data
     :type data: AIPSUVData
+    :param path_list: list of filepaths for each source
+    :type path_list: list of str
     :param filename_list: list of folder names for the different science targets
     :type log: list of str
     """    
@@ -279,8 +277,8 @@ def print_listr(data, filename_list):
     listr.optype = 'SCAN'
     listr.xinc = 1
     listr.docrt = -2
-    for name in filename_list:
-        listr.outprint = './' + name + '/scansum.txt'
+    for i, name in enumerate(filename_list):
+        listr.outprint = path_list[i] + '/' + name + '_scansum.txt'
         listr.msgkill = -4
         
         listr.go()

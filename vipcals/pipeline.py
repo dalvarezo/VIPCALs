@@ -3,6 +3,7 @@ import time
 import numpy as np
 from datetime import datetime
 
+
 from astropy.coordinates import SkyCoord
 
 import scripts.load_data as load
@@ -27,7 +28,8 @@ import scripts.phase_shift as shft
 from AIPSData import AIPSUVData
 
 
-def pipeline(filepath, aips_name, sources, full_source_list, target_list,
+def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
+             filename_list, log_list, path_list,\
              disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
              multi_id = False, selfreq = 0, default_refant = 'NONE', \
              input_calibrator = 'NONE', load_all = False, shift_coords = 'None'):
@@ -43,6 +45,12 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     :type full_source_list: list of Source objects
     :param target_list: target names
     :type target_list: list of str
+    :param filename_list: list of file names
+    :type filename_list: list of str
+    :param log_list: list of log files
+    :type log_list: list of file
+    :param path_list: list of filepaths for each source
+    :type path_list: list of str
     :param disk_number:disk number whithin AIPS
     :type disk_number: int
     :param klass: class name whithin AIPS; defaults to ‘’
@@ -69,40 +77,16 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     """    
     ## PIPELINE STARTS
     t_i = time.time()
-    ## Define folder names ##
-    filename_list = target_list.copy()
-    log_list = target_list.copy()
-    for i, name in enumerate(filename_list):
-        filename_list[i] = name + '_' + klass
-        
-    ## Open log(s) ##
-    # Pipeline log
-    for i, name in enumerate(filename_list):
-        if os.path.exists('./' + name) == True:
-            os.system('rm -rf ./' + name) 
-        os.system('mkdir ' + name)
-        # Let's see how to manage this, this doesn't convince me
-        log_list[i] = open('./' + name + '/' + name \
-                            + '_pipeline_log.txt', 'w+')
-        log_list[i].write(os.path.basename(filepath) + ' --- '\
-                            + '{:.2f} MB \n'.format\
-                            (os.path.getsize(filepath)/1024**2 ))
-        
+
+    ## I NEED TO GIVE BOTH filename_list AND log_list AS INPUTS!!
+
     # AIPS log is only opened for the first target, it will be copied once the pipeline 
     # ends
-    load.open_log(filename_list[0])
-
-    ## Check if the AIPS catalogue name is too long, and rename ##
-    aips_name_short = aips_name
-    if len(aips_name) > 12:
-        name = aips_name.split('_')[0]
-        suffix = aips_name.split('_')[1]
-        size_name = 12 - (len(suffix) + 1)
-        aips_name_short = name[:size_name] + '_' + suffix
+    load.open_log(path_list[0], filename_list[0])
         
     ## Check if the test file already exists and delete it ##
     
-    uvdata = AIPSUVData(aips_name_short, klass, disk_number, seq)
+    uvdata = AIPSUVData(aips_name, klass, disk_number, seq)
     
     if uvdata.exists() == True:
         uvdata.zap()
@@ -135,7 +119,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         
         ## Load the dataset ##
         t0 = time.time()
-        load.load_data(shortpath, aips_name_short, sources, disk_number, multi_id,\
+        load.load_data(shortpath, aips_name, sources, disk_number, multi_id,\
         selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
         t1 = time.time()   
         # IF load_data FAILS, THEN THE aux.uvfits FILE IS NOT REMOVED
@@ -145,7 +129,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     else:
         ## Load the dataset ##
         t0 = time.time()
-        load.load_data(filepath, aips_name_short, sources, disk_number, multi_id,\
+        load.load_data(filepath, aips_name, sources, disk_number, multi_id,\
         selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
         t1 = time.time() 
  
@@ -181,8 +165,10 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         tabl.run_indxr(uvdata)
         print('\nINDXR was run, NX#1 and CL#1 were created.\n')
         
-    for pipeline_log in log_list:
-        pipeline_log.write('\nScan information printed in /scansum.txt \n')
+    for i, pipeline_log in enumerate(log_list):
+        pipeline_log.write('\nScan information printed in ' + path_list[i] + '/' \
+                           + filename_list[i] + '_scansum.txt \n')
+
     ## Check for TY/GC/FG tables
     missing_tables = False
     if ([1, 'AIPS TY'] not in uvdata.tables or [1, 'AIPS GC'] \
@@ -191,13 +177,13 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         missing_tables = True
         t_i_table = time.time()
 
-    
     if [1, 'AIPS TY'] not in uvdata.tables:
         retrieved_urls = tabl.load_ty_tables(uvdata, bif, eif)
         for pipeline_log in log_list:
             for good_url in retrieved_urls:
-                pipeline_log.write('\nSystem temperatures were not available in the file, '\
-                                    + 'they have been retrieved from ' + good_url + '\n')
+                pipeline_log.write('\nSystem temperatures were not available in the ' \
+                                  + 'file, they have been retrieved from ' \
+                                  + good_url + '\n')
             pipeline_log.write('TY#1 created.\n')
 
         # Move the temperature file to the target folders
@@ -273,11 +259,11 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'])
         
     if time_resol < 0.33:
-        avgdata = AIPSUVData(aips_name_short, 'AVGT', disk_number, seq)
+        avgdata = AIPSUVData(aips_name, 'AVGT', disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
         tabl.time_aver(uvdata, time_resol, 2)
-        uvdata = AIPSUVData(aips_name_short, 'AVGT', disk_number, seq)
+        uvdata = AIPSUVData(aips_name, 'AVGT', disk_number, seq)
 
         disp.write_box(log_list, 'Data averaging')
         for pipeline_log in log_list:
@@ -295,7 +281,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
         no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'])
         
     if no_chan > 128:
-        avgdata = AIPSUVData(aips_name_short, 'AVGF', disk_number, seq)
+        avgdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
         ratio = no_chan/32    # NEED TO ADD A CHECK IN CASE THIS FAILS
@@ -304,7 +290,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
             disp.write_box(log_list, 'Data averaging')
         
         tabl.freq_aver(uvdata,ratio)
-        uvdata = AIPSUVData(aips_name_short, 'AVGF', disk_number, seq)
+        uvdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
         for pipeline_log in log_list:
             pipeline_log.write('\nThere were ' + str(no_chan) + ' channels per '+ \
                             'IF. It has been averaged to 32 channels.\n')
@@ -354,7 +340,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     #     os.system('rm ' + './' + filename + '/scansum.txt')
     # Not necessary necause I remove the whole directory beforehand,
     # but I need to think again about it
-    load.print_listr(uvdata, filename_list)
+    load.print_listr(uvdata, path_list, filename_list)
     ## Smooth the TY table ##    
     
     disp.write_box(log_list, 'Flagging system temperatures')
@@ -696,54 +682,56 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list,
     ##  Export data ##
     disp.write_box(log_list, 'Exporting visibility data')
 
-    expo.data_export(filename_list, uvdata, target_list)
+    expo.data_export(path_list, uvdata, target_list)
     for i, target in enumerate(target_list): 
-        log_list[i].write('\n' + target + ' visibilites exported to ' + target \
-                         + '.uvfits\n')
-        print('\n' + target + ' visibilites exported to ' + target + '.uvfits\n')
+        log_list[i].write('\n' + target + ' visibilites exported to ' + path_list[i] \
+                          + '/' + target + '.uvfits\n')
+        print('\n' + target + ' visibilites exported to ' + path_list[i] + '/' \
+             + target + '.uvfits\n')
 
     ## PLOTS ##
 
     ## Plot visibilities as a function of frequency of target and calibrator ## 
     disp.write_box(log_list, 'Plotting visibilities')
     
-        ## Uncalibrated ##
+    ## Uncalibrated ##
     for i, target in enumerate(target_list):
-        plot.possm_plotter(filename_list[i], uvdata, target, calibrator_scans, 1, \
+        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 1, \
                            bpver = 0, flag_edge=False)
     
-        log_list[i].write('\nUncalibrated visibilities plotted in /' + filename_list[i] \
-                        + '/CL1_possm.ps\n')
-        print('\nUncalibrated visibilities plotted in /' + filename_list[i] \
-            + '/CL1_possm.ps\n')
+        log_list[i].write('\nUncalibrated visibilities plotted in '  + path_list[i]  \
+                           + '/' + target + '_CL1_POSSM.ps\n')
+        print('\nUncalibrated visibilities plotted in '  + path_list[i] +  '/' \
+                           + target + '_CL1_POSSM.ps\n')
         
-        ## Calibrated ##
+    ## Calibrated ##
     for i, target in enumerate(target_list):
-        plot.possm_plotter(filename_list[i], uvdata, target, calibrator_scans, 9+i, \
+        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 9+i, \
                            bpver = 1)
         
-        pipeline_log.write('Calibrated visibilities plotted in /' + filename_list[i] \
-                            + '/CL' + str(9+i) + '_possm.ps\n')
-        print('Calibrated visibilities plotted in /' + filename_list[i] \
-            + '/CL' + str(9+i) + '_possm.ps\n')
+        log_list[i].write('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
+                           + target + '_CL' + str(9+i) + '_POSSM.ps\n')
+        print('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
+             + target + '_CL' + str(9+i) + '_POSSM.ps\n')
         
     ## Plot uv coverage ##
     for i, target in enumerate(target_list):
-        plot.uvplt_plotter(filename_list[i], uvdata, target)
+        plot.uvplt_plotter(path_list[i], uvdata, target)
 
-        pipeline_log.write('UV coverage plotted in /' + filename_list[i] \
-                          + '/' + target + '_UVPLT.ps\n')
-        print('UV coverage plotted in /' + filename_list[i] \
+        log_list[i].write('UV coverage of ' + target + ' plotted in ' \
+                           + path_list[i] + '/' + target + '_UVPLT.ps\n')
+        print('UV coverage of ' + target + ' plotted in ' + path_list[i] \
              + '/' + target + '_UVPLT.ps\n')
         
     ## Plot visibilities as a function of time of target## 
     for i, target in enumerate(target_list):
-        plot.vplot_plotter(filename_list[i], uvdata, target, 9+i)     
+        plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
         
-        pipeline_log.write('Visibilities as a function of time plotted in ' \
-                           + '/' + filename_list[i]  + '/' + target + '_VPLOT.ps\n')
-        print('Visibilities as a function of time plotted in ' \
-             + '/' + filename_list[i]  + '/' + target + '_VPLOT.ps\n')
+        log_list[i].write('Visibilities as a function of time of ' + target \
+                           + ' plotted in ' + path_list[i]  + '/' + target \
+                           + '_VPLOT.ps\n')
+        print('Visibilities as a function of time of ' + target + ' plotted in ' \
+              + path_list[i]  + '/' + target + '_VPLOT.ps\n')
 
     t15 = time.time()
     for pipeline_log in log_list:

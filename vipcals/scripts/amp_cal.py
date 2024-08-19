@@ -35,7 +35,7 @@ def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     #  apcal.sources = AIPSList(sources)
     apcal.aparm[6] = average
     apcal.aparm[7] = ref_if
-    apcal.msgkill = -4
+    apcal.msgkill = -6
     
     apcal.go()
     

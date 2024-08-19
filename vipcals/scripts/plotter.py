@@ -19,12 +19,12 @@ def ddhhmmss(time):
     return np.array([days,hours,minutes,seconds])
     
 
-def possm_plotter(filename, data, target, cal_scans, \
+def possm_plotter(filepath, data, target, cal_scans, \
                   gainuse, bpver = 0, flag_edge = True, flag_frac = 0.1):
     """Plot visibilities as a function of frequency to a PostScript file.
 
-    :param filename: name of the output folder 
-    :type filename: str
+    :param filepath: path of the output directory 
+    :type filepath: str
     :param data: visibility data
     :type data: AIPSUVData
     :param target: science target name
@@ -107,7 +107,7 @@ def possm_plotter(filename, data, target, cal_scans, \
     lwpla.invers = max_plot
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
-    lwpla.outfile = './' + filename + '/CL' + str(gainuse) + '_possm.ps'
+    lwpla.outfile = filepath +  '/' + target + '_CL' + str(gainuse) + '_POSSM.ps'
     
     lwpla.msgkill = -4
     
@@ -117,11 +117,11 @@ def possm_plotter(filename, data, target, cal_scans, \
     data.zap_table('PL', -1)
 
 
-def uvplt_plotter(filename, data, target, solint = 0.17):
+def uvplt_plotter(filepath, data, target, solint = 0.17):
     """Plot UV coverage for a source to a PostScript file.
 
-    :param filename: name of the output folder 
-    :type filename: str
+    :param filepath: path of the output directory 
+    :type filepath: str
     :param data: visibility data
     :type data: AIPSUVData
     :param target: science target name
@@ -160,7 +160,7 @@ def uvplt_plotter(filename, data, target, solint = 0.17):
     lwpla.invers = 1
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
-    lwpla.outfile = './' + filename + '/' + target + '_UVPLT.ps'
+    lwpla.outfile = filepath + '/' + target + '_UVPLT.ps'
     
     lwpla.msgkill = -4
     
@@ -170,12 +170,12 @@ def uvplt_plotter(filename, data, target, solint = 0.17):
     data.zap_table('PL', -1)
 
 
-def vplot_plotter(filename, data, target, gainuse, bpver = 0, avgif = 1, avgchan = 1, \
+def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan = 1, \
                   solint = 0.17):
     """Plot visibilities as a function of time to a PostScript file.
 
-    :param filename: name of the output folder 
-    :type filename: str
+    :param filepath: path of the output directory 
+    :type filepath: str
     :param data: visibility data
     :type data: AIPSUVData
     :param target: science target name
@@ -235,7 +235,7 @@ def vplot_plotter(filename, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     lwpla.invers = max_plot
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
-    lwpla.outfile = './' + filename + '/' + target + '_VPLOT.ps'
+    lwpla.outfile = filepath + '/' + target + '_VPLOT.ps'
     
     lwpla.msgkill = -4
     

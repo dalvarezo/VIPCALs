@@ -165,6 +165,7 @@ def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
     refant = final_list[0]
 
     for pipeline_log in log_list:
+        pipeline_log.write('\n')
         pipeline_log.write(antennas_list[refant].name + ' has been selected as the ' \
                           + 'reference antenna. It is available in ' + str(max_scan_no) \
                           + ' out of ' + str(len(scan_list)) + ' scans.\nMedian SNR ' \

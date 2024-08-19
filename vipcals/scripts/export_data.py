@@ -5,7 +5,7 @@ from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 from AIPSData import AIPSUVData
 
-def data_export(filename_list, data, target_list, flag_edge = True, flag_frac = 0.1):
+def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1):
     """Split multi-source uv data to single source and export it to uvfits format.
 
     By default, it averages visibilities in frequency, producing one single channel 
@@ -13,8 +13,8 @@ def data_export(filename_list, data, target_list, flag_edge = True, flag_frac = 
     correct for roll-off. The number of channels omitted can be given either as an 
     integer number of channels, or as a percentage.
 
-    :param filename_list: list of names of the output folders
-    :type filename: list of str
+    :param path_list: list of filepaths for each source
+    :type path_list: list of str
     :param data: visibility data
     :type data: AIPSUVData
     :param target_list: list of sources to split
@@ -75,6 +75,6 @@ def data_export(filename_list, data, target_list, flag_edge = True, flag_frac = 
         fittp.inclass = 'SPLIT'
         fittp.indisk = data.disk
         fittp.inseq = data.seq
-        fittp.dataout = './' + filename_list[i] + '/' + target + '.uvfits'
+        fittp.dataout = path_list[i] + '/' + target + '_' + data.klass + '.uvfits'
         fittp.msgkill = -4        
         fittp.go()
