@@ -10,6 +10,97 @@ from astropy.table import Table
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
+
+class MultiFile:
+    def __init__(self, *file_paths, mode='r'):
+        """
+        Initialize the MultiFile object with multiple file paths.
+        
+        :param file_paths: The paths of the files to be opened.
+        :param mode: The mode in which the files should be opened.
+        """
+        self.files = [open(file_path, mode) for file_path in file_paths]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def read(self):
+        """
+        Reads from all files and returns their content concatenated.
+        """
+        return ''.join(file.read() for file in self.files)
+
+    def write(self, data):
+        """
+        Writes the given data to all files.
+        
+        :param data: The data to be written to the files.
+        """
+        for file in self.files:
+            file.write(data)
+
+    def close(self):
+        """
+        Closes all opened files.
+        """
+        for file in self.files:
+            file.close()
+
+    def readlines(self):
+        """
+        Reads lines from all files and returns a list of lists, each 
+        containing lines from one file.
+        """
+        return [file.readlines() for file in self.files]
+
+    def writelines(self, lines):
+        """
+        Writes a list of lines to all files.
+        
+        :param lines: The list of lines to write to the files.
+        """
+        for file in self.files:
+            file.writelines(lines)
+
+    def seek(self, offset, whence=0):
+        """
+        Moves the file pointer to a new position in all files.
+        
+        :param offset: The offset to move the pointer to.
+        :param whence: The reference point (0: start, 1: current position, 2: end).
+        """
+        for file in self.files:
+            file.seek(offset, whence)
+
+    def tell(self):
+        """
+        Returns the current position of the file pointer from the first file.
+        (Note: Assumes all files are at the same position.)
+        """
+        return self.files[0].tell()
+
+    def flush(self):
+        """
+        Flushes the write buffer of all files.
+        """
+        for file in self.files:
+            file.flush()
+
+    def __iter__(self):
+        """
+        Iterates over the lines of the first file. (This can be adjusted to 
+        iterate over all files if needed).
+        """
+        return iter(self.files[0])
+
+    def __repr__(self):
+        return f"MultiFile({[file.name for file in self.files]}, \
+            mode={self.files[0].mode})"
+
+
 class Source():
     """Sources within a fits file."""
     def __init__(self):
@@ -34,15 +125,19 @@ class Source():
             self.band = 'K'
 
 
-def open_log(path, name):
+def open_log(path_list, filename_list):
     """Create a log.txt to store AIPS outputs.
 
-    :param path: directory path
-    :type path: str
-    :param name: source name
-    :type name: str
-    """    
-    AIPS.log = open(path + '/' + name + '_AIPS_log.txt', 'w')
+    :param path_list: list of filepaths for each source
+    :type path_list: list of str
+    :param filename_list: list of file names
+    :type filename_list: list of str
+    """
+    log_paths = []
+    for i, path in enumerate(path_list):
+        log_paths.append(path + '/' + filename_list[i] + '_AIPS_log.txt')
+
+    AIPS.log = MultiFile(*log_paths, mode = 'w')
 
 def copy_log(path_list, filename_list):
     """Copy AIPS log to all folders when multiple targets are selected

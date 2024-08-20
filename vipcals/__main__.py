@@ -56,6 +56,11 @@ shifts = args.shift
 def_refant = args.refant
 output_directory = args.output_directory
 
+## Print ASCII art ##
+
+ascii_logo = open('./ascii_logo_string.txt', 'r').read()
+print(ascii_logo)
+
 ## Input sanity check ##
 
 if shifts != 'NONE':
@@ -85,7 +90,7 @@ if output_directory != 'NONE':
 
 
 if output_directory == 'NONE':
-    output_directory = '.'
+    output_directory = os.getcwd()
 
 
 ## Check for multiband datasets ##
@@ -143,6 +148,7 @@ if multifreq_id[0] == True:
 
             log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
                         + '_pipeline_log.txt', 'w+')
+            log_list[i].write(ascii_logo + '\n')
             log_list[i].write(os.path.basename(filepath) + ' --- '\
                                 + '{:.2f} MB \n'.format\
                                 (os.path.getsize(filepath)/1024**2 ))
@@ -154,10 +160,6 @@ if multifreq_id[0] == True:
                     multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
                     default_refant = def_refant, input_calibrator = inp_cal, \
                     load_all = load_all, shift_coords = shifts)
-        
-         # Copy logs
-        if len(target_list)>1:
-            load.copy_log(path_list, filename_list)
         
     exit() # STOP the pipeline. This needs to be tweaked.
 
@@ -208,6 +210,7 @@ if multifreq_if[0] == True:
 
         log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
                     + '_pipeline_log.txt', 'w+')
+        log_list[i].write(ascii_logo + '\n')
         log_list[i].write(os.path.basename(filepath) + ' --- '\
                             + '{:.2f} MB \n'.format\
                             (os.path.getsize(filepath)/1024**2 ))
@@ -220,9 +223,6 @@ if multifreq_if[0] == True:
              default_refant = def_refant, input_calibrator = inp_cal, \
              load_all = load_all, shift_coords = shifts)
     
-    # Copy logs
-    if len(target_list)>1:
-        load.copy_log(path_list, filename_list)
 
     ## SECOND FREQUENCY ##
     ## Select sources to load ##
@@ -265,6 +265,7 @@ if multifreq_if[0] == True:
 
         log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
                     + '_pipeline_log.txt', 'w+')
+        log_list[i].write(ascii_logo + '\n')
         log_list[i].write(os.path.basename(filepath) + ' --- '\
                             + '{:.2f} MB \n'.format\
                             (os.path.getsize(filepath)/1024**2 ))
@@ -275,10 +276,6 @@ if multifreq_if[0] == True:
              disk_number, klass = klass_2, \
              bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
              input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
-
-    # Copy logs
-    if len(target_list)>1:
-        load.copy_log(path_list, filename_list)
 
     # End the pipeline
     exit()
@@ -329,6 +326,7 @@ if multifreq_id[0] == False and multifreq_if[0] == False:
 
         log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
                     + '_pipeline_log.txt', 'w+')
+        log_list[i].write(ascii_logo + '\n')
         log_list[i].write(os.path.basename(filepath) + ' --- '\
                             + '{:.2f} MB \n'.format\
                             (os.path.getsize(filepath)/1024**2 ))
@@ -338,7 +336,3 @@ if multifreq_id[0] == False and multifreq_if[0] == False:
              filename_list, log_list, path_list, \
              disk_number, klass = klass_1, default_refant = def_refant, \
              input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
-    
-    # Copy logs
-    if len(target_list)>1:
-        load.copy_log(path_list, filename_list)

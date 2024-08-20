@@ -39,23 +39,23 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     :type filepath: str
     :param aips_name: name for the catalogue entry in AIPS
     :type aips_name: str
-    :param sources: list with source names
+    :param sources: list with source names to be loaded
     :type sources: list of str
     :param full_source_list: list containing all sources in the dataset
     :type full_source_list: list of Source objects
     :param target_list: target names
     :type target_list: list of str
-    :param filename_list: list of file names
+    :param filename_list: list containing the subdirectories of each target
     :type filename_list: list of str
     :param log_list: list of log files
     :type log_list: list of file
-    :param path_list: list of filepaths for each source
+    :param path_list: list containing the file paths of each target
     :type path_list: list of str
-    :param disk_number:disk number whithin AIPS
+    :param disk_number: disk number within AIPS
     :type disk_number: int
-    :param klass: class name whithin AIPS; defaults to ‘’
+    :param klass: class name within AIPS; defaults to ‘’
     :type klass: str, optional
-    :param seq:sequence number within AIPS; defaults to 1
+    :param seq: sequence number within AIPS; defaults to 1
     :type seq: int, optional
     :param bif: first IF to copy, 0 => 1; defaults to 0
     :type bif: int, optional
@@ -78,11 +78,9 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     ## PIPELINE STARTS
     t_i = time.time()
 
-    ## I NEED TO GIVE BOTH filename_list AND log_list AS INPUTS!!
-
     # AIPS log is only opened for the first target, it will be copied once the pipeline 
     # ends
-    load.open_log(path_list[0], filename_list[0])
+    load.open_log(path_list, filename_list)
         
     ## Check if the test file already exists and delete it ##
     
@@ -122,10 +120,8 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
         load.load_data(shortpath, aips_name, sources, disk_number, multi_id,\
         selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
         t1 = time.time()   
-        # IF load_data FAILS, THEN THE aux.uvfits FILE IS NOT REMOVED
-        # I NEED TO CHECK AND REMOVE IT BEFOREHAND IF IT ALREADY EXISTS
-        # Isn't it solved above? I'm not sure now
-        # os.system('rm -f ' + shortpath) 
+        os.system('rm ' + shortpath)
+
     else:
         ## Load the dataset ##
         t0 = time.time()
@@ -164,10 +160,6 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
         uvdata.tables:
         tabl.run_indxr(uvdata)
         print('\nINDXR was run, NX#1 and CL#1 were created.\n')
-        
-    for i, pipeline_log in enumerate(log_list):
-        pipeline_log.write('\nScan information printed in ' + path_list[i] + '/' \
-                           + filename_list[i] + '_scansum.txt \n')
 
     ## Check for TY/GC/FG tables
     missing_tables = False
@@ -187,10 +179,10 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
             pipeline_log.write('TY#1 created.\n')
 
         # Move the temperature file to the target folders
-        for name in filename_list:
-            os.system('cp ./tsys.vlba ./' + name + '/flags.vlba')
+        for path in path_list:
+            os.system('cp ./tsys.vlba ' + path + '/tsys.vlba')
     
-        # And delete the files from the main directory
+        # And delete the files from the current directory
         os.system('rm ./tables*')
         os.system('rm ./tsys.vlba')
    
@@ -217,8 +209,8 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
                                + '\nGC#1 created.\n\n')
             
         # Move the gain curve file to the target folders
-        for name in filename_list:
-            os.system('cp ./gaincurves.vlba ./' + name + '/flags.vlba')
+        for path in path_list:
+            os.system('cp ./gaincurves.vlba ' + path + '/gaincurves.vlba')
     
         # And delete the files from the main directory
         os.system('rm ./gaincurves.vlba')           
@@ -236,8 +228,8 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
             pipeline_log.write('FG#1 created.\n')
 
         # Move the flag file to the target folders
-        for name in filename_list:
-            os.system('cp ./flags.vlba ./' + name + '/flags.vlba')
+        for path in path_list:
+            os.system('cp ./flags.vlba ' + path + '/flags.vlba')
     
         # And delete the files from the main directory
         os.system('rm ./tables*')
@@ -335,12 +327,10 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
 
 
     ## Print scan information ##    
-    # Remove the scanlist if it already exists
-    # if os.path.exists('./' + filename + '/scansum.txt'):
-    #     os.system('rm ' + './' + filename + '/scansum.txt')
-    # Not necessary necause I remove the whole directory beforehand,
-    # but I need to think again about it
     load.print_listr(uvdata, path_list, filename_list)
+    for i, pipeline_log in enumerate(log_list):
+        pipeline_log.write('\nScan information printed in ' + path_list[i] + '/' \
+                            + filename_list[i] + '_scansum.txt \n')
     ## Smooth the TY table ##    
     
     disp.write_box(log_list, 'Flagging system temperatures')
