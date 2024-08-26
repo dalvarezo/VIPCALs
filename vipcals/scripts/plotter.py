@@ -199,8 +199,8 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     vplot.inseq = data.seq
 
     vplot.sources = AIPSList([target])
-    vplot.avgchan = 1
-    vplot.avgif = 1
+    vplot.avgchan = avgchan
+    vplot.avgif = avgif
     vplot.solint = solint
 
     vplot.docalib = 1

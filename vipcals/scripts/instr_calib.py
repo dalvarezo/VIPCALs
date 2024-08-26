@@ -229,18 +229,19 @@ def manual_phasecal_multi(data, refant, calib_scans):
     
     # Merge tables
 
-    clcal_merge = AIPSTask('clcal')
-    clcal_merge.inname = data.name
-    clcal_merge.inclass = data.klass
-    clcal_merge.indisk = data.disk
-    clcal_merge.inseq = data.seq
+    for n in range(len(calib_scans) - 1):
+        clcal_merge = AIPSTask('clcal')
+        clcal_merge.inname = data.name
+        clcal_merge.inclass = data.klass
+        clcal_merge.indisk = data.disk
+        clcal_merge.inseq = data.seq
 
-    clcal_merge.opcode = 'MERG'
-    clcal_merge.snver = 4
-    clcal_merge.invers = 4+n
-    clcal_merge.refant = refant
+        clcal_merge.opcode = 'MERG'
+        clcal_merge.snver = 4
+        clcal_merge.invers = 4+n+1
+        clcal_merge.refant = refant
 
-    clcal_merge.go()
+        clcal_merge.go()
 
     # Apply solutions
 

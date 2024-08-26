@@ -8,7 +8,7 @@ def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     """Apply a-priori amplitude corrections
     
     This task takes as input a system temperature (TY) table and a 
-    gain curve GC table and generates a solution (SN) table containing 
+    gain curve (GC) table and generates a solution (SN) table containing 
     amplitude gain calibration information.
 
     Creates SN#2 and CL#5.

@@ -8,6 +8,7 @@ import os
 import numpy as np
 
 from astropy.io import fits
+from astropy.table import Table
 from astropy.coordinates import SkyCoord
 
 from AIPS import AIPS
@@ -62,7 +63,7 @@ ascii_logo = open('./ascii_logo_string.txt', 'r').read()
 print(ascii_logo)
 
 ## Input sanity check ##
-
+# Phase shift #
 if shifts != 'NONE':
     if len(target_list) != len(shifts):
         print('\nThe number of shifted coordinates does not match the number of ' \
@@ -80,6 +81,22 @@ if shifts != 'NONE':
                   + ' Please make sure that the input is correct.\n')
             exit()
 
+# Reference antenna
+if def_refant != 'NONE':
+    hdul = fits.open(filepath)
+    antenna_names = []
+    hdul = fits.open(filepath)
+    non_ascii_antennas = list(Table(hdul['ANTENNA'].data)['ANNAME'])
+    for ant in non_ascii_antennas:
+        ant = ant.encode()[:2].decode()
+        antenna_names.append(ant)
+    if def_refant not in antenna_names:
+        print('The selected reference antenna is not available in the FITS file.' \
+              + ' Please make sure that the input is correct.')
+        exit()
+
+
+# Output directory
 if output_directory != 'NONE':
     if os.path.isdir(output_directory) == False:
         print('\nThe selected output directory does not exist.' \

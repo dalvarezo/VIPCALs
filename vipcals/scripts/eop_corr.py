@@ -8,7 +8,7 @@ def eop_correct(data):
     """Earth orientation parameters correction.
     
     Correction of UT1-UTC and Earth's pole position.
-    Downloads an USNO file and applies CLCOR
+    Downloads a file and applies CLCOR
      
     Create CL#3
 

@@ -468,7 +468,6 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
         #snr_fring(uvdata, refant)
         cali.snr_fring_only_fft(uvdata, refant)
         
-        
         ## Get a list of scans ordered by SNR ##
         
         scan_list = cali.snr_scan_list_v2(uvdata, full_source_list)
