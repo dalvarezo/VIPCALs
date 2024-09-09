@@ -86,7 +86,7 @@ if def_refant != 'NONE':
     hdul = fits.open(filepath)
     antenna_names = []
     hdul = fits.open(filepath)
-    non_ascii_antennas = list(Table(hdul['ANTENNA'].data)['ANNAME'])
+    non_ascii_antennas = list(hdul['ANTENNA'].data['ANNAME'])
     for ant in non_ascii_antennas:
         ant = ant.encode()[:2].decode()
         antenna_names.append(ant)

@@ -304,8 +304,18 @@ def is_it_multifreq_if(file_path):
             break
     freq_1 = np.floor(if_freq[0][0])
     freq_2 = np.floor(if_freq[0][-1])
-    return(multifreq, 1, IF, IF+1, len(if_freq[0]), str(freq_1)[0],\
-           str(freq_2)[0], freq_1, freq_2)
+
+    if freq_1 > 1e10:
+        klass_1 = str(freq_1)[:2]
+    else:
+        klass_1 = str(freq_1)[0]
+    if freq_2 > 1e10:
+        klass_2 = str(freq_2)[:2]
+    else:
+        klass_2 = str(freq_2)[0]
+
+    return(multifreq, 1, IF, IF+1, len(if_freq[0]), klass_1,\
+           klass_2, freq_1, freq_2)
         
 
 def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \

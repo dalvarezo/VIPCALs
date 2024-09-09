@@ -236,7 +236,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
         os.system('rm ./flags.vlba')
 
         print('\nFlag information was not available in the file, it ' \
-               + 'has been retrieved from online.\n')
+               + 'has been retrieved online.\n')
         print('FG#1 created.\n')
 
     if missing_tables == True:
@@ -257,6 +257,10 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
         tabl.time_aver(uvdata, time_resol, 2)
         uvdata = AIPSUVData(aips_name, 'AVGT', disk_number, seq)
 
+        # Index the data again
+        uvdata.zap_table('CL', 1)
+        tabl.run_indxr(uvdata)
+
         disp.write_box(log_list, 'Data averaging')
         for pipeline_log in log_list:
             pipeline_log.write('\nThe time resolution was ' \
@@ -266,28 +270,49 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
             + 's. It has been averaged to 2s.\n')
         
             
-    ## If there are more than 128 channels, average the dataset in frequency
+    ## If the channel bandwidth is smaller tha or equal to 125kHz, average the dataset 
+    ## in frequency up to 0.5MHz per channel 
     try:
+        ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'][0])
         no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'][0])
     except TypeError: # Single IF datasets
+        ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'])
         no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'])
         
-    if no_chan > 128:
+    if ch_width <= 125000:
         avgdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
-        ratio = no_chan/32    # NEED TO ADD A CHECK IN CASE THIS FAILS
+        ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
         
         if time_resol >= 0.33: # = If it was not written before
             disp.write_box(log_list, 'Data averaging')
         
         tabl.freq_aver(uvdata,ratio)
         uvdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
+
+        # Index the data again
+        uvdata.zap_table('CL', 1)
+        tabl.run_indxr(uvdata)
+
+        try:
+            no_chan_new = int(uvdata.table('FQ', 1)[0]['total_bandwidth'][0]/ \
+                              uvdata.table('FQ', 1)[0]['ch_width'][0])
+        except TypeError: # Single IF datasets
+            no_chan_new = int(uvdata.table('FQ', 1)[0]['total_bandwidth']/ \
+                              uvdata.table('FQ', 1)[0]['ch_width'])
+
+
         for pipeline_log in log_list:
-            pipeline_log.write('\nThere were ' + str(no_chan) + ' channels per '+ \
-                            'IF. It has been averaged to 32 channels.\n')
-        print('\nThere were ' + str(no_chan) + ' channels per IF. It has '\
-              'been averaged to 32 channels.\n')
+            pipeline_log.write('\nThere were ' + str(no_chan) + ' channels of ' \
+                            + str(ch_width/1e3) + ' kHz per IF. The dataset has ' \
+                            + 'been averaged to ' + str(no_chan_new) + ' channels of ' \
+                            + '500 kHz.\n')
+
+        print('\nThere were ' + str(no_chan) + ' channels of ' \
+              + str(ch_width/1e3) + ' kHz per IF. The dataset has ' \
+              + 'been averaged to ' + str(no_chan_new) + ' channels of ' \
+              + '500 kHz.\n')
 
     ## Shift phase center if necessary ##
     # No shift will be done if the new coordinates are 0h0m0s +0d0m0s, in that case the
@@ -363,8 +388,19 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     disp.write_box(log_list, 'Reference antenna search')
     
     if default_refant == 'NONE':
-        refant = rant.refant_choose_snr(uvdata, sources, target_list, full_source_list, \
-                                        log_list)
+        ## TESTING ##
+        ## Now it prints the results using only the targets and all sources ##
+        ## and repeats this search just before the very last fringe fit ##
+        for pipeline_log in log_list:
+            pipeline_log.write('\nCHOOSING REFANT WITH TARGETS\n')
+        ## FOR THE TARGETS ##
+        refant = rant.refant_choose_snr(uvdata, sources, target_list, target_list, \
+                                        full_source_list, log_list)
+        ## FOR ALL SOURCES ##
+        for pipeline_log in log_list:
+            pipeline_log.write('\nCHOOSING REFANT WITH ALL SOURCES\n')
+        refant = rant.refant_choose_snr(uvdata, sources, sources, target_list, \
+                                        full_source_list, log_list)
     else:
         refant = [x['nosta'] for x in uvdata.table('AN',1) \
                   if default_refant in x['anname']][0]
@@ -436,8 +472,30 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
 
     ## Amplitude calibration ##
     disp.write_box(log_list, 'Amplitude calibration')
+
+    # Check which antennas have GC, only calibrate those and issue a warning
     
-    ampc.amp_cal(uvdata)
+    all_antennas = [x['nosta'] for x in uvdata.table('AN',1)]
+    gc_antennas = [y['antenna_no'] for y in uvdata.table('GC',1)]
+
+    missing_antennas = [z for z in all_antennas if z not in gc_antennas]
+
+    if len(missing_antennas) > 0:
+        for n in missing_antennas:
+            n_name = [x['anname'] for x in uvdata.table('AN', 1) if x['nosta'] == n] 
+            n_name[0] = n_name[0].replace(' ','') 
+            print('\n' + str(n) + '-' + n_name[0] + ' has no GC available. No amplitude' \
+                  + ' calibration will be performed for this antenna.\n') 
+            
+    for pipeline_log in log_list:
+        for n in missing_antennas:
+            n_name = [x['anname'] for x in uvdata.table('AN', 1) if x['nosta'] == n]
+            n_name[0] = n_name[0].replace(' ','') 
+            pipeline_log.write('\n' + str(n) + '-' + n_name[0] + ' has no GC available.' \
+                               + ' No amplitude calibration will be performed for ' \
+                               + 'this antenna.\n') 
+    
+    ampc.amp_cal(uvdata, gc_antennas)
     t7 = time.time()
     for pipeline_log in log_list:
         pipeline_log.write('\nAmplitude calibration applied! SN#2 and CL#5'\
@@ -640,6 +698,26 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     print('Execution time: {:.2f} s. \n'.format(t13-t12))
 
     ## Fringe fit of the target ##
+
+    # I comment this part for now
+    # Takes forever to run and I thin it doesn't change anything
+
+    # if default_refant == 'NONE':
+    #     disp.write_box(log_list, 'EXTRA TESTING')
+    #     ## TESTING ##
+    #     ## Now it prints the results using only the targets and all sources ##
+    #     ## and repeats this search just before the very last fringe fit ##
+    #     for pipeline_log in log_list:
+    #         pipeline_log.write('\nCHOOSING REFANT WITH TARGETS\n')
+    #     ## FOR THE TARGETS ##
+    #     _ = rant.refant_choose_snr(uvdata, sources, target_list, full_source_list, \
+    #                                     log_list)
+    #     ## FOR ALL SOURCES ##
+    #     for pipeline_log in log_list:
+    #         pipeline_log.write('\nCHOOSING REFANT WITH ALL SOURCES\n')
+    #     _ = rant.refant_choose_snr(uvdata, sources, sources, full_source_list, \
+    #                                     log_list)
+
     
     ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
     for i, target in enumerate(target_list): 

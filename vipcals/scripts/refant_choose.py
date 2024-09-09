@@ -41,7 +41,8 @@ class Scan():
     
     
 
-def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
+def refant_choose_snr(data, sources, search_sources, target_list, full_source_list, \
+                      log_list):
     """Choose a suitable reference antenna using SNR values
 
     Select antennas based on its availability throughout the observation, then run a \
@@ -52,6 +53,8 @@ def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
     :type data: AIPSUVData
     :param sources: list with source names
     :type sources: list of str
+    :param search_sources: list of sources to consider in the search
+    :type search_sources: list of str    
     :param target_list: target names
     :type target_list: list of str
     :param full_source_list: list containing all sources in the dataset
@@ -107,6 +110,13 @@ def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
         s.get_antennas(wuvdata)
         scan_list.append(s)
 
+    # Drop scans with no antennas observing or 0 seconds of observing time
+    for s in scan_list:
+        if len(s.antennas) == 0:
+            scan_list.remove(s)
+    for s in scan_list:
+        if s.len == 0.0:
+            scan_list.remove(s)
     # How many scans did each antenna observe
     for ant in antennas_list:
         for scn in scan_list:
@@ -144,11 +154,11 @@ def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
             snr_dict[i][j+1] = []
 
     for ant in antennas_list:
-        dummy_fring(data, ant, target_list)
+        dummy_fring(data, ant, search_sources)
         # Check the last SN table and store the median SNR (computed over IFs)
         last_table = data.table('SN', 0)
         for entry in last_table:
-            snr_dict[ant][entry['antenna_no']].append(np.median(entry['weight_1']))
+            snr_dict[ant][entry['antenna_no']].append(np.nanmedian(entry['weight_1']))
         # Remove table
         data.zap_table('SN', 0)
 
@@ -160,8 +170,9 @@ def refant_choose_snr(data, sources, target_list, full_source_list, log_list):
     # Order by median SNR (computed over baselines)
     median_snr_dict = {}
     for ant in antennas_list:
-        median_snr_dict[ant] =  np.median(list(snr_dict[ant].values()))
+        median_snr_dict[ant] =  np.nanmedian(list(snr_dict[ant].values()))
     final_list = sorted(median_snr_dict, key = median_snr_dict.get, reverse = True)
+
     refant = final_list[0]
 
     for pipeline_log in log_list:
@@ -364,8 +375,8 @@ def refant_choose_tsys(data, sources, full_source_list, log_list):
     for ant in std_dict:
         median_if_dict[ant] = []
         for source in std_dict[ant]:
-            median_if_dict[ant].append(np.median(std_dict[ant][source]))
-        median_if_dict[ant] = np.median(median_if_dict[ant])
+            median_if_dict[ant].append(np.nanmedian(std_dict[ant][source]))
+        median_if_dict[ant] = np.nanmedian(median_if_dict[ant])
 
 
     # Order by dispersion 

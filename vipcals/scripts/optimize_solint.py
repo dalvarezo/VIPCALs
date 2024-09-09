@@ -148,8 +148,8 @@ def optimize_solint(data, target, target_optimal_scans, refant):
 
     Runs a fringe fit in a selected number of scans of the target for five different \
     solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal \
-    solution interval is the smallest time required for all baselines to reach and SNR \
-    of 6. 
+    solution interval is the smallest time required for all baselines to reach an SNR \
+    of 5.5. 
 
     :param data: visibility data
     :type data: AIPSUVData

@@ -23,7 +23,7 @@ def ty_smooth(data, tmin = 0, tmax = 1000, time_interv = 15, max_dev = 250):
     :param time_interv:  smoothing time interval in minutes, defaults to 15
     :type time_interv: float, optional
     :param max_dev: maximum TSys deviation allowed from the mean value of each \
-        source in K, defaults to 250
+        source in K; defaults to 250
     :type max_dev: float, optional
     """    
     tysmo = AIPSTask('tysmo')
