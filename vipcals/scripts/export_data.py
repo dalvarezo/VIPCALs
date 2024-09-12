@@ -31,44 +31,45 @@ def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1)
         if split_data.exists():
             split_data.zap()
 
+    for i, target in enumerate(target_list):
+        split = AIPSTask('split')
+        split.inname = data.name
+        split.inclass = data.klass
+        split.indisk = data.disk
+        split.inseq = data.seq
 
-    split = AIPSTask('split')
-    split.inname = data.name
-    split.inclass = data.klass
-    split.indisk = data.disk
-    split.inseq = data.seq
+        split.outdisk = data.disk
+        split.outseq = data.seq
 
-    split.outdisk = data.disk
-    split.outseq = data.seq
-
-    split.sources = AIPSList(target_list)
-    split.docal = 1
-    split.gainuse = 0
-    split.doband = 1
-    split.msgkill = -4
-    split.aparm[1] = 2  # Average frequency in IFs, produce one channel per IF
+        split.sources = AIPSList([target])
+        split.docal = 1
+        split.gainuse = 9+i
+        split.doband = 1
+        split.msgkill = -4
+        split.aparm[1] = 2  # Average frequency in IFs, produce one channel per IF
     
-    try:
-        no_channels = int(data.table('FQ',1)[0]['total_bandwidth'][0] / \
-                      data.table('FQ',1)[0]['ch_width'][0])
-    except TypeError:   # Single IF datasets
-        no_channels = int(data.table('FQ',1)[0]['total_bandwidth'] / \
-                      data.table('FQ',1)[0]['ch_width'])
-        
-    if flag_edge == True and flag_frac < 1:
-        flag_chann = int(flag_frac * no_channels)
-    if flag_edge == True and flag_frac >= 1:
-        if type(flag_frac) != int:
+        try:
+            no_channels = int(data.table('FQ',1)[0]['total_bandwidth'][0] / \
+                        data.table('FQ',1)[0]['ch_width'][0])
+        except TypeError:   # Single IF datasets
+            no_channels = int(data.table('FQ',1)[0]['total_bandwidth'] / \
+                        data.table('FQ',1)[0]['ch_width'])
+            
+        if flag_edge == True and flag_frac < 1:
+            flag_chann = int(flag_frac * no_channels)
+        if flag_edge == True and flag_frac >= 1:
+            if type(flag_frac) != int:
+                flag_chann = 0
+                # I NEED TO PRINT AN ERROR MESSAGE
+            else:
+                flag_chann = flag_frac
+        if flag_edge == False:
             flag_chann = 0
-            # I NEED TO PRINT AN ERROR MESSAGE
-        else:
-            flag_chann = flag_frac
-    if flag_edge == False:
-        flag_chann = 0
 
-    split.bchan = flag_chann + 1
-    split.echan = no_channels - flag_chann
-    split.go()
+        split.bchan = flag_chann + 1
+        split.echan = no_channels - flag_chann
+        split.go()
+
     for i, target in enumerate(target_list):
         fittp = AIPSTask('fittp')
         fittp.inname = target
