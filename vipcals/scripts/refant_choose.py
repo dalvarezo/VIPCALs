@@ -84,6 +84,18 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
         a.coords = np.array(ant['stabxyz'])
         antennas_list[a.id] = a
 
+    # Remove antennas with no TY or GC information
+    gc_antennas = [y['antenna_no'] for y in data.table('GC',1)]
+    ty_antennas = []
+    for t in data.table('TY', 2):
+        ty_antennas.append(t['antenna_no'])
+    ty_antennas = list(set(ty_antennas))
+
+    bad_antennas = [z for z in list(antennas_list.keys()) if z \
+                    not in ty_antennas or z not in gc_antennas]
+    for element in bad_antennas:
+        del antennas_list[element]
+
     # Where is the physical center of the array?
     center_coord = np.array([0,0,0])
     for ant in antennas_list:

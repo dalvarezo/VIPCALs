@@ -356,11 +356,42 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     for i, pipeline_log in enumerate(log_list):
         pipeline_log.write('\nScan information printed in ' + path_list[i] + '/' \
                             + filename_list[i] + '_scansum.txt \n')
-    ## Smooth the TY table ##    
+    ## Smooth the TY table ##  
+    ## Flag antennas with no TY or GC table entries ##  
     
     disp.write_box(log_list, 'Flagging system temperatures')
     
-    tysm.ty_smooth(uvdata)
+    no_tsys_ant, no_gc_ant = tysm.ty_smooth(uvdata)
+
+    if len(no_tsys_ant) > 0:
+        for n in no_tsys_ant:
+            n_name = [x['anname'] for x in uvdata.table('AN', 1) if x['nosta'] == n] 
+            n_name[0] = n_name[0].replace(' ','') 
+            print('\n' + str(n) + '-' + n_name[0] + ' has no TSys available, ' \
+                  + 'it will be flagged.\n')
+                
+        for pipeline_log in log_list:
+            for n in no_tsys_ant:
+                n_name = [x['anname'] for x in uvdata.table('AN', 1) if x['nosta'] == n]
+                n_name[0] = n_name[0].replace(' ','') 
+                pipeline_log.write('\n' + str(n) + '-' + n_name[0] + ' has no Tsys ' \
+                                   + 'available, it will be flagged.\n') 
+
+    if len(no_gc_ant) > 0:
+        for n in [x for x in no_gc_ant if x not in no_tsys_ant]:
+            n_name = [x['anname'] for x in uvdata.table('AN', 1) if x['nosta'] == n] 
+            n_name[0] = n_name[0].replace(' ','') 
+            print('\n' + str(n) + '-' + n_name[0] + ' has no gain curve available, ' \
+                  + 'it will be flagged.\n')
+            
+        for pipeline_log in log_list:
+            for n in [x for x in no_gc_ant if x not in no_tsys_ant]:
+                n_name = [x['anname'] for x in uvdata.table('AN', 1) if x['nosta'] == n]
+                n_name[0] = n_name[0].replace(' ','') 
+                pipeline_log.write('\n' + str(n) + '-' + n_name[0] + ' has no gain ' \
+                                   + 'curve available, it will be flagged.\n') 
+
+            
     
     original_tsys, flagged_tsys = tysm.ty_assess(uvdata)
     
@@ -473,27 +504,8 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     ## Amplitude calibration ##
     disp.write_box(log_list, 'Amplitude calibration')
 
-    # Check which antennas have GC, only calibrate those and issue a warning
-    
-    all_antennas = [x['nosta'] for x in uvdata.table('AN',1)]
+    # Check which antennas have GC, only calibrate those
     gc_antennas = [y['antenna_no'] for y in uvdata.table('GC',1)]
-
-    missing_antennas = [z for z in all_antennas if z not in gc_antennas]
-
-    if len(missing_antennas) > 0:
-        for n in missing_antennas:
-            n_name = [x['anname'] for x in uvdata.table('AN', 1) if x['nosta'] == n] 
-            n_name[0] = n_name[0].replace(' ','') 
-            print('\n' + str(n) + '-' + n_name[0] + ' has no GC available. No amplitude' \
-                  + ' calibration will be performed for this antenna.\n') 
-            
-    for pipeline_log in log_list:
-        for n in missing_antennas:
-            n_name = [x['anname'] for x in uvdata.table('AN', 1) if x['nosta'] == n]
-            n_name[0] = n_name[0].replace(' ','') 
-            pipeline_log.write('\n' + str(n) + '-' + n_name[0] + ' has no GC available.' \
-                               + ' No amplitude calibration will be performed for ' \
-                               + 'this antenna.\n') 
     
     ampc.amp_cal(uvdata, gc_antennas)
     t7 = time.time()
