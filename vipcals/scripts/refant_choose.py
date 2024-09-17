@@ -524,7 +524,7 @@ def dummy_fring(data, refant, target_list, solint = 0, delay_w = 1000, \
     
     dummy_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     dummy_fring.aparm[1] = 2    # At least 2 antennas per solution
-    dummy_fring.aparm[5] = 0    # Solve IFs separatedly
+    dummy_fring.aparm[5] = 1    # Average IFs
     dummy_fring.aparm[6] = 2    # Amount of information printed
     dummy_fring.aparm[7] = 5    # SNR cutoff   
     
