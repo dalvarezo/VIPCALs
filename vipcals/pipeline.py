@@ -244,6 +244,45 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
         for pipeline_log in log_list:
             pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t1-t_i_table))
 
+
+    ## Shift phase center if necessary ##
+    # No shift will be done if the new coordinates are 0h0m0s +0d0m0s, in that case the
+    # source will not be altered
+
+    if shift_coords != 'NONE':
+        disp.write_box(log_list, 'Shifting phase center')
+        print('\nShifting phase center\n')
+        for i, target in enumerate(target_list):
+            if shift_coords[i] == SkyCoord(0, 0, unit = 'deg'):
+                continue
+                
+            old_seq = uvdata.seq    
+            # Delete the data if it already existed
+            if AIPSUVData(uvdata.name, uvdata.klass, \
+                          uvdata.disk, uvdata.seq + 1).exists(): 
+                AIPSUVData(uvdata.name, uvdata.klass, \
+                          uvdata.disk, uvdata.seq + 1).zap()
+            # Shift
+            shft.uv_shift(uvdata, target, shift_coords[i])
+         
+            uvdata = AIPSUVData(uvdata.name, uvdata.klass, \
+                                uvdata.disk, old_seq + 1)
+            
+            ## Reorder data
+            #tabl.tborder(uvdata, pipeline_log)
+            ## Run indxr
+            #uvdata.zap_table('CL', 1)
+            #tabl.run_indxr(uvdata)
+            # Remove previous dataset
+            AIPSUVData(uvdata.name, uvdata.klass, \
+                                uvdata.disk, uvdata.seq - 1).zap()
+            
+            log_list[i].write('\nThe new coordinates for the phase center of ' + target \
+                              + ' are: ' + shift_coords[i].to_string(style = 'hmsdms') \
+                              + '\n')
+    # Update the sequence
+    seq = uvdata.seq
+    
     ## If the time resolution is < 0.33s, average the dataset in time
     try:
         time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'][0])
@@ -313,42 +352,6 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
               + str(ch_width/1e3) + ' kHz per IF. The dataset has ' \
               + 'been averaged to ' + str(no_chan_new) + ' channels of ' \
               + '500 kHz.\n')
-
-    ## Shift phase center if necessary ##
-    # No shift will be done if the new coordinates are 0h0m0s +0d0m0s, in that case the
-    # source will not be altered
-
-    if shift_coords != 'NONE':
-        disp.write_box(log_list, 'Shifting phase center')
-        print('\nShifting phase center\n')
-        for i, target in enumerate(target_list):
-            if shift_coords[i] == SkyCoord(0, 0, unit = 'deg'):
-                continue
-                
-            old_seq = uvdata.seq    
-            # Delete the data if it already existed
-            if AIPSUVData(uvdata.name, uvdata.klass, \
-                          uvdata.disk, uvdata.seq + 1).exists(): 
-                AIPSUVData(uvdata.name, uvdata.klass, \
-                          uvdata.disk, uvdata.seq + 1).zap()
-            # Shift
-            shft.uv_shift(uvdata, target, shift_coords[i])
-         
-            uvdata = AIPSUVData(uvdata.name, uvdata.klass, \
-                                uvdata.disk, old_seq + 1)
-            
-            ## Reorder data
-            #tabl.tborder(uvdata, pipeline_log)
-            ## Run indxr
-            #uvdata.zap_table('CL', 1)
-            #tabl.run_indxr(uvdata)
-            # Remove previous dataset
-            AIPSUVData(uvdata.name, uvdata.klass, \
-                                uvdata.disk, uvdata.seq - 1).zap()
-            
-            log_list[i].write('\nThe new coordinates for the phase center of ' + target \
-                              + ' are: ' + shift_coords[i].to_string(style = 'hmsdms') \
-                              + '\n')
 
 
     ## Print scan information ##    
