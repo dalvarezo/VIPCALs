@@ -65,6 +65,7 @@ def calib_fring_fit(data, refant, calib_scans, solint = 0, \
     calib_fring.aparm[6] = 2    # Amount of information printed
     calib_fring.aparm[7] = 5    # SNR cutoff   
     calib_fring.aparm[9] = 1    # Exhaustive search
+    calib_fring.aparm[10] = 1   # Solve for dispersive delay uncorrected by TECOR
     
     calib_fring.dparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     calib_fring.dparm[1] = 1    # Number of baseline combinations searched
@@ -135,6 +136,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
     target_fring.aparm[6] = 2    # Amount of information printed
     target_fring.aparm[7] = 5    # SNR cutoff   
     target_fring.aparm[9] = 1    # Exhaustive search
+    target_fring.aparm[10] = 1   # Solve for dispersive delay uncorrected by TECOR
     
     target_fring.dparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     target_fring.dparm[1] = 1    # Number of baseline combinations searched
