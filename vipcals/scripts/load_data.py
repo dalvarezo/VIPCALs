@@ -200,6 +200,32 @@ def get_source_list(file_path_list, freq = 0):
         
     return(full_source_list)
 
+def redo_source_list(uvdata):
+    """Create again the source list after loading the data.
+
+    This is done to avoid problems with the source IDs after 
+    concatenating multiple files.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :return: list of sources contained in the observations
+    :rtype: list of Source objects
+    """    
+    su_table = uvdata.table('SU', 1)
+    full_source_list = []
+    for source in su_table:
+        b = Source()
+        b.name = source['source'].replace(" ", "")
+        b.id = source['id__no']
+        try:
+            b.restfreq = source['restfreq'][0]
+        except IndexError: # Single IF datasets
+            b.restfreq = source['restfreq']  
+
+        full_source_list.append(b)
+        b= None
+
+    return full_source_list
 
 def find_calibrators(full_source_list):
     """Choose possible calibrators from a source list.
