@@ -65,7 +65,7 @@ def calib_fring_fit(data, refant, calib_scans, solint = 0, \
     calib_fring.aparm[6] = 2    # Amount of information printed
     calib_fring.aparm[7] = 5    # SNR cutoff   
     calib_fring.aparm[9] = 1    # Exhaustive search
-    calib_fring.aparm[10] = 1   # Solve for dispersive delay uncorrected by TECOR
+    # calib_fring.aparm[10] = 1   # Solve for dispersive delay uncorrected by TECOR
     
     calib_fring.dparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     calib_fring.dparm[1] = 1    # Number of baseline combinations searched
@@ -94,10 +94,11 @@ def calib_fring_fit(data, refant, calib_scans, solint = 0, \
     clcal.go()
     
 def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w = 1000,\
-                     rate_w = 200):
+                     rate_w = 200, solve_ifs = True):
     """Fringe fit the science target
 
-    Creates SN#6
+    Creates a new SN table, by default is SN#6 but the number depends on how many \
+    targets are in the file. 
     
     :param data: visibility data
     :type data: AIPSUVData
@@ -108,13 +109,15 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
     :param solint: solution interval in minutes, if 0 => solint = 10 min, \
                    if > scan  => solint = scan; defaults to 0
     :type solint: int, optional
-    :param version: CL table version in which to apply the solutions. SN version will \
-                    be ('version' - 3); defaults to 9
+    :param version: CL table version in which to apply the solutionslater. SN version \
+                    will be ('version' - 3); defaults to 9
     :type version: int, optional
     :param delay_w: delay window in ns in which the search is performed; defaults to 1000\
     :type delay_w: int, optional
     :param rate_w: rate window in hz in which the search is performed; defaults to 200 \
     :type rate_w: int, optional 
+    :param solve_ifs: solve IFs separatedly; defaults to True
+    :type solve_ifs: bool, optional
     """    
     target_fring = AIPSTask('fring')
     target_fring.inname = data.name
@@ -132,11 +135,16 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
 
     target_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     target_fring.aparm[1] = 2    # At least 2 antennas per solution
-    target_fring.aparm[5] = 0    # Solve IFs separately
+
+    if solve_ifs == True:
+        target_fring.aparm[5] = 0    # Solve IFs separately
+    else:
+        target_fring.aparm[5] = 1    # Solve all IFs together
+
     target_fring.aparm[6] = 2    # Amount of information printed
     target_fring.aparm[7] = 5    # SNR cutoff   
     target_fring.aparm[9] = 1    # Exhaustive search
-    target_fring.aparm[10] = 1   # Solve for dispersive delay uncorrected by TECOR
+    # target_fring.aparm[10] = 1   # Solve for dispersive delay uncorrected by TECOR
     
     target_fring.dparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     target_fring.dparm[1] = 1    # Number of baseline combinations searched
@@ -147,6 +155,20 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
     target_fring.msgkill = -4
     
     target_fring.go()
+
+    return(target_fring.refant, str(target_fring.dparm[2]), str(target_fring.dparm[3]))
+
+def fringe_clcal(data, target_name, version=9):
+    """Apply SN solution table from FRING to a new CL table
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target_name: target name
+    :type target_name: str
+    :param version: CL table version in which to apply the solutions. SN version will \
+                    be ('version' - 3); defaults to 9
+    :type version: int, optional
+    """    
     
     clcal = AIPSTask('clcal')
     clcal.inname = data.name
@@ -163,9 +185,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
     clcal.msgkill = -4
     
     clcal.go()
-
-    return(target_fring.refant, str(target_fring.dparm[2]), str(target_fring.dparm[3]))
-    
+ 
 def assess_fringe_fit(data, log, version = 6):
     """Print the number of failed solutions after fringe fit
 
@@ -178,6 +198,8 @@ def assess_fringe_fit(data, log, version = 6):
     :type log: file
     :param version: SN version to evaluate, defaults to 6
     :type version: int, optional
+    :return: ratio between good and bad solutions
+    :rtype: float
     """    
     an_table = data.table('AN', 1)
     sn_table = data.table('SN', version)
@@ -225,7 +247,9 @@ def assess_fringe_fit(data, log, version = 6):
               + str(total_length) + ' solutions.\n')
         log.write('Fringe fit failed in ' + str(global_counter) + ' out of '\
               + str(total_length) + ' solutions.\n')   
-        return
+        
+        ratio = 1 - global_counter/total_length
+        return ratio
         
     # Dual polarization
     for s in sn_table:
@@ -254,4 +278,5 @@ def assess_fringe_fit(data, log, version = 6):
           + str(total_length) + ' solutions.\n')
     log.write('Fringe fit failed in ' + str(global_counter) + ' out of '\
               + str(total_length) + ' solutions.\n') 
-    
+    ratio = 1 - global_counter/total_length
+    return ratio
