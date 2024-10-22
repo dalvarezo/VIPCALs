@@ -8,6 +8,7 @@ from astropy.io import fits
 from astropy.table import Table
 
 from AIPS import AIPS
+from AIPSData import AIPSUVData
 from AIPSTask import AIPSTask, AIPSList
 
 
@@ -154,44 +155,49 @@ def copy_log(path_list, filename_list):
 
 
 
-def get_source_list(file_path, freq = 0):
+def get_source_list(file_path_list, freq = 0):
     """Get a source list from a uvfits/idifits file.
 
-    :param file_path: path of the uvfits/idifts file
-    :type file_path: str
+    :param file_path_list: list of paths of the uvfits/idifts files
+    :type file_path_list: list of str
     :param freq: if there are multiple frequency ids, which one to choose; defaults to 0
     :type freq: int, optional
     :return: list of sources contained in the file
     :rtype: list of Source objects
     """    
-    hdul = fits.open(file_path)
     full_source_list = []
-    for elements in Table(hdul['SOURCE'].data):
-        a = Source()
-        a.name = elements['SOURCE']
-        try:
-            a.id = elements['ID_NO.']
-        except KeyError:
-            a.id = elements['SOURCE_ID']
-        try:
-            a.restfreq = elements['RESTFREQ'][0]
-        except IndexError: # Single IF datasets
-            a.restfreq = elements['RESTFREQ']      
-            
-        # Frequency can be given as an input
-        if freq != 0:
-            a.restfreq = freq
-            
-        a.set_band()      
-        full_source_list.append(a)
-        a = None        
+    for file_path in file_path_list:
+        hdul = fits.open(file_path)
+        for elements in Table(hdul['SOURCE'].data):
+            a = Source()
+            a.name = elements['SOURCE']
+            try:
+                a.id = elements['ID_NO.']
+            except KeyError:
+                a.id = elements['SOURCE_ID']
+            try:
+                a.restfreq = elements['RESTFREQ'][0]
+            except IndexError: # Single IF datasets
+                a.restfreq = elements['RESTFREQ']      
+                
+            # Frequency can be given as an input
+            if freq != 0:
+                a.restfreq = freq
+                
+            a.set_band()      
+
+            # Check if the source was already on the list (multiple files)
+            if a.name not in [s.name for s in full_source_list]:
+                full_source_list.append(a)
+                
+            a = None        
         
     # Make sure that source names are ASCII characters
     for s in full_source_list:
         name_string = s.name
         s.name = ''.join(char for char in name_string \
                          if ord(char) < 128).rstrip('\x00')
-    
+        
     return(full_source_list)
 
 
@@ -318,12 +324,12 @@ def is_it_multifreq_if(file_path):
            klass_2, freq_1, freq_2)
         
 
-def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
-              seq = 1, bif = 0, eif = 0, l_a = False):
+def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = '', \
+              seq = 1, bif = 0, eif = 0, l_a = False, symlink_path = '.'):
     """Load data from a uvfits/idifits file.
 
-    :param file_path: path of the uvfits/idifts file
-    :type file_path: str
+    :param file_path_list: list of paths of the uvfits/idifts files
+    :type file_path_list: list of str
     :param name: file name whithin AIPS
     :type name: str
     :param sources: list of sources to load
@@ -344,13 +350,32 @@ def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
     :type eif: int, optional
     :param l_a: load all sources; default False
     :type l_a: bool, optional
+    :param symlink_path: path where to create the symbolic links needed to load the data
+    :type symlink_path: str
     """      
     fitld = AIPSTask('fitld')
-    fitld.datain = file_path
+    # Create symbolic links for each of the files
+    # This is necessary when multiple files need to be concatenated
+    # Delete if it already exists
+    if os.path.exists(symlink_path + '/aux_1'):
+        os.system('rm ' + symlink_path + '/aux_*')
+    for n, filepath in enumerate(file_path_list):
+        os.system('ln -s ' + filepath + ' ' + symlink_path + '/aux_' + str(n+1))
+    
+
+    fitld.ncount = int(len(file_path_list))  
+    if len(file_path_list) > 1:
+        fitld.doconcat = 1 
     fitld.outname = name
     fitld.outdisk = disk
     fitld.outclass = klass
     fitld.outseq = seq
+
+    # If the data already exists in AIPS, delete it
+    uvdata = AIPSUVData(name, klass, disk, seq)
+    if uvdata.exists() == True:
+        uvdata.zap()
+    
     if l_a == False:
         fitld.sources = AIPSList(sources)
     fitld.bif = bif
@@ -358,8 +383,13 @@ def load_data(file_path, name, sources, disk, multi_id, selfreq, klass = '', \
     fitld.clint = 0.1
     fitld.msgkill = -4
     if multi_id == True:
-        fitld.selfreq = float(selfreq)    
+        fitld.selfreq = float(selfreq)  
+
+    fitld.datain = symlink_path + '/aux_'
+
     fitld.go()
+    # Remove the symbolic links
+    os.system('rm ' + symlink_path + '/aux_*')
 
 def print_listr(data, path_list, filename_list):
     """Print scan information in an external file.
