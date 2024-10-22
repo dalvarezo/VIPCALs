@@ -42,7 +42,7 @@ class Scan():
     
 
 def refant_choose_snr(data, sources, search_sources, target_list, full_source_list, \
-                      log_list):
+                      log_list, search_central = True):
     """Choose a suitable reference antenna using SNR values
 
     Select antennas based on its availability throughout the observation, then run a \
@@ -61,6 +61,9 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
     :type full_source_list: list of Source objects
     :param log: list of pipeline logs
     :type log_list: list of file
+    :param search_central: search for reference antenna only between \
+                            KP, LA, PT, OV and FD, defaults to True
+    :type search_central: bool, optional
     :return: reference antenna number
     :rtype: int
     """     
@@ -161,28 +164,44 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
     # Run a fringe fit with the remaining antennas
     snr_dict = {}
     for i in antennas_list:
-        snr_dict[i] = {}
-        for j in range(len(an_table)):
-            snr_dict[i][j+1] = []
+        if search_central == True:  # Search for refant only in the central antennas
+            if antennas_list[i].name in ['KP', 'LA', 'PT', 'OV', 'FD']:
+                snr_dict[i] = {}
+                for j in range(len(an_table)):
+                    snr_dict[i][j+1] = []
+        if search_central == False:  # Search for refant in all antennas
+            snr_dict[i] = {}
+            for j in range(len(an_table)):
+                snr_dict[i][j+1] = []
+    # If search_central == True, but none of the 5 central antennas was available, do it 
+    # again with all antennas
+    if search_central == True and len(snr_dict) == 0:
+        for i in antennas_list:
+            snr_dict[i] = {}
+            for j in range(len(an_table)):
+                snr_dict[i][j+1] = []
 
     for ant in antennas_list:
-        dummy_fring(data, ant, search_sources)
-        # Check the last SN table and store the median SNR (computed over IFs)
-        last_table = data.table('SN', 0)
-        for entry in last_table:
-            snr_dict[ant][entry['antenna_no']].append(np.nanmedian(entry['weight_1']))
-        # Remove table
-        data.zap_table('SN', 0)
+        if ant in snr_dict.keys():
+            dummy_fring(data, ant, search_sources)
+            # Check the last SN table and store the median SNR (computed over IFs)
+            last_table = data.table('SN', 0)
+            for entry in last_table:
+                snr_dict[ant][entry['antenna_no']].append(np.nanmedian(entry['weight_1']))
+            # Remove table
+            data.zap_table('SN', 0)
 
     # Get the mean value over sources
     for i in antennas_list:
-        for j in range(len(an_table)):
-            snr_dict[i][j+1] = np.mean(snr_dict[i][j+1])
+        if i in snr_dict.keys():
+            for j in range(len(an_table)):
+                snr_dict[i][j+1] = np.mean(snr_dict[i][j+1])
 
     # Order by median SNR (computed over baselines)
     median_snr_dict = {}
     for ant in antennas_list:
-        median_snr_dict[ant] =  np.nanmedian(list(snr_dict[ant].values()))
+        if ant in snr_dict.keys():
+            median_snr_dict[ant] =  np.nanmedian(list(snr_dict[ant].values()))
     final_list = sorted(median_snr_dict, key = median_snr_dict.get, reverse = True)
 
     refant = final_list[0]
@@ -193,7 +212,7 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
                           + 'reference antenna. It is available in ' + str(max_scan_no) \
                           + ' out of ' + str(len(scan_list)) + ' scans.\nMedian SNR ' \
                           + 'value for the target on each baseline are:\n')
-        for ant in antennas_list:
+        for ant in snr_dict[refant].keys():
             if refant != ant:
                 if refant < ant:
                     pipeline_log.write(str(refant) + '-' + str(ant) + ': ' \
@@ -207,7 +226,7 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
                         + 'antenna. It is available in ' + str(max_scan_no) + ' out ' \
                         + 'of ' + str(len(scan_list)) + ' scans.\nMedian SNR value ' \
                         + 'for the target on each baseline are:\n')
-    for ant in antennas_list:
+    for ant in snr_dict[refant].keys():
         if refant != ant:
             if refant < ant:
                 print(str(refant) + '-' + str(ant) + ': ' \
@@ -524,7 +543,7 @@ def dummy_fring(data, refant, target_list, solint = 0, delay_w = 1000, \
     
     dummy_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     dummy_fring.aparm[1] = 2    # At least 2 antennas per solution
-    dummy_fring.aparm[5] = 1    # Average IFs
+    dummy_fring.aparm[5] = 1    # Solve IFs together
     dummy_fring.aparm[6] = 2    # Amount of information printed
     dummy_fring.aparm[7] = 5    # SNR cutoff   
     
