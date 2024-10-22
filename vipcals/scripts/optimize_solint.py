@@ -66,7 +66,7 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
     
     optimiz_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     optimiz_fring.aparm[1] = 2    # At least 2 antennas per solution
-    optimiz_fring.aparm[5] = 1    # Solve all IFs together
+    optimiz_fring.aparm[5] = 0    # Solve IFs separately
     optimiz_fring.aparm[6] = 2    # Amount of information printed
     optimiz_fring.aparm[7] = 1    # NO SNR cutoff   
     
