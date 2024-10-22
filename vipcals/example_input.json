@@ -1,0 +1,7 @@
+{
+"userno": 4,
+"disk": 10,
+"paths": ["/data/pipeline_test_sample/diego/BP133/VLBA_VSN005247_file22.uvfits"],
+"targets": ["J0524+70"],
+"output_directory": "/home/dalvarez/vipcals/vipcals/1_100_v2"
+}
