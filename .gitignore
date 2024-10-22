@@ -13,4 +13,8 @@ AIPSLite.py
 ObitTask.py
 Obit.py
 vipcals/1_100/
+vipcals/1_100_v2/
 vipcals/1_100_ionos/
+vipcals/test_input.json
+vipcals/pipeline_OLD.py
+vipcals/__main__OLD.py
