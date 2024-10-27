@@ -190,9 +190,9 @@ def optimize_solint(data, target, target_optimal_scans, refant):
             # print(timerang)
             # Perform an SNR fringe fit
             snr_fring_optimiz(data, refant, float(solint), timerang, \
-                              AIPSList(target), 6)
+                              AIPSList(target), 7)
                 
-            snr_table = data.table('SN', 6)
+            snr_table = data.table('SN', 7)
             # Save the SNR of the scan
             
             for antennas in snr_table:
@@ -207,7 +207,7 @@ def optimize_solint(data, target, target_optimal_scans, refant):
                         (antennas['weight_1'])
                         
             # Delete the solution table
-            data.zap_table('SN', 6)
+            data.zap_table('SN', 7)
         # Check if the median SNR across scans reaches the threshold
         snr_values = []
         # Compute the median per antenna

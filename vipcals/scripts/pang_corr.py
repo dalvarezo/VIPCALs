@@ -7,7 +7,7 @@ from AIPSTask import AIPSTask, AIPSList
 def pang_corr(data):
     """Correct phases for parallactic angles.
     
-    Creates CL#6
+    Creates CL#4
 
     :param data: visibility data
     :type data: AIPSUVData

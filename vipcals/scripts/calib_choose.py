@@ -20,7 +20,7 @@ def snr_fring(data, refant, solint = 0):
     
     Fringe fit of all IF's together, solving only for phases.
 
-    Creates SN#3, which contains the SNR per scan.  
+    Creates SN#1, which contains the SNR per scan.  
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -51,7 +51,7 @@ def snr_fring(data, refant, solint = 0):
     snr_fring.dparm[2] = 500    # Delay window (ns)
     snr_fring.dparm[9] = 1    # Do NOT fit rates    
     
-    snr_fring.snver = 3
+    snr_fring.snver = 1
     snr_fring.msgkill = -4
     
     snr_fring.go()
@@ -64,7 +64,7 @@ def snr_fring_only_fft(data, refant, solint = 0, delay_w = 1000, \
     the delay and rate windows are 1000 ns and 200hz.
     
 
-    Creates SN#3, which contains the SNR per scan. 
+    Creates SN#1, which contains the SNR per scan. 
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -101,13 +101,13 @@ def snr_fring_only_fft(data, refant, solint = 0, delay_w = 1000, \
     snr_fring.dparm[5] = 1    # Stop at the FFT step
     #snr_fring.dparm[9] = 1    # Do NOT fit rates    
     
-    snr_fring.snver = 3
+    snr_fring.snver = 1
     snr_fring.msgkill = -4
     
     snr_fring.go()
     
 
-def snr_scan_list_v2(data, full_source_list, version = 3):
+def snr_scan_list_v2(data, full_source_list, version = 1):
     """Create a list of scans ordered by SNR.
 
     Scans are returned ordered by their SNR. A warning will be printed \
@@ -117,7 +117,7 @@ def snr_scan_list_v2(data, full_source_list, version = 3):
     :type data: AIPSUVData
     :param full_source_list: list containing all sources in the dataset
     :type full_source_list: list of Source objects
-    :param version: SN table version containing the SNR values, defaults to 3
+    :param version: SN table version containing the SNR values, defaults to 1
     :type version: int, optional
     :return: ordered list of scans with SNR > 5
     :rtype: list of SNRScan objects
@@ -217,7 +217,7 @@ def get_calib_scans(data, ordered_scan_list, refant):
 
 
 
-def snr_scan_list(data, full_source_list, version = 3):
+def snr_scan_list(data, full_source_list, version = 1):
     """Create a list of scans ordered by datapoints and SNR.
 
     Scans are first ordered by their SNR, then scans not using all antennas are dropped. \
@@ -229,7 +229,7 @@ def snr_scan_list(data, full_source_list, version = 3):
     :type data: AIPSUVData
     :param full_source_list: list containing all sources in the dataset
     :type full_source_list: list of Source objects
-    :param version: SN table version containing the SNR values, defaults to 3
+    :param version: SN table version containing the SNR values, defaults to 1
     :type version: int, optional
     :return: ordered list of scans with SNR > 5, ordered list of scans where the maximum \
              number of antennas was observing

@@ -24,7 +24,7 @@ def calib_fring_fit(data, refant, calib_scans, solint = 0, \
                     delay_w = 0, rate_w = 0):
     """Fringe fit the calibrator
 
-    Creates SN#5
+    Creates SN#6 and CL#9
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -72,7 +72,7 @@ def calib_fring_fit(data, refant, calib_scans, solint = 0, \
     calib_fring.dparm[2] = delay_w  # Delay window (ns)
     calib_fring.dparm[3] = rate_w  # Rate window (mHz)
     
-    calib_fring.snver = 5
+    calib_fring.snver = 6
     calib_fring.msgkill = -4
     
     calib_fring.go()
@@ -86,14 +86,14 @@ def calib_fring_fit(data, refant, calib_scans, solint = 0, \
     
     clcal.opcode = 'calp'
     clcal.interpol = 'self'
-    clcal.snver = 5
-    clcal.gainver = 7
-    clcal.gainuse = 8
+    clcal.snver = 6
+    clcal.gainver = 8
+    clcal.gainuse = 9
     clcal.msgkill = -4
     
     clcal.go()
     
-def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w = 1000,\
+def target_fring_fit(data, refant, target_name, solint = 0, version = 10, delay_w = 1000,\
                      rate_w = 200, solve_ifs = True):
     """Fringe fit the science target
 
@@ -110,7 +110,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
                    if > scan  => solint = scan; defaults to 0
     :type solint: int, optional
     :param version: CL table version in which to apply the solutionslater. SN version \
-                    will be ('version' - 3); defaults to 9
+                    will be ('version' - 3); defaults to 10
     :type version: int, optional
     :param delay_w: delay window in ns in which the search is performed; defaults to 1000\
     :type delay_w: int, optional
@@ -158,7 +158,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 9, delay_w
 
     return(target_fring.refant, str(target_fring.dparm[2]), str(target_fring.dparm[3]))
 
-def fringe_clcal(data, target_name, version=9):
+def fringe_clcal(data, target_name, version=10):
     """Apply SN solution table from FRING to a new CL table
 
     :param data: visibility data
@@ -166,7 +166,7 @@ def fringe_clcal(data, target_name, version=9):
     :param target_name: target name
     :type target_name: str
     :param version: CL table version in which to apply the solutions. SN version will \
-                    be ('version' - 3); defaults to 9
+                    be ('version' - 3); defaults to 10
     :type version: int, optional
     """    
     
@@ -186,7 +186,7 @@ def fringe_clcal(data, target_name, version=9):
     
     clcal.go()
  
-def assess_fringe_fit(data, log, version = 6):
+def assess_fringe_fit(data, log, version = 7):
     """Print the number of failed solutions after fringe fit
 
     Explore a solution table produced by FRING and print how many solutions failed. This \
@@ -196,7 +196,7 @@ def assess_fringe_fit(data, log, version = 6):
     :type data: AIPSUVData
     :param log: pipeline log
     :type log: file
-    :param version: SN version to evaluate, defaults to 6
+    :param version: SN version to evaluate, defaults to 7
     :type version: int, optional
     :return: ratio between good and bad solutions
     :rtype: float

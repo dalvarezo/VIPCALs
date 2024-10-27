@@ -434,11 +434,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         ## TESTING ##
         ## Now it prints the results using only the targets and all sources ##
         ## and repeats this search just before the very last fringe fit ##
-        for pipeline_log in log_list:
-            pipeline_log.write('\nCHOOSING REFANT WITH TARGETS\n')
+        #for pipeline_log in log_list:
+        #    pipeline_log.write('\nCHOOSING REFANT WITH TARGETS\n')
         ## FOR THE TARGETS ##
-        refant = rant.refant_choose_snr(uvdata, sources, target_list, target_list, \
-                                        full_source_list, log_list)
+        #refant = rant.refant_choose_snr(uvdata, sources, target_list, target_list, \
+        #                                full_source_list, log_list)
         ## FOR ALL SOURCES ##
         for pipeline_log in log_list:
             pipeline_log.write('\nCHOOSING REFANT WITH ALL SOURCES\n')
@@ -500,47 +500,20 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('Execution time: {:.2f} s. \n'.format(t5-t4))
     os.system('rm -rf /tmp/usno_finals.erp')
 
-    ## Digital sampling correction ##
-    disp.write_box(log_list, 'Digital sampling corrections')
-    
-    accr.sampling_correct(uvdata)
-    t6 = time.time()
-
-    for pipeline_log in log_list:
-        pipeline_log.write('\nDigital sampling corrections applied! SN#1 and CL#4'\
-                        + ' created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t6-t5))
-    print('\nDigital sampling corrections applied! SN#1 and CL#4 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t6-t5))
-
-    ## Amplitude calibration ##
-    disp.write_box(log_list, 'Amplitude calibration')
-
-    # Check which antennas have GC, only calibrate those
-    gc_antennas = [y['antenna_no'] for y in uvdata.table('GC',1)]
-    gc_antennas = list(set(gc_antennas)) # Remove duplicates
-    ampc.amp_cal(uvdata, gc_antennas)
-    t7 = time.time()
-    for pipeline_log in log_list:
-        pipeline_log.write('\nAmplitude calibration applied! SN#2 and CL#5'\
-                        + ' created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s.\n'.format(t7-t6))
-    print('\nAmplitude calibration applied! SN#2 and CL#5 created.\n')
-    print('Execution time: {:.2f} s.\n'.format(t7-t6))
-
     ## Parallatic angle correction ##
     disp.write_box(log_list, 'Parallactic angle corrections')
     
     pang.pang_corr(uvdata)
-    t8 = time.time()
+    t6 = time.time()
 
     for pipeline_log in log_list:
-        pipeline_log.write('\nParallactic angle corrections applied! CL#6'\
+        pipeline_log.write('\nParallactic angle corrections applied! CL#4'\
                         + ' created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t8-t7))
-    print('\nParallactic angle corrections applied! CL#6 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t8-t7))
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t6-t5))
+    print('\nParallactic angle corrections applied! CL#4 created.\n')
+    print('Execution time: {:.2f} s. \n'.format(t6-t5))
 
+    ## Selecting calibrator scan ##
     # If there is no input calibrator
     if input_calibrator == 'NONE':
         ## Look for calibrator ##
@@ -570,38 +543,38 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         ## Get the calibrator scans
         calibrator_scans = cali.get_calib_scans(uvdata, scan_list, refant)
 
-        t9 = time.time()
+        t7 = time.time()
 
         for pipeline_log in log_list:
             if len(calibrator_scans) == 1:
                 pipeline_log.write('\nThe chosen scan for calibration is:\n')
                 pipeline_log.write(str(calibrator_scans[0].name) + '\tSNR: ' \
                                    + '{:.2f}.'.format(np.median(calibrator_scans[0].snr)))
-                pipeline_log.write('\nSN#3 created.\n')
+                pipeline_log.write('\nSN#1 created.\n')
 
             else:
                 pipeline_log.write('\nThe chosen scans for calibration are:\n')
                 for scn in calibrator_scans:    
                     pipeline_log.write(str(scn.name) + '\tSNR: ' \
                                       + '{:.2f}.\n'.format(np.median(scn.snr)))
-                pipeline_log.write('\nSN#3 created.\n')
+                pipeline_log.write('\nSN#1 created.\n')
 
-            pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t9-t8))
+            pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t7-t6))
 
    
         if len(calibrator_scans) == 1:
             print('\nThe chosen scan for calibration is:\n')
             print(str(calibrator_scans[0].name) + '\tSNR: ' \
                             + '{:.2f}.'.format(np.median(calibrator_scans[0].snr)))
-            print('\nSN#3 created.\n')
+            print('\nSN#1 created.\n')
 
         else:
             print('\nThe chosen scans for calibration are:\n')
             for scn in calibrator_scans:    
                 print(str(scn.name) + '\tSNR: {:.2f}.\n'.format(np.median(scn.snr)))
-            print('\nSN#3 created.\n')
+            print('\nSN#1 created.\n')
 
-        print('Execution time: {:.2f} s. \n'.format(t9-t8))
+        print('Execution time: {:.2f} s. \n'.format(t7-t6))
 
         # Print a warning if the SNR of the brightest calibrator is < 40
         if np.median(calibrator_scans[0].snr) < 40:
@@ -631,21 +604,34 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                    reverse=True)
         
         calibrator_scans = [calibrator_scans[0]]
-        t9 = time.time()
+        t7 = time.time()
 
         for pipeline_log in log_list:
             pipeline_log.write('\nThe chosen scan for calibration is:\n')
             pipeline_log.write(str(calibrator_scans[0].name) + '\tSNR: ' \
                                 + '{:.2f}.'.format(np.median(calibrator_scans[0].snr)))
-            pipeline_log.write('\nSN#3 created.\n')
-            pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t9-t8))
+            pipeline_log.write('\nSN#1 created.\n')
+            pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t7-t6))
 
         print('\nThe chosen scan for calibration is:\n')
         print(str(calibrator_scans[0].name) + '\tSNR: ' \
                         + '{:.2f}.'.format(np.median(calibrator_scans[0].snr)))
-        print('\nSN#3 created.\n')
-        print('Execution time: {:.2f} s. \n'.format(t9-t8))
+        print('\nSN#1 created.\n')
+        print('Execution time: {:.2f} s. \n'.format(t7-t6))
 
+
+    ## Digital sampling correction ##
+    disp.write_box(log_list, 'Digital sampling corrections')
+    
+    accr.sampling_correct(uvdata)
+    t8 = time.time()
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nDigital sampling corrections applied! SN#2 and CL#5'\
+                        + ' created.\n')
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t8-t7))
+    print('\nDigital sampling corrections applied! SN#2 and CL#5 created.\n')
+    print('Execution time: {:.2f} s. \n'.format(t8-t7))
 
     ## Instrumental phase correction ##
     disp.write_box(log_list, 'Instrumental phase corrections')
@@ -654,40 +640,71 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         inst.manual_phasecal(uvdata, refant, calibrator_scans[0])
     else:
         inst.manual_phasecal_multi(uvdata, refant, calibrator_scans)
-    t10 = time.time()
+    t9 = time.time()
     
     for pipeline_log in log_list:
         pipeline_log.write('\nInstrumental phase correction applied using'\
-                        + ' the calibrator(s). SN#4 and CL#7 created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t10-t9))
+                        + ' the calibrator(s). SN#3 and CL#6 created.\n')
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t9-t8))
     print('\nInstrumental phase correction applied using the calibrator(s).'\
-          + ' SN#4 and CL#7 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t10-t9))
+          + ' SN#3 and CL#6 created.\n')
+    print('Execution time: {:.2f} s. \n'.format(t9-t8))
 
-    ## Fringe fit of the calibrator ##  
-    disp.write_box(log_list, 'Calibrator fringe fit')
-    
-    frng.calib_fring_fit(uvdata, refant, calibrator_scans)
-    t11 = time.time()
-    
-    for pipeline_log in log_list:
-        pipeline_log.write('\nFringe fit applied to the calibrator! '\
-                        + 'SN#5 and CL#8 created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
-    print('\nFringe fit applied to the calibrator! SN#5 and CL#8 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t11-t10))
 
     ## Bandpass correction ##
     disp.write_box(log_list, 'Bandpass correction')
     
     bpas.bp_correction(uvdata, refant, calibrator_scans)
-    t12 = time.time()
+    t10 = time.time()
     
     for pipeline_log in log_list:
         pipeline_log.write('\nBandpass correction applied! BP#1 created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t12-t11))
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t10-t9))
     print('\nBandpass correction applied! BP#1 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t12-t11))
+    print('Execution time: {:.2f} s. \n'.format(t10-t9))
+
+
+    ## Correcting autocorrelations ##
+    disp.write_box(log_list, 'Correcting autocorrelations')
+    
+    accr.correct_autocorr(uvdata)
+    t11 = time.time()
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nAutocorrelations have been normalized! SN#4 and CL#7'\
+                        + ' created.\n')
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
+    print('\nAutocorrelations have been normalized! SN#4 and CL#7 created.\n')
+    print('Execution time: {:.2f} s. \n'.format(t11-t10))
+
+
+    ## Amplitude calibration ##
+    disp.write_box(log_list, 'Amplitude calibration')
+
+    # Check which antennas have GC, only calibrate those
+    gc_antennas = [y['antenna_no'] for y in uvdata.table('GC',1)]
+    gc_antennas = list(set(gc_antennas)) # Remove duplicates
+    ampc.amp_cal(uvdata, gc_antennas)
+    t12 = time.time()
+    for pipeline_log in log_list:
+        pipeline_log.write('\nAmplitude calibration applied! SN#5 and CL#8'\
+                        + ' created.\n')
+        pipeline_log.write('\nExecution time: {:.2f} s.\n'.format(t12-t11))
+    print('\nAmplitude calibration applied! SN#5 and CL#8 created.\n')
+    print('Execution time: {:.2f} s.\n'.format(t12-t11))
+
+    ## Fringe fit of the calibrator ##  
+    disp.write_box(log_list, 'Calibrator fringe fit')
+    
+    frng.calib_fring_fit(uvdata, refant, calibrator_scans)
+    t13 = time.time()
+    
+    for pipeline_log in log_list:
+        pipeline_log.write('\nFringe fit applied to the calibrator! '\
+                        + 'SN#6 and CL#9 created.\n')
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
+    print('\nFringe fit applied to the calibrator! SN#6 and CL#9 created.\n')
+    print('Execution time: {:.2f} s. \n'.format(t13-t12))
     
     ## Get optimal solution interval for each target
     disp.write_box(log_list, 'Target fringe fit')
@@ -715,11 +732,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         print('\nThe optimal solution interval for ' + target + ' is ' \
             + str(solint_list[i]) + ' minutes. \n')
             
-    t13 = time.time()
+    t14 = time.time()
     
     for pipeline_log in log_list:    
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t13-t12)) 
-    print('Execution time: {:.2f} s. \n'.format(t13-t12))
+    print('Execution time: {:.2f} s. \n'.format(t14-t13))
 
     ## Fringe fit of the target ##
 
@@ -746,21 +763,22 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
     for i, target in enumerate(target_list): 
         tfring_params = frng.target_fring_fit(uvdata, refant, target, \
-                                              solint=float(solint_list[i]), version = 9+i)
+                                              solint=float(solint_list[i]), \
+                                              version = 10+i)
         
         log_list[i].write('\nFringe search performed on ' + target + '. Windows for ' \
                          + 'the search were ' + tfring_params[1] + ' ns and ' \
                          + tfring_params[2] + ' mHz.\n')
         
         log_list[i].write('\nFringe fit corrections applied to the target! '\
-                        + 'SN#' + str(6+i) + ' and CL#' + str(9+i) + ' created.\n')
+                        + 'SN#' + str(7+i) + ' and CL#' + str(10+i) + ' created.\n')
         
         print('\nFringe search performed on ' + target + '. Windows for ' \
              + 'the search were ' + tfring_params[1] + ' ns and ' \
              + tfring_params[2] + ' mHz.\n')
         
-        print('\nFringe fit corrections applied to ' + target + '! SN#' + str(6+i) + \
-              ' and CL#' + str(9+i) + ' created.\n')  
+        print('\nFringe fit corrections applied to ' + target + '! SN#' + str(7+i) + \
+              ' and CL#' + str(10+i) + ' created.\n')  
         
         ## Print the ratio of bad to good solutions ##
     
@@ -769,7 +787,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         # If the ratio is > 0.7, apply the solutions to a CL table
 
         if ratio > 0.7:
-            frng.fringe_clcal(uvdata, target, version = 9+i)
+            frng.fringe_clcal(uvdata, target, version = 10+i)
 
         # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
 
@@ -784,25 +802,25 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
             tfring_params = frng.target_fring_fit(uvdata, refant, target, \
                                                 solint=float(solint_list[i]), 
-                                                version = 9+i+1, solve_ifs=False)
+                                                version = 10+i+1, solve_ifs=False)
             
             log_list[i].write('\nFringe search performed on ' + target + '. Windows for '\
                             + 'the search were ' + tfring_params[1] + ' ns and ' \
                             + tfring_params[2] + ' mHz.\n')
             
             log_list[i].write('\nFringe fit corrections applied to the target! '\
-                            + 'SN#' + str(6+i) + ' and CL#' + str(9+i) + ' created.\n')
+                            + 'SN#' + str(7+i) + ' and CL#' + str(10+i) + ' created.\n')
             
             print('\nFringe search performed on ' + target + '. Windows for ' \
                 + 'the search were ' + tfring_params[1] + ' ns and ' \
                 + tfring_params[2] + ' mHz.\n')
             
-            print('\nFringe fit corrections applied to ' + target + '! SN#' + str(6+i) \
-                  + ' and CL#' + str(9+i) + ' created.\n') 
+            print('\nFringe fit corrections applied to ' + target + '! SN#' + str(7+i) \
+                  + ' and CL#' + str(10+i) + ' created.\n') 
             
             ## Print the new ratio of bad to good solutions ##
         
-            ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i+1) 
+            ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i+1) 
 
             # If the new ratio is smaller or equal than the previous, 
             # then keep the previous
@@ -815,7 +833,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 log_list[i].write("New ratio of good/total solutions "\
                       + "is : {:.2f}.\n".format(ratio_single))
                 log_list[i].write("The multi-IF fringe fit will be applied.\n ")
-                frng.fringe_clcal(uvdata, target, version = 9+i)
+                frng.fringe_clcal(uvdata, target, version = 10+i)
 
 
             # If new ratio is better than the previous, then replace the SN table and 
@@ -828,17 +846,17 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 log_list[i].write("New ratio of good/total solutions "\
                       + "is : {:.2f}.\n".format(ratio_single))
                 log_list[i].write("The averaged IF fringe fit will be applied.\n ")
-                uvdata.zap_table('SN', 6+i)
-                tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
-                frng.fringe_clcal(uvdata, target, version = 9+i)
+                uvdata.zap_table('SN', 7+i)
+                tysm.tacop(uvdata, 'SN', 7+i+1, 7+i)
+                frng.fringe_clcal(uvdata, target, version = 10+i)
 
 
-    t14 = time.time()
+    t15 = time.time()
     
     ## Print the ratio of bad to good solutions ##
     for i, pipeline_log in enumerate(log_list):        
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t14-t13))  
-    print('Execution time: {:.2f} s. \n'.format(t14-t13))
+    print('Execution time: {:.2f} s. \n'.format(t15-t14))
 
     ##  Export data ##
     disp.write_box(log_list, 'Exporting visibility data')
@@ -867,13 +885,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
     ## Calibrated ##
     for i, target in enumerate(target_list):
-        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 9+i, \
+        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 10+i, \
                            bpver = 1)
         
         log_list[i].write('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
-                           + target + '_CL' + str(9+i) + '_POSSM.ps\n')
+                           + target + '_CL' + str(10+i) + '_POSSM.ps\n')
         print('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
-             + target + '_CL' + str(9+i) + '_POSSM.ps\n')
+             + target + '_CL' + str(10+i) + '_POSSM.ps\n')
         
     ## Plot uv coverage ##
     for i, target in enumerate(target_list):
@@ -886,7 +904,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
     ## Plot visibilities as a function of time of target## 
     for i, target in enumerate(target_list):
-        plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
+        plot.vplot_plotter(path_list[i], uvdata, target, 10+i)     
         
         log_list[i].write('Visibilities as a function of time of ' + target \
                            + ' plotted in ' + path_list[i]  + '/' + target \
@@ -894,10 +912,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         print('Visibilities as a function of time of ' + target + ' plotted in ' \
               + path_list[i]  + '/' + target + '_VPLOT.ps\n')
 
-    t15 = time.time()
+    t16 = time.time()
     for pipeline_log in log_list:
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t15-t14))
-    print('Execution time: {:.2f} s. \n'.format(t15-t14))
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t16-t15))
+    print('Execution time: {:.2f} s. \n'.format(t16-t15))
 
     ## Total execution time ##
     tf = time.time()
@@ -1135,7 +1153,7 @@ def pipeline(input_dict):
             sources = [x.name for x in full_source_list]
 
         # Define AIPS name
-        hdul = fits.open(filepath_list)
+        hdul = fits.open(filepath_list[0])
         aips_name = hdul[0].header['OBSERVER'] 
         
         ## Check if the AIPS catalogue name is too long, and rename ##

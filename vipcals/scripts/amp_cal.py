@@ -11,7 +11,7 @@ def amp_cal(data, antenna_list = [], solint = -3, average = 0, ref_if = 0):
     gain curve (GC) table and generates a solution (SN) table containing 
     amplitude gain calibration information.
 
-    Creates SN#2 and CL#5.
+    Creates SN#5 and CL#8.
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -51,9 +51,9 @@ def amp_cal(data, antenna_list = [], solint = -3, average = 0, ref_if = 0):
     clcal.inseq = data.seq
     clcal.opcode = 'calp'
     clcal.interpol = 'self'
-    clcal.snver = 2
-    clcal.gainver = 4
-    clcal.gainuse = 5
+    clcal.snver = 5
+    clcal.gainver = 7
+    clcal.gainuse = 8
     clcal.msgkill = -4
 
     clcal.go()

@@ -219,7 +219,7 @@ def redo_source_list(uvdata):
         b.id = source['id__no']
         try:
             b.restfreq = source['restfreq'][0]
-        except IndexError: # Single IF datasets
+        except (IndexError, TypeError): # Single IF datasets
             b.restfreq = source['restfreq']  
 
         full_source_list.append(b)

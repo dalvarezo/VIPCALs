@@ -60,7 +60,7 @@ def pulse_phasecal(data, refant, cal_scan):
     
     .. _ME: https://library.nrao.edu/public/memos/vlba/sci/VLBAS_08.pdf
 
-    Creates SN#4 and CL#7
+    Creates SN#3 and CL#6
     
     :param data: visibility data
     :type data: AIPSUVData
@@ -85,7 +85,7 @@ def pulse_phasecal(data, refant, cal_scan):
     pccor.refant = refant
     pccor.calsour = AIPSList([calib])
     pccor.timerang = timer
-    pccor.snver = 4
+    pccor.snver = 3
     pccor.msgkill = -4
     
     pccor.go()
@@ -97,9 +97,9 @@ def pulse_phasecal(data, refant, cal_scan):
     clcal.inseq = data.seq
     clcal.opcode = 'calp'
     clcal.interpol = 'self'
-    clcal.snver = 4
-    clcal.gainver = 6
-    clcal.gainuse = 7
+    clcal.snver = 3
+    clcal.gainver = 5
+    clcal.gainuse = 6
     clcal.msgkill = -4
     
     clcal.go()
@@ -111,7 +111,7 @@ def manual_phasecal(data, refant, cal_scan):
     Runs a fringe fit on a short scan of the calibrator .Then interpolates the solution \
     to the other sources using CLCAL.
     
-    Creates SN#4 and CL#7
+    Creates SN#3 and CL#6
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -150,7 +150,7 @@ def manual_phasecal(data, refant, cal_scan):
     phasecal_fring.dparm[2] = 500    # Delay window (ns)
     phasecal_fring.dparm[9] = 1    # Do NOT fit rates 
     
-    phasecal_fring.snver = 4
+    phasecal_fring.snver = 3
     phasecal_fring.msgkill = -2
     
     # # Debugging line
@@ -165,9 +165,9 @@ def manual_phasecal(data, refant, cal_scan):
     clcal.inseq = data.seq
     clcal.opcode = 'calp'
     clcal.interpol = '2pt'
-    clcal.snver = 4
-    clcal.gainver = 6
-    clcal.gainuse = 7
+    clcal.snver = 3
+    clcal.gainver = 5
+    clcal.gainuse = 6
     clcal.msgkill = -4
     
     clcal.go()
@@ -179,7 +179,7 @@ def manual_phasecal_multi(data, refant, calib_scans):
     Then, merges the solutions in SN#4 and interpolates them to the other sources using 
     CLCAL.
     
-    Creates SN#4 and CL#7
+    Creates SN#3 and CL#6
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -222,7 +222,7 @@ def manual_phasecal_multi(data, refant, calib_scans):
         phasecal_fring.dparm[2] = 500    # Delay window (ns)
         phasecal_fring.dparm[9] = 1    # Do NOT fit rates 
         
-        phasecal_fring.snver = 4 + n
+        phasecal_fring.snver = 3 + n
         phasecal_fring.msgkill = -2
         
         phasecal_fring.go()
@@ -236,8 +236,8 @@ def manual_phasecal_multi(data, refant, calib_scans):
     clcal_merge.inseq = data.seq
 
     clcal_merge.opcode = 'MERG'
-    clcal_merge.snver = 4 # First table to merge
-    clcal_merge.invers = 4+n # Last table to merge
+    clcal_merge.snver = 3 # First table to merge
+    clcal_merge.invers = 3+n # Last table to merge
     clcal_merge.refant = refant
 
     clcal_merge.go()
@@ -251,17 +251,17 @@ def manual_phasecal_multi(data, refant, calib_scans):
     clcal_apply.inseq = data.seq
     clcal_apply.opcode = 'calp'
     clcal_apply.interpol = '2pt'
-    clcal_apply.snver = 4 + n + 1
-    clcal_apply.gainver = 6
-    clcal_apply.gainuse = 7
+    clcal_apply.snver = 3 + n + 1
+    clcal_apply.gainver = 5
+    clcal_apply.gainuse = 6
     clcal_apply.msgkill = -4
     
     clcal_apply.go()
     
     # Remove previous tables and leave only the merged one
-    for i in range (4, 4+n+1):
+    for i in range (3, 3+n+1):
         data.zap_table('SN', i)
 
-    tacop(data, 'SN', 4+n+1, 4)
-    data.zap_table('SN', 4+n+1)
+    tacop(data, 'SN', 3+n+1, 3)
+    data.zap_table('SN', 3+n+1)
     
