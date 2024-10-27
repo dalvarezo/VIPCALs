@@ -1,355 +1,192 @@
-#!/usr/bin/env ParselTongue
-# -*- coding: utf-8 -*-
-
 import argparse
-import time
 import os
-
-import numpy as np
+import json
+from datetime import datetime
 
 from astropy.io import fits
-from astropy.table import Table
 from astropy.coordinates import SkyCoord
 
-from AIPS import AIPS
-
-import scripts.load_data as load
-
 from pipeline import pipeline
+
+
+def read_args(file):
+    """Read arguments from a json file and return them as a list of dictionaries.
+
+    :param file: _description_
+    :type file: _type_
+    :return: _description_
+    :rtype: _type_
+    """
+	# List to store dictionaries
+    dict_list = []
+    current_block = []
+    
+    for line in file:
+		    # Strip leading/trailing whitespace
+            stripped_line = line.strip()
+		    # If the line is not empty, add it to the current block
+            if stripped_line:
+                current_block.append(stripped_line)
+            else:
+		        # If we encounter an empty line, process the current block
+                if current_block:
+                # Join lines and parse as JSON
+                    block_str = ' '.join(current_block)
+                    try:
+                        dict_obj = json.loads(block_str)
+                        dict_list.append(dict_obj)
+                    except json.JSONDecodeError as e:
+                        print(f"Error parsing block: {block_str}\n{e}")
+                    # Clear current block for next dictionary
+                    current_block = []	
+
+	# Handle the last block if the file doesn't end with a blank line
+    if current_block:
+        block_str = ' '.join(current_block)
+        try:
+            dict_obj = json.loads(block_str)
+            dict_list.append(dict_obj)
+        except json.JSONDecodeError as e:
+            print(f"Error parsing block: {block_str}\n{e}")
+
+    return dict_list
+
+def create_default_dict():
+    """Create an input dictionary with default inputs.
+
+    :return: _description_
+    :rtype: _type_
+    """
+    default_dict = {}
+    default_dict['userno'] = None
+    default_dict['paths'] = None
+    default_dict['targets'] = None
+    default_dict['disk'] = None
+    default_dict['calib'] = 'NONE'
+    default_dict['load_all'] = False
+    default_dict['shifts'] = 'NONE'
+    default_dict['refant'] = 'NONE'
+    default_dict['output_directory'] = 'NONE'
+
+    return default_dict
 
 parser = argparse.ArgumentParser(
                     prog = 'VIPCALs',
                     description = 'Automated VLBI data calibration pipeline using AIPS')
 
-# Positional arguments
-parser.add_argument('-u', '--userno', type = int)
-parser.add_argument('-d', '--disk_number', type = int)
-parser.add_argument('-p', '--filepath', type = str)
-parser.add_argument('-t', '--target', nargs = '+')
-
-
-# Optional arguments
-opargs = parser.add_argument_group('optional arguments')
-parser.add_argument('-c', '--calibrator', required = False, type = str, default = 'NONE')
-parser.add_argument('-r', '--refant', required = False, type = str, default = 'NONE')
-parser.add_argument('-s', '--shift', required = False, type = str, nargs = '+',\
-                     default = 'NONE')
-parser.add_argument('-o', '--output_directory', required = False, type = str, \
-                    default = 'NONE')
-
-# Options
-options = parser.add_argument_group('options')
-options.add_argument('-la', '--load_all',  required = False, action = "store_true")
-
-## Timer ##
-ti = time.time()
-
-## Inputs ##
+# Arguments are read from a json file
+parser.add_argument('file', type=argparse.FileType('r'))
 args = parser.parse_args()
-AIPS.userno = args.userno
-filepath = args.filepath
-filename_list = args.target # By default is the target's name
-target_list = args.target
-disk_number = args.disk_number
-inp_cal = args.calibrator
-load_all = args.load_all
-shifts = args.shift
-def_refant = args.refant
-output_directory = args.output_directory
+entry_list = read_args(args.file)
 
 ## Print ASCII art ##
 
 ascii_logo = open('./ascii_logo_string.txt', 'r').read()
 print(ascii_logo)
 
-## Input sanity check ##
-# Phase shift #
-if shifts != 'NONE':
-    if len(target_list) != len(shifts):
-        print('\nThe number of shifted coordinates does not match the number of ' \
-              + 'targets to calibrate.\n')
+# Iterate over every entry on the input file
+print('A total of ' + str(len(entry_list)) + ' calibration blocks were read.\n')
+for i, entry in enumerate(entry_list):
+    print('Checking inputs of calibration block ' + str(i+1) + '.\n')
+    # Create default input dictionary
+    input_dict = create_default_dict()
+    # Unzip inputs
+    for key in entry:
+        input_dict[key] = entry[key]
+
+    ## Input sanity check ##
+    # Some inputs need to be given as a list #
+    if type(input_dict['paths']) != list:
+        print('Filepaths have to be given as a list in the input file.\n')
+        exit()
+    if type(input_dict['targets']) != list:
+        print('Target names have to be given as a list in the input file.\n')
+        exit()
+    if type(input_dict['shifts']) != list and input_dict['shifts'] != 'NONE':
+        print('Coordinate shifts have to be given as a list in the input file.\n')
         exit()
 
-
-    for i, coord in enumerate(shifts):
-        ra = coord.split(',')[0]
-        dec = coord.split(',')[1]
-        try:
-            shifts[i] =  SkyCoord(ra, dec, unit = 'deg')
-        except: 
-            print('\nThere was an error while reading the phase-shift coordinates.' \
-                  + ' Please make sure that the input is correct.\n')
+    # Phase shift #
+    if input_dict['shifts'] != 'NONE':
+        if len(input_dict['targets']) != input_dict['shifts']:
+            print('\nThe number of shifted coordinates does not match the number of ' \
+                + 'targets to calibrate.\n')
             exit()
 
-# Reference antenna
-if def_refant != 'NONE':
-    hdul = fits.open(filepath)
-    antenna_names = []
-    hdul = fits.open(filepath)
-    non_ascii_antennas = list(hdul['ANTENNA'].data['ANNAME'])
-    for ant in non_ascii_antennas:
-        ant = ant.encode()[:2].decode()
-        antenna_names.append(ant)
-    if def_refant not in antenna_names:
-        print('The selected reference antenna is not available in the FITS file.' \
-              + ' Please make sure that the input is correct.')
-        exit()
 
+        for i, coord in enumerate(input_dict['shifts']):
+            ra = coord.split(',')[0]
+            dec = coord.split(',')[1]
+            try:
+                input_dict['shifts'][i] =  SkyCoord(ra, dec, unit = 'deg')
+            except: 
+                print('\nThere was an error while reading the phase-shift coordinates.' \
+                    + ' Please make sure that the input is correct.\n')
+                exit()
 
-# Output directory
-if output_directory != 'NONE':
-    if os.path.isdir(output_directory) == False:
-        print('\nThe selected output directory does not exist.' \
-              + ' The pipeline will stop now.\n')
-        exit()
-    if output_directory[-1] == '/':
-        output_directory = output_directory[:-1]
+    # Load multiple files together:
+    # Same frequency setup
+    if len(input_dict['paths']) > 1:
+        for i, path in enumerate(input_dict['paths'],1):
+            globals()[f"hdul_{i}"] = fits.open(path)
+            
+        for j, path in enumerate(input_dict['paths'],1):
+            if (globals()[f"hdul_1"]['FREQUENCY'].data !=\
+                globals()[f"hdul_{i}"]['FREQUENCY'].data).all() == True:
 
+                print('Frequency setups of ' +  input_dict['paths'][0].split('/')[-1] \
+                    + ' and ' + path.split('/')[-1] + ' do not coincide.' \
+                    + '\nData cannot be loaded together.')
+                exit()
 
-if output_directory == 'NONE':
-    output_directory = os.getcwd()
+    # Same project
+        for j, path in enumerate(input_dict['paths'],1):
+            if (globals()[f"hdul_1"][0].header['OBSERVER'] !=\
+                globals()[f"hdul_{i}"][0].header['OBSERVER']) == True:
 
+                print('Project code of ' +  input_dict['paths'][0].split('/')[-1] \
+                    + ' and ' + path.split('/')[-1] + ' does not coincide.' \
+                    + '\nData cannot be loaded together.')
+                exit()
+                
+    # Similar date (+-3 days)
+        obs_dates = []
+        for j, path in enumerate(input_dict['paths'],1):
+            YYYY = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][:4])
+            MM = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][5:7])
+            DD = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][8:])
 
-## Check for multiband datasets ##
-# In IDs    
-multifreq_id = load.is_it_multifreq_id(filepath)
-# In IFs
-multifreq_if = load.is_it_multifreq_if(filepath)
-
-# If there are multiple IDs:
-if multifreq_id[0] == True:
-    for ids in range(multifreq_id[1]):
-        ## Select sources to load ##
-        full_source_list = load.get_source_list(filepath, multifreq_id[2][ids])
-        if load_all == False:
-            calibs = load.find_calibrators(full_source_list)
-            sources = calibs.copy()
-            sources += target_list
-        if load_all == True:
-            sources = [x.name for x in full_source_list]
-
-        if multifreq_id[2][ids] > 1e10:
-            klass_1 = str(multifreq_id[2][ids])[:2] + 'G'
-        else:
-            klass_1 = str(multifreq_id[2][ids])[:1] + 'G'
-
-        # Define AIPS name
-        hdul = fits.open(filepath)
-        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
-
-        ## Check if the AIPS catalogue name is too long, and rename ##
-        # 12 is the maximum length for a file name in AIPS
-        aips_name_short = aips_name
-        if len(aips_name) > 12:
-            name = aips_name.split('_')[0]
-            suffix = aips_name.split('_')[1]
-            size_name = 12 - (len(suffix) + 1)
-            aips_name_short = name[:size_name] + '_' + suffix
-
-        # Check if project directory already exists, if not, create one
-        project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
-        if os.path.exists(project_dir) == False:
-            os.system('mkdir ' + project_dir)
-
-        # Create subdirectories for the targets and DELETE EXISTING ONES
-        # Also, create the pipeline log file of each target
-        filename_list = target_list.copy()
-        log_list = target_list.copy()
-        path_list = target_list.copy()
-        for i, name in enumerate(filename_list):
-            filename_list[i] = name + '_' + klass_1
-            path_list[i] = project_dir + '/' + filename_list[i]
-            if os.path.exists(project_dir + '/' + filename_list[i]) == True:
-                os.system('rm -rf ' + project_dir + '/' + filename_list[i])
-            os.system('mkdir ' + project_dir + '/' + filename_list[i])
-
-            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                        + '_pipeline_log.txt', 'w+')
-            log_list[i].write(ascii_logo + '\n')
-            log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                + '{:.2f} MB \n'.format\
-                                (os.path.getsize(filepath)/1024**2 ))
-
-        ## START THE PIPELINE ##         
-        pipeline(filepath, aips_name_short, sources, full_source_list, target_list,\
-                    filename_list, log_list, path_list, \
-                    disk_number, klass = klass_1, \
-                    multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
-                    default_refant = def_refant, input_calibrator = inp_cal, \
-                    load_all = load_all, shift_coords = shifts)
-        
-    exit() # STOP the pipeline. This needs to be tweaked.
-
-# If there are multiple IFs:   
-if multifreq_if[0] == True:
+            obs_dates.append(datetime(YYYY, MM, DD).toordinal())
+        if (max(obs_dates) - min(obs_dates)) > 2:
+            print('\nWARNING! There are more than 2 days between observations.\n')
     
-    klass_1 = multifreq_if[5] + 'G'
-    klass_2 = multifreq_if[6] + 'G'
+    # Reference antenna #
+    for filepath in input_dict['paths']:
+        if input_dict['refant'] != 'NONE':
+            hdul = fits.open(filepath)
+            antenna_names = []
+            hdul = fits.open(filepath)
+            non_ascii_antennas = list(hdul['ANTENNA'].data['ANNAME'])
+            for ant in non_ascii_antennas:
+                ant = ant.encode()[:2].decode()
+                antenna_names.append(ant)
+            if input_dict['refant'] not in antenna_names:
+                print('The selected reference antenna is not available in the FITS file.'\
+                    + ' Please make sure that the input is correct.')
+                exit()
 
-    ## FIRST FREQUENCY ##
-    ## Select sources to load ##
-    full_source_list = load.get_source_list(filepath, multifreq_if[7])
-    if load_all == False:
-        calibs = load.find_calibrators(full_source_list)
-        sources = calibs.copy()
-        sources += target_list
-    if load_all == True:
-        sources = [x.name for x in full_source_list]
+    # Output directory
+    if input_dict['output_directory'] != 'NONE':
+        if os.path.isdir(input_dict['output_directory']) == False:
+            print('\nThe selected output directory does not exist.' \
+                + ' The pipeline will stop now.\n')
+            exit()
+        if input_dict['output_directory'][-1] == '/':
+            input_dict['output_directory'] = input_dict['output_directory'][:-1]
 
-    # Define AIPS name
-    hdul = fits.open(filepath)
-    aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
 
-    ## Check if the AIPS catalogue name is too long, and rename ##
-    aips_name_short = aips_name
-    if len(aips_name) > 12:
-        name = aips_name.split('_')[0]
-        suffix = aips_name.split('_')[1]
-        size_name = 12 - (len(suffix) + 1)
-        aips_name_short = name[:size_name] + '_' + suffix
+    if input_dict['output_directory'] == 'NONE':
+        input_dict['output_directory'] = os.getcwd()
 
-    # Check if project directory already exists, if not, create one
-    project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
-    if os.path.exists(project_dir) == False:
-        os.system('mkdir ' + project_dir)
-
-    # Create subdirectories for the targets and DELETE EXISTING ONES
-    # Also, create the pipeline log file of each target
-    filename_list = target_list.copy()
-    log_list = target_list.copy()
-    path_list = target_list.copy()
-    for i, name in enumerate(filename_list):
-        filename_list[i] = name + '_' + klass_1
-        path_list[i] = project_dir + '/' + filename_list[i]
-        if os.path.exists(project_dir + '/' + filename_list[i]) == True:
-            os.system('rm -rf ' + project_dir + '/' + filename_list[i])
-        os.system('mkdir ' + project_dir + '/' + filename_list[i])
-
-        log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                    + '_pipeline_log.txt', 'w+')
-        log_list[i].write(ascii_logo + '\n')
-        log_list[i].write(os.path.basename(filepath) + ' --- '\
-                            + '{:.2f} MB \n'.format\
-                            (os.path.getsize(filepath)/1024**2 ))
-    
-    ## START THE PIPELINE ##
-    pipeline(filepath, aips_name_short, sources, full_source_list, target_list, \
-             filename_list, log_list, path_list, \
-             disk_number, klass = klass_1,\
-             bif = multifreq_if[1], eif = multifreq_if[2], \
-             default_refant = def_refant, input_calibrator = inp_cal, \
-             load_all = load_all, shift_coords = shifts)
-    
-
-    ## SECOND FREQUENCY ##
-    ## Select sources to load ##
-    full_source_list = load.get_source_list(filepath, multifreq_if[8])
-    if load_all == False:
-        calibs = load.find_calibrators(full_source_list)
-        sources = calibs.copy()
-        sources += target_list
-    if load_all == True:
-        sources = [x.name for x in full_source_list]
-    
-    # Define AIPS name
-    hdul = fits.open(filepath)
-    aips_name = hdul[0].header['OBSERVER'] + '_' + klass_2
-    
-    ## Check if the AIPS catalogue name is too long, and rename ##
-    aips_name_short = aips_name
-    if len(aips_name) > 12:
-        name = aips_name.split('_')[0]
-        suffix = aips_name.split('_')[1]
-        size_name = 12 - (len(suffix) + 1)
-        aips_name_short = name[:size_name] + '_' + suffix
-
-    # Check if project directory already exists, if not, create one
-    project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
-    if os.path.exists(project_dir) == False:
-        os.system('mkdir ' + project_dir)
-
-    # Create subdirectories for the targets and DELETE EXISTING ONES
-    # Also, create the pipeline log file of each target
-    filename_list = target_list.copy()
-    log_list = target_list.copy()
-    path_list = target_list.copy()
-    for i, name in enumerate(filename_list):
-        filename_list[i] = name + '_' + klass_2
-        path_list[i] = project_dir + '/' + filename_list[i]
-        if os.path.exists(project_dir + '/' + filename_list[i]) == True:
-            os.system('rm -rf ' + project_dir + '/' + filename_list[i])
-        os.system('mkdir ' + project_dir + '/' + filename_list[i])
-
-        log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                    + '_pipeline_log.txt', 'w+')
-        log_list[i].write(ascii_logo + '\n')
-        log_list[i].write(os.path.basename(filepath) + ' --- '\
-                            + '{:.2f} MB \n'.format\
-                            (os.path.getsize(filepath)/1024**2 ))
-        
-    ## START THE PIPELINE ##  
-    pipeline(filepath, aips_name_short, sources, full_source_list, target_list, \
-             filename_list, log_list, path_list, \
-             disk_number, klass = klass_2, \
-             bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
-             input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
-
-    # End the pipeline
-    exit()
-
-# If there is only one frequency:  
-if multifreq_id[0] == False and multifreq_if[0] == False:
-    
-    klass_1 = multifreq_if[5] + 'G'
-    
-    ## Select sources to load ##
-    full_source_list = load.get_source_list(filepath)
-    if load_all == False:
-        calibs = load.find_calibrators(full_source_list)
-        sources = calibs.copy()
-        sources += target_list
-    if load_all == True:
-        sources = [x.name for x in full_source_list]
-
-    # Define AIPS name
-    hdul = fits.open(filepath)
-    aips_name = hdul[0].header['OBSERVER'] 
-    
-    ## Check if the AIPS catalogue name is too long, and rename ##
-    aips_name_short = aips_name
-    if len(aips_name) > 12:
-        name = aips_name.split('_')[0]
-        suffix = aips_name.split('_')[1]
-        size_name = 12 - (len(suffix) + 1)
-        aips_name_short = name[:size_name] + '_' + suffix
-
-    # Check if project directory already exists, if not, create one
-    project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
-    if os.path.exists(project_dir) == False:
-        os.system('mkdir ' + project_dir)
-
-    # Create subdirectories for the targets and DELETE EXISTING ONES
-    # Also, create the pipeline log file of each target
-    filename_list = target_list.copy()
-    log_list = target_list.copy()
-    path_list = target_list.copy()
-    for i, name in enumerate(filename_list):
-        filename_list[i] = name + '_' + klass_1
-        path_list[i] = project_dir + '/' + filename_list[i]
-        
-        if os.path.exists(project_dir + '/' + filename_list[i]) == True:
-            os.system('rm -rf ' + project_dir + '/' + filename_list[i])
-        os.system('mkdir ' + project_dir + '/' + filename_list[i])
-
-        log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                    + '_pipeline_log.txt', 'w+')
-        log_list[i].write(ascii_logo + '\n')
-        log_list[i].write(os.path.basename(filepath) + ' --- '\
-                            + '{:.2f} MB \n'.format\
-                            (os.path.getsize(filepath)/1024**2 ))
-        
-    ## START THE PIPELINE ##               
-    pipeline(filepath, aips_name, sources, full_source_list, target_list, \
-             filename_list, log_list, path_list, \
-             disk_number, klass = klass_1, default_refant = def_refant, \
-             input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
+    # Everything is fine, start the pipeline
+    pipeline(input_dict)

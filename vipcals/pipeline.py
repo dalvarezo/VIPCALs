@@ -3,8 +3,10 @@ import time
 import numpy as np
 from datetime import datetime
 
+from AIPS import AIPS
 
 from astropy.coordinates import SkyCoord
+from astropy.io import fits
 
 import scripts.load_data as load
 import scripts.display as disp
@@ -27,16 +29,15 @@ import scripts.phase_shift as shft
 
 from AIPSData import AIPSUVData
 
-
-def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
+def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
              filename_list, log_list, path_list,\
              disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
              multi_id = False, selfreq = 0, default_refant = 'NONE', \
              input_calibrator = 'NONE', load_all = False, shift_coords = 'None'):
     """Main workflow of the pipeline 
 
-    :param filepath: path to the original uvfits/idifits file
-    :type filepath: str
+    :param filepath_list: list of paths to the original uvfits/idifits files
+    :type filepath_list: list of str
     :param aips_name: name for the catalogue entry in AIPS
     :type aips_name: str
     :param sources: list with source names to be loaded
@@ -94,7 +95,10 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     disp.write_box(log_list, 'Loading data')
     
     ## Check if the filepath is > 46 characters
-    if len(filepath.split('/')[-1]) > 46:
+    ## IN PRINCIPLE THIS PART IS NOT NEEDED ANYMORE, SYMLINKS ARE ALWAYS USED INSTEAD
+    ## OF THE ORIGINAL FILE
+    
+    #if len(filepath.split('/')[-1]) > 46:
  
         # directory = '/'.join(filepath.split('/')[:-1])
         # This would be the ideal, to create the hard link in the same 
@@ -104,30 +108,31 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
         # To keep it simple, for now, the hard link is created always 
         # in /data/pipeline_test_sample
         
-        directory = '/data/pipeline_test_sample'        
+    #    directory = '/data/pipeline_test_sample'        
 
         ## Create hard link to a shorter path
         
         # Delete if it already exists
-        if os.path.exists(directory + '/aux.uvfits'):
-            os.system('rm ' + directory + '/aux.uvfits')
+    #    if os.path.exists(directory + '/aux.uvfits'):
+    #        os.system('rm ' + directory + '/aux.uvfits')
         
-        os.system('ln ' + filepath + ' ' + directory + '/aux.uvfits')
-        shortpath = directory + '/aux.uvfits'
+    #    os.system('ln ' + filepath + ' ' + directory + '/aux.uvfits')
+    #    shortpath = directory + '/aux.uvfits'
         
         ## Load the dataset ##
-        t0 = time.time()
-        load.load_data(shortpath, aips_name, sources, disk_number, multi_id,\
-        selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
-        t1 = time.time()   
-        os.system('rm ' + shortpath)
+    #    t0 = time.time()
+    #    load.load_data(shortpath, aips_name, sources, disk_number, multi_id,\
+    #    selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
+    #    t1 = time.time()   
+    #    os.system('rm ' + shortpath)
 
-    else:
-        ## Load the dataset ##
-        t0 = time.time()
-        load.load_data(filepath, aips_name, sources, disk_number, multi_id,\
-        selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
-        t1 = time.time() 
+    #else:
+
+    ## Load the dataset ##
+    t0 = time.time()
+    load.load_data(filepath_list, aips_name, sources, disk_number, multi_id,\
+    selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
+    t1 = time.time() 
  
     for pipeline_log in log_list:
         pipeline_log.write('\nData loaded! The loaded sources are ' + \
@@ -142,7 +147,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     try:
         uvdata.antennas
     except SystemError:
-        tabl.remove_ascii_antname(uvdata, filepath)
+        tabl.remove_ascii_antname(uvdata, filepath_list[0])
         tabl.remove_ascii_poltype(uvdata)
         print('\nAN Table was modified to correct for padding in entries.\n')
 
@@ -309,8 +314,8 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
             + 's. It has been averaged to 2s.\n')
         
             
-    ## If the channel bandwidth is smaller tha or equal to 125kHz, average the dataset 
-    ## in frequency up to 0.5MHz per channel 
+    ## If the channel bandwidth is smaller than or equal to 0.5 MHz, average the dataset 
+    ## in frequency up to 0.5 MHz per channel 
     try:
         ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'][0])
         no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'][0])
@@ -318,7 +323,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
         ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'])
         no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'])
         
-    if ch_width <= 125000:
+    if ch_width < 500000:
         avgdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
@@ -401,12 +406,12 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     # Maybe this output could be written as a %, I just need to manually write
     # the case where 0 points are flagged
     for pipeline_log in log_list:
-        pipeline_log.write('\nSystem temperatures clipped!. ' + str(flagged_tsys) \
+        pipeline_log.write('\nSystem temperatures clipped! ' + str(flagged_tsys) \
                         + ' Tsys points out of a total of ' \
                         + str(original_tsys) + ' have been flagged. '\
                         + 'TY#2 created.\n')
      
-    print('\nSystem temperatures clipped!. ' + str(flagged_tsys) \
+    print('\nSystem temperatures clipped! ' + str(flagged_tsys) \
           + ' Tsys points out of a total of ' \
           + str(original_tsys) + ' have been flagged. '\
           + 'TY#2 created.\n')
@@ -417,6 +422,10 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
     for pipeline_log in log_list:
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t2-t1))
     print('Execution time: {:.2f} s. \n'.format(t2-t1))
+
+    # full_source_list needs to be re-written after loading, to avoid issues when 
+    # concatenating files
+    full_source_list = load.redo_source_list(uvdata)
 
     ## Choose refant ##
     disp.write_box(log_list, 'Reference antenna search')
@@ -509,7 +518,7 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
 
     # Check which antennas have GC, only calibrate those
     gc_antennas = [y['antenna_no'] for y in uvdata.table('GC',1)]
-    
+    gc_antennas = list(set(gc_antennas)) # Remove duplicates
     ampc.amp_cal(uvdata, gc_antennas)
     t7 = time.time()
     for pipeline_log in log_list:
@@ -751,13 +760,83 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
              + tfring_params[2] + ' mHz.\n')
         
         print('\nFringe fit corrections applied to ' + target + '! SN#' + str(6+i) + \
-              ' and CL#' + str(9+i) + ' created.\n')   
+              ' and CL#' + str(9+i) + ' created.\n')  
+        
+        ## Print the ratio of bad to good solutions ##
+    
+        ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i) 
+
+        # If the ratio is > 0.7, apply the solutions to a CL table
+
+        if ratio > 0.7:
+            frng.fringe_clcal(uvdata, target, version = 9+i)
+
+        # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
+
+        if ratio < 0.7:
+
+            print("Ratio of good/total solutions is : {:.2f}.\n".format(ratio))
+            print("Repeating the fringe fit solving for all IFs together:\n ")
+
+            log_list[i].write("Ratio of good/total solutions" \
+                              + "is : {:.2f}.\n".format(ratio))
+            log_list[i].write("Repeating the fringe fit solving for all IFs together:\n ")
+
+            tfring_params = frng.target_fring_fit(uvdata, refant, target, \
+                                                solint=float(solint_list[i]), 
+                                                version = 9+i+1, solve_ifs=False)
+            
+            log_list[i].write('\nFringe search performed on ' + target + '. Windows for '\
+                            + 'the search were ' + tfring_params[1] + ' ns and ' \
+                            + tfring_params[2] + ' mHz.\n')
+            
+            log_list[i].write('\nFringe fit corrections applied to the target! '\
+                            + 'SN#' + str(6+i) + ' and CL#' + str(9+i) + ' created.\n')
+            
+            print('\nFringe search performed on ' + target + '. Windows for ' \
+                + 'the search were ' + tfring_params[1] + ' ns and ' \
+                + tfring_params[2] + ' mHz.\n')
+            
+            print('\nFringe fit corrections applied to ' + target + '! SN#' + str(6+i) \
+                  + ' and CL#' + str(9+i) + ' created.\n') 
+            
+            ## Print the new ratio of bad to good solutions ##
+        
+            ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i+1) 
+
+            # If the new ratio is smaller or equal than the previous, 
+            # then keep the previous
+
+            if ratio_single <= ratio:
+                print("New ratio of good/total solutions "\
+                      + "is : {:.2f}.\n".format(ratio_single))
+                print("The multi-IF fringe fit will be applied.\n ")
+
+                log_list[i].write("New ratio of good/total solutions "\
+                      + "is : {:.2f}.\n".format(ratio_single))
+                log_list[i].write("The multi-IF fringe fit will be applied.\n ")
+                frng.fringe_clcal(uvdata, target, version = 9+i)
+
+
+            # If new ratio is better than the previous, then replace the SN table and 
+            # apply the solutions
+            if ratio_single > ratio:
+                print("New ratio of good/total solutions "\
+                      + "is : {:.2f}.\n".format(ratio_single))
+                print("The averaged IF fringe fit will be applied.\n ")
+
+                log_list[i].write("New ratio of good/total solutions "\
+                      + "is : {:.2f}.\n".format(ratio_single))
+                log_list[i].write("The averaged IF fringe fit will be applied.\n ")
+                uvdata.zap_table('SN', 6+i)
+                tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
+                frng.fringe_clcal(uvdata, target, version = 9+i)
+
+
     t14 = time.time()
     
     ## Print the ratio of bad to good solutions ##
-    for i, pipeline_log in enumerate(log_list):
-        frng.assess_fringe_fit(uvdata, pipeline_log, version = 6+i)               
-
+    for i, pipeline_log in enumerate(log_list):        
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t14-t13))  
     print('Execution time: {:.2f} s. \n'.format(t14-t13))
 
@@ -827,3 +906,274 @@ def pipeline(filepath, aips_name, sources, full_source_list, target_list, \
                          + '{:.2f} s. \n'.format(tf-t_i))
         pipeline_log.close()
     print('\nScript run time: {:.2f} s. \n'.format(tf-t_i))
+
+def pipeline(input_dict):
+    """Read the inputs, split multiple frequencies and calibrate the dataset
+
+    :param input_dict: _description_
+    :type input_dict: _type_
+    """    
+    # Read logo
+    ascii_logo = open('./ascii_logo_string.txt', 'r').read()
+
+    # Read the input dictionary
+    filepath_list = input_dict['paths']
+    userno = input_dict['userno'] 
+    AIPS.userno = userno
+    target_list = input_dict['targets'] 
+    disk_number = input_dict['disk'] 
+    inp_cal = input_dict['calib'] 
+    load_all = input_dict['load_all'] 
+    shifts = input_dict['shifts'] 
+    def_refant = input_dict['refant'] 
+    output_directory = input_dict['output_directory'] 
+
+    ## Check for multiband datasets ##
+    # If multiple files, done only on the first, since all need to have the same 
+    # frequency setup
+    # In IDs    
+    multifreq_id = load.is_it_multifreq_id(filepath_list[0])
+    # In IFs
+    multifreq_if = load.is_it_multifreq_if(filepath_list[0])
+
+    # If there are multiple IDs:
+    if multifreq_id[0] == True:
+        for ids in range(multifreq_id[1]):
+            ## Select sources to load ##
+            full_source_list = load.get_source_list(filepath_list, multifreq_id[2][ids])
+            if load_all == False:
+                calibs = load.find_calibrators(full_source_list)
+                sources = calibs.copy()
+                sources += target_list
+            if load_all == True:
+                sources = [x.name for x in full_source_list]
+
+            if multifreq_id[2][ids] > 1e10:
+                klass_1 = str(multifreq_id[2][ids])[:2] + 'G'
+            else:
+                klass_1 = str(multifreq_id[2][ids])[:1] + 'G'
+
+            # Define AIPS name
+            hdul = fits.open(filepath_list[0])
+            aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
+
+            ## Check if the AIPS catalogue name is too long, and rename ##
+            # 12 is the maximum length for a file name in AIPS
+            aips_name_short = aips_name
+            if len(aips_name) > 12:
+                name = aips_name.split('_')[0]
+                suffix = aips_name.split('_')[1]
+                size_name = 12 - (len(suffix) + 1)
+                aips_name_short = name[:size_name] + '_' + suffix
+
+            # Check if project directory already exists, if not, create one
+            project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+            if os.path.exists(project_dir) == False:
+                os.system('mkdir ' + project_dir)
+
+            # Create subdirectories for the targets and DELETE EXISTING ONES
+            # Also, create the pipeline log file of each target
+            filename_list = target_list.copy()
+            log_list = target_list.copy()
+            path_list = target_list.copy()
+            for i, name in enumerate(filename_list):
+                filename_list[i] = name + '_' + klass_1
+                path_list[i] = project_dir + '/' + filename_list[i]
+                if os.path.exists(project_dir + '/' + filename_list[i]) == True:
+                    os.system('rm -rf ' + project_dir + '/' + filename_list[i])
+                os.system('mkdir ' + project_dir + '/' + filename_list[i])
+
+                log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
+                            + '_pipeline_log.txt', 'w+')
+                log_list[i].write(ascii_logo + '\n')
+                for filepath in filepath_list:
+                    log_list[i].write(os.path.basename(filepath) + ' --- '\
+                                        + '{:.2f} MB \n'.format\
+                                        (os.path.getsize(filepath)/1024**2 ))
+
+            ## START THE PIPELINE ##         
+            calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list,\
+                        filename_list, log_list, path_list, \
+                        disk_number, klass = klass_1, \
+                        multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
+                        default_refant = def_refant, input_calibrator = inp_cal, \
+                        load_all = load_all, shift_coords = shifts)
+            
+        return() # STOP the pipeline. This needs to be tweaked.
+
+    # If there are multiple IFs:   
+    if multifreq_if[0] == True:
+        
+        klass_1 = multifreq_if[5] + 'G'
+        klass_2 = multifreq_if[6] + 'G'
+
+        ## FIRST FREQUENCY ##
+        ## Select sources to load ##
+        full_source_list = load.get_source_list(filepath_list, multifreq_if[7])
+        if load_all == False:
+            calibs = load.find_calibrators(full_source_list)
+            sources = calibs.copy()
+            sources += target_list
+        if load_all == True:
+            sources = [x.name for x in full_source_list]
+
+        # Define AIPS name
+        hdul = fits.open(filepath_list[0])
+        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
+
+        ## Check if the AIPS catalogue name is too long, and rename ##
+        aips_name_short = aips_name
+        if len(aips_name) > 12:
+            name = aips_name.split('_')[0]
+            suffix = aips_name.split('_')[1]
+            size_name = 12 - (len(suffix) + 1)
+            aips_name_short = name[:size_name] + '_' + suffix
+
+        # Check if project directory already exists, if not, create one
+        project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+        if os.path.exists(project_dir) == False:
+            os.system('mkdir ' + project_dir)
+
+        # Create subdirectories for the targets and DELETE EXISTING ONES
+        # Also, create the pipeline log file of each target
+        filename_list = target_list.copy()
+        log_list = target_list.copy()
+        path_list = target_list.copy()
+        for i, name in enumerate(filename_list):
+            filename_list[i] = name + '_' + klass_1
+            path_list[i] = project_dir + '/' + filename_list[i]
+            if os.path.exists(project_dir + '/' + filename_list[i]) == True:
+                os.system('rm -rf ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i])
+
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
+                        + '_pipeline_log.txt', 'w+')
+            log_list[i].write(ascii_logo + '\n')
+            for filepath in filepath_list:
+                log_list[i].write(os.path.basename(filepath) + ' --- '\
+                                    + '{:.2f} MB \n'.format\
+                                    (os.path.getsize(filepath)/1024**2 ))
+        
+        ## START THE PIPELINE ##
+        calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list, \
+                filename_list, log_list, path_list, \
+                disk_number, klass = klass_1,\
+                bif = multifreq_if[1], eif = multifreq_if[2], \
+                default_refant = def_refant, input_calibrator = inp_cal, \
+                load_all = load_all, shift_coords = shifts)
+        
+
+        ## SECOND FREQUENCY ##
+        ## Select sources to load ##
+        full_source_list = load.get_source_list(filepath_list, multifreq_if[8])
+        if load_all == False:
+            calibs = load.find_calibrators(full_source_list)
+            sources = calibs.copy()
+            sources += target_list
+        if load_all == True:
+            sources = [x.name for x in full_source_list]
+        
+        # Define AIPS name
+        hdul = fits.open(filepath_list[0])
+        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_2
+        
+        ## Check if the AIPS catalogue name is too long, and rename ##
+        aips_name_short = aips_name
+        if len(aips_name) > 12:
+            name = aips_name.split('_')[0]
+            suffix = aips_name.split('_')[1]
+            size_name = 12 - (len(suffix) + 1)
+            aips_name_short = name[:size_name] + '_' + suffix
+
+        # Check if project directory already exists, if not, create one
+        project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+        if os.path.exists(project_dir) == False:
+            os.system('mkdir ' + project_dir)
+
+        # Create subdirectories for the targets and DELETE EXISTING ONES
+        # Also, create the pipeline log file of each target
+        filename_list = target_list.copy()
+        log_list = target_list.copy()
+        path_list = target_list.copy()
+        for i, name in enumerate(filename_list):
+            filename_list[i] = name + '_' + klass_2
+            path_list[i] = project_dir + '/' + filename_list[i]
+            if os.path.exists(project_dir + '/' + filename_list[i]) == True:
+                os.system('rm -rf ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i])
+
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
+                        + '_pipeline_log.txt', 'w+')
+            log_list[i].write(ascii_logo + '\n')
+            for filepath in filepath_list:
+                log_list[i].write(os.path.basename(filepath) + ' --- '\
+                                    + '{:.2f} MB \n'.format\
+                                    (os.path.getsize(filepath)/1024**2 ))
+            
+        ## START THE PIPELINE ##  
+        calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list, \
+                filename_list, log_list, path_list, \
+                disk_number, klass = klass_2, \
+                bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
+                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
+
+        # End the pipeline
+        return()
+
+     # If there is only one frequency:  
+    if multifreq_id[0] == False and multifreq_if[0] == False:
+        
+        klass_1 = multifreq_if[5] + 'G'
+        
+        ## Select sources to load ##
+        full_source_list = load.get_source_list(filepath_list)
+        if load_all == False:
+            calibs = load.find_calibrators(full_source_list)
+            sources = calibs.copy()
+            sources += target_list
+        if load_all == True:
+            sources = [x.name for x in full_source_list]
+
+        # Define AIPS name
+        hdul = fits.open(filepath_list)
+        aips_name = hdul[0].header['OBSERVER'] 
+        
+        ## Check if the AIPS catalogue name is too long, and rename ##
+        aips_name_short = aips_name
+        if len(aips_name) > 12:
+            name = aips_name.split('_')[0]
+            suffix = aips_name.split('_')[1]
+            size_name = 12 - (len(suffix) + 1)
+            aips_name_short = name[:size_name] + '_' + suffix
+
+        # Check if project directory already exists, if not, create one
+        project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+        if os.path.exists(project_dir) == False:
+            os.system('mkdir ' + project_dir)
+
+        # Create subdirectories for the targets and DELETE EXISTING ONES
+        # Also, create the pipeline log file of each target
+        filename_list = target_list.copy()
+        log_list = target_list.copy()
+        path_list = target_list.copy()
+        for i, name in enumerate(filename_list):
+            filename_list[i] = name + '_' + klass_1
+            path_list[i] = project_dir + '/' + filename_list[i]
+            
+            if os.path.exists(project_dir + '/' + filename_list[i]) == True:
+                os.system('rm -rf ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i])
+
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
+                        + '_pipeline_log.txt', 'w+')
+            log_list[i].write(ascii_logo + '\n')
+            for filepath in filepath_list:
+                log_list[i].write(os.path.basename(filepath) + ' --- '\
+                                    + '{:.2f} MB \n'.format\
+                                    (os.path.getsize(filepath)/1024**2 ))
+            
+        ## START THE PIPELINE ##               
+        calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
+                filename_list, log_list, path_list, \
+                disk_number, klass = klass_1, default_refant = def_refant, \
+                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)   
