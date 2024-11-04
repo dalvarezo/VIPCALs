@@ -79,3 +79,34 @@ def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1)
         fittp.dataout = path_list[i] + '/' + target + '_' + data.klass + '.uvfits'
         fittp.msgkill = -4        
         fittp.go()
+
+def table_export(path_list, data, target_list):
+    """Copy calibration tables to a dummy file and export them.
+
+    :param path_list: list of filepaths for each source
+    :type path_list: list of str
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target_list: list of sources to split
+    :type target_list: list of str
+    """    
+
+    tasav = AIPSTask('tasav')
+    tasav.inname = data.name
+    tasav.inclass = data.klass
+    tasav.indisk = data.disk
+    tasav.inseq = data.seq
+    tasav.inname = data.name
+    tasav.inclass = 'DUMMY'
+    tasav.indisk = data.disk
+ 
+    tasav.go()
+
+    for i, target in enumerate(target_list):
+        fittp = AIPSTask('fittp')
+        fittp.inname = data.name
+        fittp.inclass = 'DUMMY'
+        fittp.indisk = data.disk
+        fittp.dataout = path_list[i] + '/' + target + '_' + data.klass + '.caltab.uvfits'
+        fittp.msgkill = -4        
+        fittp.go()

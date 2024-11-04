@@ -782,7 +782,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
         ## Print the ratio of bad to good solutions ##
     
-        ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i) 
+        ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
 
         # If the ratio is > 0.7, apply the solutions to a CL table
 
@@ -862,11 +862,17 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.write_box(log_list, 'Exporting visibility data')
 
     expo.data_export(path_list, uvdata, target_list)
+    expo.table_export(path_list, uvdata, target_list)
     for i, target in enumerate(target_list): 
         log_list[i].write('\n' + target + ' visibilites exported to ' + path_list[i] \
                           + '/' + target + '.uvfits\n')
         print('\n' + target + ' visibilites exported to ' + path_list[i] + '/' \
              + target + '.uvfits\n')
+    for i, target in enumerate(target_list): 
+        log_list[i].write('\n' + target + ' calibration tables exported to ' \
+                          + path_list[i] + '/' + target + '.caltab.uvfits\n')
+        print('\n' + target + ' calibration tables exported to ' + path_list[i] + '/' \
+             + target + '.caltab.uvfits\n')
 
     ## PLOTS ##
 

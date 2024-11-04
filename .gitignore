@@ -18,3 +18,5 @@ vipcals/1_100_ionos/
 vipcals/test_input.json
 vipcals/pipeline_OLD.py
 vipcals/__main__OLD.py
+vipcals/input_1_100*
+vipcals/vipcals100*
