@@ -557,3 +557,207 @@ def dummy_fring(data, refant, target_list, solint = 0, delay_w = 1000, \
     dummy_fring.msgkill = -4
     
     dummy_fring.go()
+
+def refant_choose_snr_alfrd(data, sources, search_sources, target_list, full_source_list, \
+                      log_list, search_central = True):
+    """Choose a suitable reference antenna using SNR values
+
+    MODIFIED VERSION FOR ALFRD, MERGE WITH MAIN FUNCTION!
+
+    Select antennas based on its availability throughout the observation, then run a \
+    fast fringe fit on the target(s) using each antenna as the reference antenna. Return \
+    the id of the antenna with the highest SNR.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param sources: list with source names
+    :type sources: list of str
+    :param search_sources: list of sources to consider in the search
+    :type search_sources: list of str    
+    :param target_list: target names
+    :type target_list: list of str
+    :param full_source_list: list containing all sources in the dataset
+    :type full_source_list: list of Source objects
+    :param log: list of pipeline logs
+    :type log_list: list of file
+    :param search_central: search for reference antenna only between \
+                            KP, LA, PT, OV and FD, defaults to True
+    :type search_central: bool, optional
+    :return: reference antenna number
+    :rtype: int
+    :return: reference antenna name
+    :rtype: str
+    :return: reference antenna SNR
+    :rtype: float
+    """     
+    # Load tables
+    nx_table = data.table('NX', 1)
+    an_table = data.table('AN', 1)
+    
+    # Which sources are relevant?
+    sources_codes = []
+    for src in full_source_list:
+        if src.name in sources:
+            sources_codes.append(src.id)
+
+    # Collect info from antennas participating in the observation
+    antennas_list = {}
+
+    for ant in an_table:
+        a = AntennaTY()
+        a.name = ant['anname'].strip()
+        a.id = ant['nosta']
+        a.coords = np.array(ant['stabxyz'])
+        antennas_list[a.id] = a
+
+    # Remove antennas with no TY or GC information
+    gc_antennas = [y['antenna_no'] for y in data.table('GC',1)]
+    ty_antennas = []
+    for t in data.table('TY', 2):
+        ty_antennas.append(t['antenna_no'])
+    ty_antennas = list(set(ty_antennas))
+
+    bad_antennas = [z for z in list(antennas_list.keys()) if z \
+                    not in ty_antennas or z not in gc_antennas]
+    for element in bad_antennas:
+        del antennas_list[element]
+
+    # Where is the physical center of the array?
+    center_coord = np.array([0,0,0])
+    for ant in antennas_list:
+        center_coord = center_coord + antennas_list[ant].coords 
+    center_coord = center_coord/len(antennas_list)
+    
+    # Distance of each antenna to the center
+    for ant in antennas_list:
+        vector_dist = antennas_list[ant].coords - center_coord
+        antennas_list[ant].dist = vector_dist.dot(vector_dist)
+
+    wuvdata = wizard.AIPSUVData(data.name, data.klass, data.disk, \
+                                data.seq)  # Wizardry version of the data
+
+    # Create scan list
+    scan_list = []
+    for i, scans in enumerate(nx_table):
+        s = Scan()
+        s.number = i
+        s.itime = scans['time'] - scans['time_interval']/2
+        s.ftime = scans['time'] + scans['time_interval']/2
+        s.len = scans['time_interval']
+        s.source_id = scans['source_id']
+        s.get_antennas(wuvdata)
+        scan_list.append(s)
+
+    # Drop scans with no antennas observing or 0 seconds of observing time
+    for s in scan_list:
+        if len(s.antennas) == 0:
+            scan_list.remove(s)
+    for s in scan_list:
+        if s.len == 0.0:
+            scan_list.remove(s)
+    # How many scans did each antenna observe
+    for ant in antennas_list:
+        for scn in scan_list:
+            if antennas_list[ant].id in scn.antennas:
+                antennas_list[ant].scans_obs.append(scn.number)
+    # Maximum number of scans observed
+    max_scan_no = np.max([len(antennas_list[x].scans_obs) for x in antennas_list])
+    # Print a warning if no antennas was available in all scans
+    if max_scan_no < len(scan_list):
+        for pipeline_log in log_list:
+            pipeline_log.write('\nWARNING: No antenna was available for all scans\n')
+        print('\nWARNING: No antenna was available for all scans\n')
+
+    # Drop antennas if not available on the targets scans, --- or not available in the max
+    # number of scans --- omitted this second part for now
+    target_ids = [x.id for x in full_source_list if x.name in target_list]
+    target_scans = [x for x in scan_list if x.source_id in target_ids]
+    bad_antennas = []
+    for ant in antennas_list:
+        #if len(antennas_list[ant].scans_obs) < len(scan_list):
+        #    bad_antennas.append(ant)
+        #    continue
+        for scan in target_scans:
+            if scan.number not in antennas_list[ant].scans_obs:
+                bad_antennas.append(ant)
+        
+    for element in list(set(bad_antennas)):
+        del antennas_list[element]
+
+    # Run a fringe fit with the remaining antennas
+    snr_dict = {}
+    for i in antennas_list:
+        if search_central == True:  # Search for refant only in the central antennas
+            if antennas_list[i].name in ['KP', 'LA', 'PT', 'OV', 'FD']:
+                snr_dict[i] = {}
+                for j in range(len(an_table)):
+                    snr_dict[i][j+1] = []
+        if search_central == False:  # Search for refant in all antennas
+            snr_dict[i] = {}
+            for j in range(len(an_table)):
+                snr_dict[i][j+1] = []
+    # If search_central == True, but none of the 5 central antennas was available, do it 
+    # again with all antennas
+    if search_central == True and len(snr_dict) == 0:
+        for i in antennas_list:
+            snr_dict[i] = {}
+            for j in range(len(an_table)):
+                snr_dict[i][j+1] = []
+
+    for ant in antennas_list:
+        if ant in snr_dict.keys():
+            dummy_fring(data, ant, search_sources)
+            # Check the last SN table and store the median SNR (computed over IFs)
+            last_table = data.table('SN', 0)
+            for entry in last_table:
+                snr_dict[ant][entry['antenna_no']].append(np.nanmedian(entry['weight_1']))
+            # Remove table
+            data.zap_table('SN', 0)
+
+    # Get the mean value over sources
+    for i in antennas_list:
+        if i in snr_dict.keys():
+            for j in range(len(an_table)):
+                snr_dict[i][j+1] = np.mean(snr_dict[i][j+1])
+
+    # Order by median SNR (computed over baselines)
+    median_snr_dict = {}
+    for ant in antennas_list:
+        if ant in snr_dict.keys():
+            median_snr_dict[ant] =  np.nanmedian(list(snr_dict[ant].values()))
+    final_list = sorted(median_snr_dict, key = median_snr_dict.get, reverse = True)
+
+    refant = final_list[0]
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\n')
+        pipeline_log.write(antennas_list[refant].name + ' has been selected as the ' \
+                          + 'reference antenna. It is available in ' + str(max_scan_no) \
+                          + ' out of ' + str(len(scan_list)) + ' scans.\nMedian SNR ' \
+                          + 'value for the target on each baseline are:\n')
+        for ant in snr_dict[refant].keys():
+            if refant != ant:
+                if refant < ant:
+                    pipeline_log.write(str(refant) + '-' + str(ant) + ': ' \
+                                    + '{:.2f}\n'.format(snr_dict[refant][ant]))
+                if refant > ant:
+                    pipeline_log.write(str(ant) + '-' + str(refant) + ': ' \
+                                    + '{:.2f}\n'.format(snr_dict[refant][ant]))
+        pipeline_log.write('MEDIAN SNR: {:.2f}\n'.format(median_snr_dict[refant]))
+                
+    print(antennas_list[refant].name + ' has been selected as the reference ' \
+                        + 'antenna. It is available in ' + str(max_scan_no) + ' out ' \
+                        + 'of ' + str(len(scan_list)) + ' scans.\nMedian SNR value ' \
+                        + 'for the target on each baseline are:\n')
+    for ant in snr_dict[refant].keys():
+        if refant != ant:
+            if refant < ant:
+                print(str(refant) + '-' + str(ant) + ': ' \
+                                    + '{:.2f}\n'.format(snr_dict[refant][ant]))
+            if refant > ant:
+                print(str(ant) + '-' + str(refant) + ': ' \
+                                    + '{:.2f}\n'.format(snr_dict[refant][ant]))
+                
+    print('MEDIAN SNR: {:.2f}\n'.format(median_snr_dict[refant]))
+
+    return(refant, antennas_list[refant].name, median_snr_dict[refant] )
