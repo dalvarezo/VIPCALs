@@ -217,10 +217,13 @@ def redo_source_list(uvdata):
         b = Source()
         b.name = source['source'].replace(" ", "")
         b.id = source['id__no']
-        try:
-            b.restfreq = source['restfreq'][0]
-        except (IndexError, TypeError): # Single IF datasets
-            b.restfreq = source['restfreq']  
+        b.restfreq = uvdata.header['crval'][2]
+        #try:
+        #    b.restfreq = source['restfreq'][0]
+        #except (IndexError, TypeError): # Single IF datasets
+        #    b.restfreq = source['restfreq']  
+
+        b.set_band()
 
         full_source_list.append(b)
         b= None
