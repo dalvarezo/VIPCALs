@@ -128,7 +128,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 10, delay_
     target_fring.calsour = AIPSList([target_name])
     
     target_fring.docalib = 1
-    target_fring.gainuse = 0
+    target_fring.gainuse = 8
     target_fring.doband = 1
 
     target_fring.solint = solint
@@ -219,7 +219,7 @@ def assess_fringe_fit(data, log, version = 7):
             
     # Single polarization:
     try:
-        dummy = sn_table[0]['weight_2']
+        _ = sn_table[0]['weight_2']
     except KeyError:      
     
         for s in sn_table:

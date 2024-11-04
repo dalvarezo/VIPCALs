@@ -23,6 +23,8 @@ def possm_plotter(filepath, data, target, cal_scans, \
                   gainuse, bpver = 0, flag_edge = True, flag_frac = 0.1):
     """Plot visibilities as a function of frequency to a PostScript file.
 
+    DOESNT PLOT THE CALIBRATORS ANYMORE! NEEDS TO BE MODIFIED
+
     :param filepath: path of the output directory 
     :type filepath: str
     :param data: visibility data
@@ -43,7 +45,7 @@ def possm_plotter(filepath, data, target, cal_scans, \
     :type flag_frac: float, optional
     """    
     
-    calib_names = [x.name for x in cal_scans]
+    #calib_names = [x.name for x in cal_scans]
     
     possm = AIPSTask('possm')
     possm.inname = data.name
@@ -51,7 +53,8 @@ def possm_plotter(filepath, data, target, cal_scans, \
     possm.indisk = data.disk
     possm.inseq = data.seq
 
-    possm.sources = AIPSList(calib_names + [target])
+    #possm.sources = AIPSList(calib_names + [target])
+    possm.sources = AIPSList([target])
     possm.stokes = 'RRLL'
     possm.solint = -1
     

@@ -43,7 +43,7 @@ def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1)
 
         split.sources = AIPSList([target])
         split.docal = 1
-        split.gainuse = 9+i
+        split.gainuse = 10+i
         split.doband = 1
         split.msgkill = -4
         split.aparm[1] = 2  # Average frequency in IFs, produce one channel per IF
@@ -56,7 +56,7 @@ def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1)
                         data.table('FQ',1)[0]['ch_width'])
             
         if flag_edge == True and flag_frac < 1:
-            flag_chann = int(flag_frac * no_channels)
+            flag_chann = round(flag_frac * no_channels)
         if flag_edge == True and flag_frac >= 1:
             if type(flag_frac) != int:
                 flag_chann = 0
