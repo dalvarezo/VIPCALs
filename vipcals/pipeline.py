@@ -762,49 +762,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
     for i, target in enumerate(target_list): 
-        tfring_params = frng.target_fring_fit(uvdata, refant, target, \
-                                              solint=float(solint_list[i]), \
-                                              version = 10+i)
-        
-        log_list[i].write('\nFringe search performed on ' + target + '. Windows for ' \
-                         + 'the search were ' + tfring_params[1] + ' ns and ' \
-                         + tfring_params[2] + ' mHz.\n')
-        
-        log_list[i].write('\nFringe fit corrections applied to the target! '\
-                        + 'SN#' + str(7+i) + ' and CL#' + str(10+i) + ' created.\n')
-        
-        print('\nFringe search performed on ' + target + '. Windows for ' \
-             + 'the search were ' + tfring_params[1] + ' ns and ' \
-             + tfring_params[2] + ' mHz.\n')
-        
-        print('\nFringe fit corrections applied to ' + target + '! SN#' + str(7+i) + \
-              ' and CL#' + str(10+i) + ' created.\n')  
-        
-        ## Print the ratio of bad to good solutions ##
-    
-        ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
-
-        # If the ratio is > 0.7, apply the solutions to a CL table
-
-        if ratio > 0.7:
-            frng.fringe_clcal(uvdata, target, version = 10+i)
-
-        # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
-
-        if ratio < 0.7:
-
-            print("Ratio of good/total solutions is : {:.2f}.\n".format(ratio))
-            print("Repeating the fringe fit solving for all IFs together:\n ")
-
-            log_list[i].write("Ratio of good/total solutions" \
-                              + "is : {:.2f}.\n".format(ratio))
-            log_list[i].write("Repeating the fringe fit solving for all IFs together:\n ")
-
+        try:
             tfring_params = frng.target_fring_fit(uvdata, refant, target, \
-                                                solint=float(solint_list[i]), 
-                                                version = 10+i+1, solve_ifs=False)
-            
-            log_list[i].write('\nFringe search performed on ' + target + '. Windows for '\
+                                                solint=float(solint_list[i]), \
+                                                version = 10+i)
+        
+            log_list[i].write('\nFringe search performed on ' + target + '. Windows for ' \
                             + 'the search were ' + tfring_params[1] + ' ns and ' \
                             + tfring_params[2] + ' mHz.\n')
             
@@ -815,13 +778,78 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 + 'the search were ' + tfring_params[1] + ' ns and ' \
                 + tfring_params[2] + ' mHz.\n')
             
-            print('\nFringe fit corrections applied to ' + target + '! SN#' + str(7+i) \
-                  + ' and CL#' + str(10+i) + ' created.\n') 
+            print('\nFringe fit corrections applied to ' + target + '! SN#' + str(7+i) + \
+                ' and CL#' + str(10+i) + ' created.\n') 
             
-            ## Print the new ratio of bad to good solutions ##
-        
-            ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i+1) 
+            ## Get the ratio of bad to good solutions ##
+    
+            ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
 
+        except RuntimeError:
+
+            print("Fringe fit has failed.\n")
+
+            log_list[i].write("Fringe fit has failed.\n")
+            ratio = 0      
+
+
+        # If the ratio is > 0.7, apply the solutions to a CL table
+
+        if ratio >= 0.7:
+            frng.fringe_clcal(uvdata, target, version = 10+i)
+
+        # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
+
+        if ratio < 0.7:
+
+            print("Ratio of good/total solutions is : {:.2f}.\n".format(ratio))
+            print("Repeating the fringe fit solving for all IFs together:\n ")
+
+            log_list[i].write("Ratio of good/total solutions " \
+                              + "is : {:.2f}.\n".format(ratio))
+            log_list[i].write("Repeating the fringe fit solving for all IFs together:\n")
+
+            try:
+                tfring_params = frng.target_fring_fit(uvdata, refant, target, \
+                                                solint=float(solint_list[i]), 
+                                                version = 10+i+1, solve_ifs=False)
+                
+                log_list[i].write('\nFringe search performed on ' + target + '. Windows for '\
+                + 'the search were ' + tfring_params[1] + ' ns and ' \
+                + tfring_params[2] + ' mHz.\n')
+            
+                log_list[i].write('\nFringe fit corrections applied to the target! '\
+                                + 'SN#' + str(7+i) + ' and CL#' + str(10+i) + ' created.\n')
+                
+                print('\nFringe search performed on ' + target + '. Windows for ' \
+                    + 'the search were ' + tfring_params[1] + ' ns and ' \
+                    + tfring_params[2] + ' mHz.\n')
+                
+                print('\nFringe fit corrections applied to ' + target + '! SN#' + str(7+i) \
+                    + ' and CL#' + str(10+i) + ' created.\n')
+                    
+                ## Get the new ratio of bad to good solutions ##
+            
+                ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i+1) 
+                
+            except RuntimeError:
+                print('\nThe new fringe fit has failed, the previous one will be kept.\n')
+
+                log_list[i].write('\nThe new fringe fit has failed, the previous one ' \
+                                  + 'will be kept.\n')
+                ratio_single = 0
+
+            
+            # If both ratios are 0, end the pipeline
+            if (ratio + ratio_single) == 0:
+                print('\nThe pipeline was not able to find any good solutions.\n')
+
+                log_list[i].write('\nThe pipeline was not able to find any good ' \
+                                  + 'solutions.\n')
+                ratio_single = 0
+                return()
+ 
+            
             # If the new ratio is smaller or equal than the previous, 
             # then keep the previous
 

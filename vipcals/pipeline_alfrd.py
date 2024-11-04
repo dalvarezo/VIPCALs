@@ -877,6 +877,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             
             # If both ratios are 0, end the pipeline
             if (ratio + ratio_single) == 0:
+                print('\nThe pipeline was not able to find any good solutions.\n')
+
+                log_list[i].write('\nThe pipeline was not able to find any good ' \
+                                  + 'solutions.\n')
                 single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                 single_row = list(single_name[df_w_names['BAND'] == band].index)
                 lf.df_sheet.loc[single_row, 'GOOD/TOTAL \n(SNR > 5)'] = 0
@@ -934,11 +938,17 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.write_box(log_list, 'Exporting visibility data')
 
     expo.data_export(path_list, uvdata, target_list)
+    expo.table_export(path_list, uvdata, target_list)
     for i, target in enumerate(target_list): 
         log_list[i].write('\n' + target + ' visibilites exported to ' + path_list[i] \
                           + '/' + target + '.uvfits\n')
         print('\n' + target + ' visibilites exported to ' + path_list[i] + '/' \
              + target + '.uvfits\n')
+    for i, target in enumerate(target_list): 
+        log_list[i].write('\n' + target + ' calibration tables exported to ' \
+                          + path_list[i] + '/' + target + '.caltab.uvfits\n')
+        print('\n' + target + ' calibration tables exported to ' + path_list[i] + '/' \
+             + target + '.caltab.uvfits\n')
 
     ## PLOTS ##
 
