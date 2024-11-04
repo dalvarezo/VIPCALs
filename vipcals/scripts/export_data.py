@@ -98,7 +98,7 @@ def table_export(path_list, data, target_list):
     tasav.inclass = data.klass
     tasav.indisk = data.disk
     tasav.inseq = data.seq
-    tasav.outnname = data.name
+    tasav.outname = data.name
     tasav.outclass = 'DUMMY'
     tasav.outdisk = data.disk
  
