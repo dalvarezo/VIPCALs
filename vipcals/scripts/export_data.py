@@ -25,6 +25,8 @@ def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1)
                       or an integer number of channels (if >= 1); defaults to 0.1
     :type flag_frac: float, optional
     """
+    if flag_frac == 0:
+        flag_edge = False
     # Delete the file if it already exists
     for name in target_list:
         split_data = AIPSUVData(name,'SPLIT',data.disk, data.seq)

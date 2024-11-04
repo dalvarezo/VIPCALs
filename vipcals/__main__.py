@@ -67,6 +67,7 @@ def create_default_dict():
     default_dict['shifts'] = 'NONE'
     default_dict['refant'] = 'NONE'
     default_dict['output_directory'] = 'NONE'
+    default_dict['flag_edge'] = 0
 
     return default_dict
 

@@ -43,7 +43,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
              filename_list, log_list, path_list,\
              disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
              multi_id = False, selfreq = 0, default_refant = 'NONE', \
-             input_calibrator = 'NONE', load_all = False, shift_coords = 'None'):
+             input_calibrator = 'NONE', load_all = False, shift_coords = 'None',
+             flag_edge = 0):
     """Main workflow of the pipeline 
 
     :param filepath_list: list of paths to the original uvfits/idifits files
@@ -83,8 +84,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     :param load_all: load all sources on the dataset; default = False
     :type load_all: bool, optional
     :param shift_coords: list of new coordinates for the targets, as Astropy SkyCoord \
-                         objects,in case a phase shift was necessary; defaults to 'NONE'
+                         objects, in case a phase shift was necessary; defaults to 'NONE'
     :type shift_coords: list of SkyCoord
+    :param flag_edge: fraction of the total channels to flag at the edge of each IF\
+                        ; defaults to 0
+    :type flag_edge: float, optional
     """    
     ## PIPELINE STARTS
     t_i = time.time()
@@ -937,7 +941,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ##  Export data ##
     disp.write_box(log_list, 'Exporting visibility data')
 
-    expo.data_export(path_list, uvdata, target_list)
+    expo.data_export(path_list, uvdata, target_list, flag_frac = flag_edge)
     expo.table_export(path_list, uvdata, target_list)
     for i, target in enumerate(target_list): 
         log_list[i].write('\n' + target + ' visibilites exported to ' + path_list[i] \
@@ -1033,6 +1037,7 @@ def pipeline(input_dict):
     shifts = input_dict['shifts'] 
     def_refant = input_dict['refant'] 
     output_directory = input_dict['output_directory'] 
+    flag_edge = input_dict['flag_edge']
 
     ## Check for multiband datasets ##
     # If multiple files, done only on the first, since all need to have the same 
@@ -1103,7 +1108,7 @@ def pipeline(input_dict):
                         disk_number, klass = klass_1, \
                         multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
                         default_refant = def_refant, input_calibrator = inp_cal, \
-                        load_all = load_all, shift_coords = shifts)
+                        load_all = load_all, shift_coords = shifts, flag_edge = flag_edge)
             
         return() # STOP the pipeline. This needs to be tweaked.
 
@@ -1166,7 +1171,7 @@ def pipeline(input_dict):
                 disk_number, klass = klass_1,\
                 bif = multifreq_if[1], eif = multifreq_if[2], \
                 default_refant = def_refant, input_calibrator = inp_cal, \
-                load_all = load_all, shift_coords = shifts)
+                load_all = load_all, shift_coords = shifts, flag_edge = flag_edge)
         
 
         ## SECOND FREQUENCY ##
@@ -1221,7 +1226,8 @@ def pipeline(input_dict):
                 filename_list, log_list, path_list, \
                 disk_number, klass = klass_2, \
                 bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
-                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)
+                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts, 
+                flag_edge = flag_edge)
 
         # End the pipeline
         return()
@@ -1282,4 +1288,5 @@ def pipeline(input_dict):
         calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
                 filename_list, log_list, path_list, \
                 disk_number, klass = klass_1, default_refant = def_refant, \
-                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts)   
+                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts, 
+                flag_edge = flag_edge)   
