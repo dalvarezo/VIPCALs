@@ -112,3 +112,6 @@ def table_export(path_list, data, target_list):
         fittp.dataout = path_list[i] + '/' + target + '_' + data.klass + '.caltab.uvfits'
         fittp.msgkill = -4        
         fittp.go()
+
+    # Remove the DUMMY AIPS entry
+    AIPSUVData().zap(data.name, 'DUMMY', data.disk, 1)
