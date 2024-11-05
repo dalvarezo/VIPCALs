@@ -114,4 +114,4 @@ def table_export(path_list, data, target_list):
         fittp.go()
 
     # Remove the DUMMY AIPS entry
-    AIPSUVData().zap(data.name, 'DUMMY', data.disk, 1)
+    AIPSUVData(data.name, 'DUMMY', data.disk, 1).zap()
