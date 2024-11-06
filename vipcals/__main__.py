@@ -127,18 +127,18 @@ for i, entry in enumerate(entry_list):
 
     # Load multiple files together:
     # Same frequency setup
-    if len(input_dict['paths']) > 1:
-        for i, path in enumerate(input_dict['paths'],1):
-            globals()[f"hdul_{i}"] = fits.open(path)
-            
-        for j, path in enumerate(input_dict['paths'],1):
-            if (globals()[f"hdul_1"]['FREQUENCY'].data !=\
-                globals()[f"hdul_{i}"]['FREQUENCY'].data).all() == True:
-
-                print('Frequency setups of ' +  input_dict['paths'][0].split('/')[-1] \
-                    + ' and ' + path.split('/')[-1] + ' do not coincide.' \
-                    + '\nData cannot be loaded together.')
-                exit()
+#    if len(input_dict['paths']) > 1:
+#        for i, path in enumerate(input_dict['paths'],1):
+#            globals()[f"hdul_{i}"] = fits.open(path)
+#            
+#        for j, path in enumerate(input_dict['paths'],1):
+#            if (globals()[f"hdul_1"]['FREQUENCY'].data !=\
+#                globals()[f"hdul_{j}"]['FREQUENCY'].data).all() == True:
+#
+#                print('Frequency setups of ' +  input_dict['paths'][0].split('/')[-1] \
+#                    + ' and ' + path.split('/')[-1] + ' do not coincide.' \
+#                    + '\nData cannot be loaded together.')
+#                exit() 
 
     # Same project
         for j, path in enumerate(input_dict['paths'],1):

@@ -64,13 +64,13 @@ def old_tecor(data):
     date_obs = datetime(YYYY, MM, DD)
     DDD = date_obs.timetuple().tm_yday
 
-    nx_table = data.table('NX',1)
+    cl1_table = data.table('CL',1)
 
-    scan_times = []
+    #scan_times = []
 
-    for scans in nx_table:
-        scan_times.append(int(np.floor(scans['time'])))
-    days = [*range(max(scan_times)+1)]
+    #for scans in nx_table:
+    #    scan_times.append(int(np.floor(scans['time'])))
+    days = [*range(int(np.floor(cl1_table[-1]['time']))+1)]
 
     for elements in days:
         YY = data.header.date_obs[2:4]
@@ -136,13 +136,13 @@ def new_tecor(data):
     date_obs = datetime(YYYY, MM, DD)
     DDD = date_obs.timetuple().tm_yday
 
-    nx_table = data.table('NX',1)
+    cl1_table = data.table('CL',1)
 
-    scan_times = []
+    #scan_times = []
 
-    for scans in nx_table:
-        scan_times.append(int(np.floor(scans['time'])))
-    days = [*range(max(scan_times)+1)]
+    #for scans in nx_table:
+    #    scan_times.append(int(np.floor(scans['time'])))
+    days = [*range(int(np.floor(cl1_table[-1]['time']))+1)]
 
     for elements in days:
         YY = data.header.date_obs[2:4]
