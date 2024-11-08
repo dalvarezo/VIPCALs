@@ -185,6 +185,34 @@ def fringe_clcal(data, target_name, version=10):
     clcal.msgkill = -4
     
     clcal.go()
+
+def fringe_phaseref_clcal(data, target_name, version=10):
+    """Apply phase reference SN solution table from FRING to a new CL table
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target_name: target name
+    :type target_name: str
+    :param version: CL table version in which to apply the solutions. SN version will \
+                    be ('version' - 3); defaults to 10
+    :type version: int, optional
+    """    
+    
+    clcal = AIPSTask('clcal')
+    clcal.inname = data.name
+    clcal.inclass = data.klass
+    clcal.indisk = data.disk
+    clcal.inseq = data.seq
+    clcal.sources = AIPSList([target_name])
+    
+    clcal.opcode = 'calp'
+    clcal.interpol = 'ambg'
+    clcal.snver = version-3
+    clcal.gainver = 8
+    clcal.gainuse = version
+    clcal.msgkill = -4
+    
+    clcal.go()
  
 def assess_fringe_fit(data, log, version = 7):
     """Print the number of failed solutions after fringe fit

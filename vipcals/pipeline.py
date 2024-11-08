@@ -34,7 +34,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
              disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
              multi_id = False, selfreq = 0, default_refant = 'NONE', \
              input_calibrator = 'NONE', load_all = False, shift_coords = 'None',
-             flag_edge = 0):
+             flag_edge = 0, phase_ref = ['NONE']):
     """Main workflow of the pipeline 
 
     :param filepath_list: list of paths to the original uvfits/idifits files
@@ -79,6 +79,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     :param flag_edge: fraction of the total channels to flag at the edge of each IF\
                         ; defaults to 0
     :type flag_edge: float, optional
+    :param phase_ref: list of phase calibrator names for phase referencing; \
+                      defaults to ['NONE']
+    :type phase_ref: list of str, optional
     """    
     ## PIPELINE STARTS
     t_i = time.time()
@@ -712,6 +715,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     ## Get optimal solution interval for each target
     disp.write_box(log_list, 'Target fringe fit')
+
+    # If there are no phase reference sources, make the length of the list match the 
+    # target list length
+    if phase_ref == ['NONE']:
+        phase_ref = ['NONE'] * len(target_list)
     
     solint_list = []
     for i, target in enumerate(target_list):
@@ -728,13 +736,20 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         #         + ' minutes. \n')
         target_scans = [x for x in scan_list if x.name == target]
 
-        #else:
-        solint_list.append(opti.optimize_solint(uvdata, target, \
-                                                target_scans, refant))
-        log_list[i].write('\nThe optimal solution interval for the target is '\
-                    + str(solint_list[i]) + ' minutes. \n')
-        print('\nThe optimal solution interval for ' + target + ' is ' \
-            + str(solint_list[i]) + ' minutes. \n')
+        if phase_ref[i] == 'NONE':
+            solint_list.append(opti.optimize_solint(uvdata, target, \
+                                                    target_scans, refant))
+            log_list[i].write('\nThe optimal solution interval for the target is '\
+                        + str(solint_list[i]) + ' minutes. \n')
+            print('\nThe optimal solution interval for ' + target + ' is ' \
+                + str(solint_list[i]) + ' minutes. \n')
+        else:
+            solint_list.append(opti.optimize_solint(uvdata, phase_ref[i], \
+                                                    target_scans, refant))
+            log_list[i].write('\nThe optimal solution interval for the phase ' \
+                            + 'calibrator is ' + str(solint_list[i]) + ' minutes. \n')
+            print('\nThe optimal solution interval for the phase calibrator is ' \
+                + str(solint_list[i]) + ' minutes. \n')
             
     t14 = time.time()
     
@@ -743,144 +758,272 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('Execution time: {:.2f} s. \n'.format(t14-t13))
 
     ## Fringe fit of the target ##
-
-    # I comment this part for now
-    # Takes forever to run and I thin it doesn't change anything
-
-    # if default_refant == 'NONE':
-    #     disp.write_box(log_list, 'EXTRA TESTING')
-    #     ## TESTING ##
-    #     ## Now it prints the results using only the targets and all sources ##
-    #     ## and repeats this search just before the very last fringe fit ##
-    #     for pipeline_log in log_list:
-    #         pipeline_log.write('\nCHOOSING REFANT WITH TARGETS\n')
-    #     ## FOR THE TARGETS ##
-    #     _ = rant.refant_choose_snr(uvdata, sources, target_list, full_source_list, \
-    #                                     log_list)
-    #     ## FOR ALL SOURCES ##
-    #     for pipeline_log in log_list:
-    #         pipeline_log.write('\nCHOOSING REFANT WITH ALL SOURCES\n')
-    #     _ = rant.refant_choose_snr(uvdata, sources, sources, full_source_list, \
-    #                                     log_list)
-
-    
+   
     ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
     for i, target in enumerate(target_list): 
-        try:
-            tfring_params = frng.target_fring_fit(uvdata, refant, target, \
-                                                solint=float(solint_list[i]), \
-                                                version = 10+i)
-        
-            log_list[i].write('\nFringe search performed on ' + target + '. Windows for ' \
-                            + 'the search were ' + tfring_params[1] + ' ns and ' \
-                            + tfring_params[2] + ' mHz.\n')
-            
-            log_list[i].write('\nFringe fit corrections applied to the target! '\
-                            + 'SN#' + str(7+i) + ' and CL#' + str(10+i) + ' created.\n')
-            
-            print('\nFringe search performed on ' + target + '. Windows for ' \
-                + 'the search were ' + tfring_params[1] + ' ns and ' \
-                + tfring_params[2] + ' mHz.\n')
-            
-            print('\nFringe fit corrections applied to ' + target + '! SN#' + str(7+i) + \
-                ' and CL#' + str(10+i) + ' created.\n') 
-            
-            ## Get the ratio of bad to good solutions ##
-    
-            ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
-
-        except RuntimeError:
-
-            print("Fringe fit has failed.\n")
-
-            log_list[i].write("Fringe fit has failed.\n")
-            ratio = 0      
-
-
-        # If the ratio is > 0.7, apply the solutions to a CL table
-
-        if ratio >= 0.7:
-            frng.fringe_clcal(uvdata, target, version = 10+i)
-
-        # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
-
-        if ratio < 0.7:
-
-            print("Ratio of good/total solutions is : {:.2f}.\n".format(ratio))
-            print("Repeating the fringe fit solving for all IFs together:\n ")
-
-            log_list[i].write("Ratio of good/total solutions " \
-                              + "is : {:.2f}.\n".format(ratio))
-            log_list[i].write("Repeating the fringe fit solving for all IFs together:\n")
-
+        if phase_ref[i] == 'NONE':
             try:
                 tfring_params = frng.target_fring_fit(uvdata, refant, target, \
-                                                solint=float(solint_list[i]), 
-                                                version = 10+i+1, solve_ifs=False)
-                
-                log_list[i].write('\nFringe search performed on ' + target + '. Windows for '\
-                + 'the search were ' + tfring_params[1] + ' ns and ' \
-                + tfring_params[2] + ' mHz.\n')
+                                                    solint=float(solint_list[i]), \
+                                                    version = 10+i)
             
-                log_list[i].write('\nFringe fit corrections applied to the target! '\
-                                + 'SN#' + str(7+i) + ' and CL#' + str(10+i) + ' created.\n')
+                log_list[i].write('\nFringe search performed on ' + target + '. Windows '\
+                                  + 'for the search were ' + tfring_params[1] \
+                                  + ' ns and ' + tfring_params[2] + ' mHz.\n')
                 
                 print('\nFringe search performed on ' + target + '. Windows for ' \
                     + 'the search were ' + tfring_params[1] + ' ns and ' \
                     + tfring_params[2] + ' mHz.\n')
                 
-                print('\nFringe fit corrections applied to ' + target + '! SN#' + str(7+i) \
-                    + ' and CL#' + str(10+i) + ' created.\n')
-                    
-                ## Get the new ratio of bad to good solutions ##
-            
-                ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i+1) 
-                
+                ## Get the ratio of bad to good solutions ##
+        
+                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
+
             except RuntimeError:
-                print('\nThe new fringe fit has failed, the previous one will be kept.\n')
 
-                log_list[i].write('\nThe new fringe fit has failed, the previous one ' \
-                                  + 'will be kept.\n')
-                ratio_single = 0
+                print("Fringe fit has failed.\n")
 
-            
-            # If both ratios are 0, end the pipeline
-            if (ratio + ratio_single) == 0:
-                print('\nThe pipeline was not able to find any good solutions.\n')
+                log_list[i].write("Fringe fit has failed.\n")
+                ratio = 0      
 
-                log_list[i].write('\nThe pipeline was not able to find any good ' \
-                                  + 'solutions.\n')
-                ratio_single = 0
-                return()
- 
-            
-            # If the new ratio is smaller or equal than the previous, 
-            # then keep the previous
 
-            if ratio_single <= ratio:
-                print("New ratio of good/total solutions "\
-                      + "is : {:.2f}.\n".format(ratio_single))
-                print("The multi-IF fringe fit will be applied.\n ")
+            # If the ratio is > 0.7, apply the solutions to a CL table
 
-                log_list[i].write("New ratio of good/total solutions "\
-                      + "is : {:.2f}.\n".format(ratio_single))
-                log_list[i].write("The multi-IF fringe fit will be applied.\n ")
+            if ratio >= 0.7:
                 frng.fringe_clcal(uvdata, target, version = 10+i)
 
+            # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
 
-            # If new ratio is better than the previous, then replace the SN table and 
-            # apply the solutions
-            if ratio_single > ratio:
-                print("New ratio of good/total solutions "\
-                      + "is : {:.2f}.\n".format(ratio_single))
-                print("The averaged IF fringe fit will be applied.\n ")
+            if ratio < 0.7:
 
-                log_list[i].write("New ratio of good/total solutions "\
-                      + "is : {:.2f}.\n".format(ratio_single))
-                log_list[i].write("The averaged IF fringe fit will be applied.\n ")
-                uvdata.zap_table('SN', 7+i)
-                tysm.tacop(uvdata, 'SN', 7+i+1, 7+i)
-                frng.fringe_clcal(uvdata, target, version = 10+i)
+                print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
+                print('Repeating the fringe fit solving for all IFs together:\n')
+
+                log_list[i].write('Ratio of good/total solutions ' \
+                                + 'is : {:.2f}.\n'.format(ratio))
+                log_list[i].write('Repeating the fringe fit solving for all IFs ' \
+                                + 'together:\n')
+
+                try:
+                    tfring_params = frng.target_fring_fit(uvdata, refant, target, \
+                                                    solint=float(solint_list[i]), 
+                                                    version = 10+i+1, solve_ifs=False)
+                    
+                    log_list[i].write('\nFringe search performed on ' + target \
+                    + '. Windows for the search were ' + tfring_params[1] + ' ns and ' \
+                    + tfring_params[2] + ' mHz.\n')
+                    
+                    print('\nFringe search performed on ' + target + '. Windows for ' \
+                        + 'the search were ' + tfring_params[1] + ' ns and ' \
+                        + tfring_params[2] + ' mHz.\n')
+                        
+                    ## Get the new ratio of bad to good solutions ##
+                
+                    ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], \
+                                                          version = 7+i+1) 
+                    
+                except RuntimeError:
+                    print('\nThe new fringe fit has failed, the previous one will ' \
+                         + 'be kept.\n')
+
+                    log_list[i].write('\nThe new fringe fit has failed, the previous ' \
+                                     + 'one will be kept.\n')
+                    ratio_single = 0
+
+                
+                # If both ratios are 0, end the pipeline
+                if (ratio + ratio_single) == 0:
+                    print('\nThe pipeline was not able to find any good solutions.\n')
+
+                    log_list[i].write('\nThe pipeline was not able to find any good ' \
+                                    + 'solutions.\n')
+                    return()
+    
+                
+                # If the new ratio is smaller or equal than the previous, 
+                # then keep the previous
+
+                if ratio_single <= ratio:
+                    print("New ratio of good/total solutions "\
+                        + "is : {:.2f}.\n".format(ratio_single))
+                    print("The multi-IF fringe fit will be applied.\n ")
+
+                    log_list[i].write("New ratio of good/total solutions "\
+                        + "is : {:.2f}.\n".format(ratio_single))
+                    log_list[i].write("The multi-IF fringe fit will be applied.\n ")
+                    frng.fringe_clcal(uvdata, target, version = 10+i)
+
+
+                # If new ratio is better than the previous, then replace the SN table and 
+                # apply the solutions
+                if ratio_single > ratio:
+                    print("New ratio of good/total solutions "\
+                        + "is : {:.2f}.\n".format(ratio_single))
+                    print("The averaged IF fringe fit will be applied.\n ")
+
+                    log_list[i].write("New ratio of good/total solutions "\
+                        + "is : {:.2f}.\n".format(ratio_single))
+                    log_list[i].write("The averaged IF fringe fit will be applied.\n ")
+                    uvdata.zap_table('SN', 7+i)
+                    tysm.tacop(uvdata, 'SN', 7+i+1, 7+i)
+                    frng.fringe_clcal(uvdata, target, version = 10+i)
+
+            log_list[i].write('\nFringe fit corrections applied to the target! '\
+                + 'SN#' + str(7+i) + ' and CL#' + str(10+i) \
+                + ' created.\n')
+
+            print('\nFringe fit corrections applied to ' + target + '! SN#' \
+                + str(7+i) + ' and CL#' + str(10+i) + ' created.\n') 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if phase_ref[i] != 'NONE':
+            try:
+                tfring_params = frng.target_fring_fit(uvdata, refant, phase_ref[i], \
+                                                    solint=float(solint_list[i]), \
+                                                    version = 10+i)
+            
+                log_list[i].write('\nFringe search performed on the phase calibrator: ' \
+                                  + phase_ref[i] + '. Windows '\
+                                  + 'for the search were ' + tfring_params[1] \
+                                  + ' ns and ' + tfring_params[2] + ' mHz.\n')
+                
+                print('\nFringe search performed on the phase calibrator: ' \
+                    + phase_ref[i] \
+                    + '. Windows for the search were ' + tfring_params[1] + ' ns and ' \
+                    + tfring_params[2] + ' mHz.\n')
+                
+                ## Get the ratio of bad to good solutions ##
+        
+                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
+
+            except RuntimeError:
+
+                print("Fringe fit has failed.\n")
+
+                log_list[i].write("Fringe fit has failed.\n")
+                ratio = 0      
+
+
+            # If the ratio is > 0.7, apply the solutions to a CL table
+
+            if ratio >= 0.7:
+                frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
+
+            # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
+
+            if ratio < 0.7:
+
+                print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
+                print('Repeating the fringe fit solving for all IFs together:\n')
+
+                log_list[i].write('Ratio of good/total solutions ' \
+                                + 'is : {:.2f}.\n'.format(ratio))
+                log_list[i].write('Repeating the fringe fit solving for all IFs ' \
+                                + 'together:\n')
+
+                try:
+                    tfring_params = frng.target_fring_fit(uvdata, refant, phase_ref[i], \
+                                                    solint=float(solint_list[i]), 
+                                                    version = 10+i+1, solve_ifs=False)
+                    
+                    log_list[i].write('\nFringe search performed on the phase ' \
+                                    + 'calibrator: ' + phase_ref[i] + '. Windows '\
+                                    + 'for the search were ' + tfring_params[1] \
+                                    + ' ns and ' + tfring_params[2] + ' mHz.\n')
+                    
+                    print('\nFringe search performed on the phase calibrator: ' \
+                        + phase_ref[i] \
+                        + '. Windows for the search were ' + tfring_params[1] + \
+                        + ' ns and ' + tfring_params[2] + ' mHz.\n')
+                        
+                    ## Get the new ratio of bad to good solutions ##
+                
+                    ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], \
+                                                          version = 7+i+1) 
+                    
+                except RuntimeError:
+                    print('\nThe new fringe fit has failed, the previous one will ' \
+                         + 'be kept.\n')
+
+                    log_list[i].write('\nThe new fringe fit has failed, the previous ' \
+                                     + 'one will be kept.\n')
+                    ratio_single = 0
+
+                
+                # If both ratios are 0, end the pipeline
+                if (ratio + ratio_single) == 0:
+                    print('\nThe pipeline was not able to find any good solutions.\n')
+
+                    log_list[i].write('\nThe pipeline was not able to find any good ' \
+                                    + 'solutions.\n')
+                    return()
+    
+                
+                # If the new ratio is smaller or equal than the previous, 
+                # then keep the previous
+
+                if ratio_single <= ratio:
+                    print("New ratio of good/total solutions "\
+                        + "is : {:.2f}.\n".format(ratio_single))
+                    print("The multi-IF fringe fit will be applied.\n ")
+
+                    log_list[i].write("New ratio of good/total solutions "\
+                        + "is : {:.2f}.\n".format(ratio_single))
+                    log_list[i].write("The multi-IF fringe fit will be applied.\n ")
+                    frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
+
+
+                # If new ratio is better than the previous, then replace the SN table and 
+                # apply the solutions
+                if ratio_single > ratio:
+                    print("New ratio of good/total solutions "\
+                        + "is : {:.2f}.\n".format(ratio_single))
+                    print("The averaged IF fringe fit will be applied.\n ")
+
+                    log_list[i].write("New ratio of good/total solutions "\
+                        + "is : {:.2f}.\n".format(ratio_single))
+                    log_list[i].write("The averaged IF fringe fit will be applied.\n ")
+                    uvdata.zap_table('SN', 7+i)
+                    tysm.tacop(uvdata, 'SN', 7+i+1, 7+i)
+                    frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
+
+            log_list[i].write('\nFringe fit corrections applied to the target! '\
+                + 'SN#' + str(7+i) + ' and CL#' + str(10+i) \
+                + ' created.\n')
+
+            print('\nFringe fit corrections applied to ' + target + '! SN#' \
+                + str(7+i) + ' and CL#' + str(10+i) + ' created.\n') 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     t15 = time.time()
@@ -984,6 +1127,7 @@ def pipeline(input_dict):
     def_refant = input_dict['refant'] 
     output_directory = input_dict['output_directory'] 
     flag_edge = input_dict['flag_edge']
+    phase_ref = input_dict['phase_ref']
 
     ## Check for multiband datasets ##
     # If multiple files, done only on the first, since all need to have the same 
@@ -1002,6 +1146,7 @@ def pipeline(input_dict):
                 calibs = load.find_calibrators(full_source_list)
                 sources = calibs.copy()
                 sources += target_list
+                sources += [x for x in phase_ref if x!='NONE']
             if load_all == True:
                 sources = [x.name for x in full_source_list]
 
@@ -1054,7 +1199,8 @@ def pipeline(input_dict):
                         disk_number, klass = klass_1, \
                         multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
                         default_refant = def_refant, input_calibrator = inp_cal, \
-                        load_all = load_all, shift_coords = shifts, flag_edge = flag_edge)
+                        load_all = load_all, shift_coords = shifts, \
+                        phase_ref = phase_ref, flag_edge = flag_edge)
             
         return() # STOP the pipeline. This needs to be tweaked.
 
@@ -1071,6 +1217,7 @@ def pipeline(input_dict):
             calibs = load.find_calibrators(full_source_list)
             sources = calibs.copy()
             sources += target_list
+            sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
 
@@ -1117,7 +1264,8 @@ def pipeline(input_dict):
                 disk_number, klass = klass_1,\
                 bif = multifreq_if[1], eif = multifreq_if[2], \
                 default_refant = def_refant, input_calibrator = inp_cal, \
-                load_all = load_all, shift_coords = shifts, flag_edge = flag_edge)
+                load_all = load_all, shift_coords = shifts, flag_edge = flag_edge, \
+                phase_ref = phase_ref)
         
 
         ## SECOND FREQUENCY ##
@@ -1127,6 +1275,7 @@ def pipeline(input_dict):
             calibs = load.find_calibrators(full_source_list)
             sources = calibs.copy()
             sources += target_list
+            sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
         
@@ -1173,7 +1322,7 @@ def pipeline(input_dict):
                 disk_number, klass = klass_2, \
                 bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
                 input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts,
-                flag_edge = flag_edge)
+                flag_edge = flag_edge, phase_ref = phase_ref)
 
         # End the pipeline
         return()
@@ -1189,6 +1338,7 @@ def pipeline(input_dict):
             calibs = load.find_calibrators(full_source_list)
             sources = calibs.copy()
             sources += target_list
+            sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
 
@@ -1235,4 +1385,4 @@ def pipeline(input_dict):
                 filename_list, log_list, path_list, \
                 disk_number, klass = klass_1, default_refant = def_refant, \
                 input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts,
-                flag_edge = flag_edge)   
+                flag_edge = flag_edge, phase_ref = phase_ref)   

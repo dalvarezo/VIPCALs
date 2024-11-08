@@ -54,8 +54,8 @@ def read_args(file):
 def create_default_dict():
     """Create an input dictionary with default inputs.
 
-    :return: _description_
-    :rtype: _type_
+    :return: dictionary with default inputs
+    :rtype: dict
     """
     default_dict = {}
     default_dict['userno'] = None
@@ -68,6 +68,7 @@ def create_default_dict():
     default_dict['refant'] = 'NONE'
     default_dict['output_directory'] = 'NONE'
     default_dict['flag_edge'] = 0
+    default_dict['phase_ref'] = ['NONE']
 
     return default_dict
 
@@ -106,10 +107,20 @@ for i, entry in enumerate(entry_list):
     if type(input_dict['shifts']) != list and input_dict['shifts'] != 'NONE':
         print('Coordinate shifts have to be given as a list in the input file.\n')
         exit()
+    if type(input_dict['phase_ref']) != list:
+        print('Phase reference calibrators have to be given as a list in ' \
+        + 'the input file.\n')
+        exit()
 
+    # Phase reference #
+    if input_dict['phase_ref'] != ['NONE']:
+        if len(input_dict['targets']) != len(input_dict['phase_ref']):
+            print('\nThe number of phase reference calibrators does not match ' \
+            + 'the number of targets to calibrate.\n')
+            exit()
     # Phase shift #
     if input_dict['shifts'] != 'NONE':
-        if len(input_dict['targets']) != input_dict['shifts']:
+        if len(input_dict['targets']) != len(input_dict['shifts']):
             print('\nThe number of shifted coordinates does not match the number of ' \
                 + 'targets to calibrate.\n')
             exit()
