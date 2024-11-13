@@ -142,7 +142,7 @@ def uvplt_plotter(filepath, data, target, solint = 0.17):
     uvplt.docalib = 1
     uvplt.gainuse = 0
 
-    uvplt.bparm = AIPSList([6, 7, 0, 0, 0, 0, 0, 0, 0, 0])  # (u,v) for x-  and y- axes
+    uvplt.bparm = AIPSList([6, 7, 2, 0, 0, 0, 0, 0, 0, 0])  # (u,v) for x-  and y- axes
     uvplt.solint = solint  # Default is 0.17 min (10 seconds)
 
     uvplt.do3color = -1  # Black and white plot

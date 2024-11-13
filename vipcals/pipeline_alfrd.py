@@ -96,8 +96,6 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## PIPELINE STARTS
     t_i = time.time()
 
-    # AIPS log is only opened for the first target, it will be copied once the pipeline 
-    # ends
     load.open_log(path_list, filename_list)
         
     ## Check if the test file already exists and delete it ##
@@ -172,9 +170,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     if uvdata.header['sortord'] != 'TB':
         tabl.tborder(uvdata, pipeline_log)
         for pipeline_log in log_list:
-            pipeline_log.write('\nData was not in TB order. It has been reorder using ' \
+            pipeline_log.write('\nData was not in TB order. It has been reordered using '\
                                + 'the UVSRT task\n')
-        print('\nData was not in TB order. It has been reorder using ' \
+        print('\nData was not in TB order. It has been reordered using ' \
               + 'the UVSRT task\n')
     
     ## Check for CL/NX tables
@@ -305,13 +303,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     # Update the sequence
     seq = uvdata.seq
     
-    ## If the time resolution is < 0.33s, average the dataset in time
+    ## If the time resolution is < 0.99s, average the dataset in time
     try:
         time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'][0])
     except TypeError: # Single IF datasets
         time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'])
         
-    if time_resol < 0.33:
+    if time_resol < 0.99:
         avgdata = AIPSUVData(aips_name, 'AVGT', disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
@@ -766,9 +764,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         #    print('\nThere were no optimal scans for ' + target + '. The chosen '\
         #         + 'solution interval is the scan length, ' + str(solint_list[i]) \
         #         + ' minutes. \n')
-        target_scans = [x for x in scan_list if x.name == target]
-
         if phase_ref[i] == 'NONE':
+            target_scans = [x for x in scan_list if x.name == target]
             solint_list.append(opti.optimize_solint(uvdata, target, \
                                                     target_scans, refant))
             log_list[i].write('\nThe optimal solution interval for the target is '\
@@ -776,8 +773,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             print('\nThe optimal solution interval for ' + target + ' is ' \
                 + str(solint_list[i]) + ' minutes. \n')
         else:
+            phase_ref_scans = [x for x in scan_list if x.name == phase_ref[i]]
             solint_list.append(opti.optimize_solint(uvdata, phase_ref[i], \
-                                                    target_scans, refant))
+                                                    phase_ref_scans, refant))
             log_list[i].write('\nThe optimal solution interval for the phase ' \
                             + 'calibrator is ' + str(solint_list[i]) + ' minutes. \n')
             print('\nThe optimal solution interval for the phase calibrator is ' \
