@@ -112,6 +112,11 @@ for i, entry in enumerate(entry_list):
         + 'the input file.\n')
         exit()
 
+    # Load all has to be True/False
+    if type(input_dict['load_all']) != bool:
+        print('load_all option has to be True/False.\n')
+        exit()
+
     # Phase reference #
     if input_dict['phase_ref'] != ['NONE']:
         if len(input_dict['targets']) != len(input_dict['phase_ref']):
@@ -136,9 +141,30 @@ for i, entry in enumerate(entry_list):
                     + ' Please make sure that the input is correct.\n')
                 exit()
 
+    # Science targets have to be in the file/s
+    all_sources = []
+    for i, path in enumerate(input_dict['paths'],1):
+            globals()[f"hdul_{i}"] = fits.open(path)
+            all_sources.extend(list(globals()[f"hdul_{i}"]['SOURCE'].data['SOURCE']))
+    all_sources = list(set(all_sources))    # Remove duplicates
+
+    for t in input_dict['targets']:
+        if t not in all_sources:
+            print(t + ' was not found in any of the files provided.\n')
+    if any(x not in all_sources for x in input_dict['targets']):
+        exit()
+
+    # Phase reference sources have to be in the file/s
+    if input_dict['phase_ref'] != ['NONE']:
+        for prs in input_dict['phase_ref']:
+            if prs not in all_sources:
+                print(prs + ' was not found in any of the files provided.\n')
+        if any(x not in all_sources for x in input_dict['phase_ref']):
+            exit()
+
     # Load multiple files together:
+    if len(input_dict['paths']) > 1:
     # Same frequency setup
-#    if len(input_dict['paths']) > 1:
 #        for i, path in enumerate(input_dict['paths'],1):
 #            globals()[f"hdul_{i}"] = fits.open(path)
 #            
