@@ -1109,9 +1109,15 @@ def pipeline(input_dict):
             full_source_list = load.get_source_list(filepath_list, multifreq_id[2][ids])
             if load_all == False:
                 calibs = load.find_calibrators(full_source_list)
-                sources = calibs.copy()
-                sources += target_list
-                sources += [x for x in phase_ref if x!='NONE']
+                # If no sources are on the calibrator list, load all and print a message
+                if calibs == 999:
+                    sources = [x.name for x in full_source_list]
+                    print("None of the sources was found on the VLBA calibrator list." \
+                         + " All sources will be loaded.\n" )
+                else:
+                    sources = calibs.copy()
+                    sources += target_list
+                    sources += [x for x in phase_ref if x!='NONE']
             if load_all == True:
                 sources = [x.name for x in full_source_list]
 

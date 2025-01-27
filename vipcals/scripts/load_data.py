@@ -267,6 +267,10 @@ def find_calibrators(full_source_list):
         
     full_source_list.sort(key = lambda x: 0 if math.isnan(x.band_flux)\
                           else x.band_flux, reverse = True)
+    
+    # If none of the sources is on the calibrator list, load all
+    if np.isnan(full_source_list[0].band_flux) == True:
+        return(999)
 
     if len(full_source_list) > 3:
         return [str(full_source_list[0].name),str(full_source_list[1].name),\
