@@ -45,7 +45,7 @@ def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1)
 
         split.sources = AIPSList([target])
         split.docal = 1
-        split.gainuse = 10+i
+        split.gainuse = 9+i
         split.doband = 1
         split.msgkill = -4
         split.aparm[1] = 2  # Average frequency in IFs, produce one channel per IF

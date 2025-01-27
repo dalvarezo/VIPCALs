@@ -132,8 +132,8 @@ for i, entry in enumerate(entry_list):
 
 
         for i, coord in enumerate(input_dict['shifts']):
-            ra = coord.split(',')[0]
-            dec = coord.split(',')[1]
+            ra = coord[0]
+            dec = coord[1]
             try:
                 input_dict['shifts'][i] =  SkyCoord(ra, dec, unit = 'deg')
             except: 

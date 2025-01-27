@@ -158,7 +158,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 10, delay_
 
     return(target_fring.refant, str(target_fring.dparm[2]), str(target_fring.dparm[3]))
 
-def fringe_clcal(data, target_name, version=10):
+def fringe_clcal(data, target_name, version=9):
     """Apply SN solution table from FRING to a new CL table
 
     :param data: visibility data
@@ -166,7 +166,7 @@ def fringe_clcal(data, target_name, version=10):
     :param target_name: target name
     :type target_name: str
     :param version: CL table version in which to apply the solutions. SN version will \
-                    be ('version' - 3); defaults to 10
+                    be ('version' - 3); defaults to 9
     :type version: int, optional
     """    
     
@@ -186,7 +186,7 @@ def fringe_clcal(data, target_name, version=10):
     
     clcal.go()
 
-def fringe_phaseref_clcal(data, target_name, version=10):
+def fringe_phaseref_clcal(data, target_name, version=9):
     """Apply phase reference SN solution table from FRING to a new CL table
 
     :param data: visibility data
@@ -194,7 +194,7 @@ def fringe_phaseref_clcal(data, target_name, version=10):
     :param target_name: target name
     :type target_name: str
     :param version: CL table version in which to apply the solutions. SN version will \
-                    be ('version' - 3); defaults to 10
+                    be ('version' - 3); defaults to 9
     :type version: int, optional
     """    
     
@@ -214,7 +214,7 @@ def fringe_phaseref_clcal(data, target_name, version=10):
     
     clcal.go()
  
-def assess_fringe_fit(data, log, version = 7):
+def assess_fringe_fit(data, log, version = 6):
     """Print the number of failed solutions after fringe fit
 
     Explore a solution table produced by FRING and print how many solutions failed. This \
@@ -224,7 +224,7 @@ def assess_fringe_fit(data, log, version = 7):
     :type data: AIPSUVData
     :param log: pipeline log
     :type log: file
-    :param version: SN version to evaluate, defaults to 7
+    :param version: SN version to evaluate, defaults to 6
     :type version: int, optional
     :return: ratio between good and bad solutions
     :rtype: float

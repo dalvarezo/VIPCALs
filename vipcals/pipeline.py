@@ -700,17 +700,17 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('Execution time: {:.2f} s.\n'.format(t12-t11))
 
     ## Fringe fit of the calibrator ##  
-    disp.write_box(log_list, 'Calibrator fringe fit')
+    # disp.write_box(log_list, 'Calibrator fringe fit')
     
-    frng.calib_fring_fit(uvdata, refant, calibrator_scans)
-    t13 = time.time()
+    # frng.calib_fring_fit(uvdata, refant, calibrator_scans)
+    # t13 = time.time()
     
-    for pipeline_log in log_list:
-        pipeline_log.write('\nFringe fit applied to the calibrator! '\
-                        + 'SN#6 and CL#9 created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
-    print('\nFringe fit applied to the calibrator! SN#6 and CL#9 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t13-t12))
+    # for pipeline_log in log_list:
+    #     pipeline_log.write('\nFringe fit applied to the calibrator! '\
+    #                     + 'SN#6 and CL#9 created.\n')
+    #     pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
+    # print('\nFringe fit applied to the calibrator! SN#6 and CL#9 created.\n')
+    # print('Execution time: {:.2f} s. \n'.format(t13-t12))
     
     ## Get optimal solution interval for each target
     disp.write_box(log_list, 'Target fringe fit')
@@ -750,11 +750,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             print('\nThe optimal solution interval for the phase calibrator is ' \
                 + str(solint_list[i]) + ' minutes. \n')
             
-    t14 = time.time()
+    t13 = time.time()
     
     for pipeline_log in log_list:    
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t13-t12)) 
-    print('Execution time: {:.2f} s. \n'.format(t14-t13))
+    print('Execution time: {:.2f} s. \n'.format(t13-t12))
 
     ## Fringe fit of the target ##
    
@@ -764,7 +764,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             try:
                 tfring_params = frng.target_fring_fit(uvdata, refant, target, \
                                                     solint=float(solint_list[i]), \
-                                                    version = 10+i)
+                                                    version = 9+i)
             
                 log_list[i].write('\nFringe search performed on ' + target + '. Windows '\
                                   + 'for the search were ' + tfring_params[1] \
@@ -776,7 +776,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 
                 ## Get the ratio of bad to good solutions ##
         
-                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
+                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i) 
 
             except RuntimeError:
 
@@ -789,7 +789,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             # If the ratio is > 0.7, apply the solutions to a CL table
 
             if ratio >= 0.7:
-                frng.fringe_clcal(uvdata, target, version = 10+i)
+                frng.fringe_clcal(uvdata, target, version = 9+i)
 
             # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
 
@@ -806,7 +806,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 try:
                     tfring_params = frng.target_fring_fit(uvdata, refant, target, \
                                                     solint=float(solint_list[i]), 
-                                                    version = 10+i+1, solve_ifs=False)
+                                                    version = 9+i+1, solve_ifs=False)
                     
                     log_list[i].write('\nFringe search performed on ' + target \
                     + '. Windows for the search were ' + tfring_params[1] + ' ns and ' \
@@ -819,7 +819,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     ## Get the new ratio of bad to good solutions ##
                 
                     ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], \
-                                                          version = 7+i+1) 
+                                                          version = 6+i+1) 
                     
                 except RuntimeError:
                     print('\nThe new fringe fit has failed, the previous one will ' \
@@ -850,7 +850,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The multi-IF fringe fit will be applied.\n ")
-                    frng.fringe_clcal(uvdata, target, version = 10+i)
+                    frng.fringe_clcal(uvdata, target, version = 9+i)
 
 
                 # If new ratio is better than the previous, then replace the SN table and 
@@ -863,22 +863,22 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The averaged IF fringe fit will be applied.\n ")
-                    uvdata.zap_table('SN', 7+i)
-                    tysm.tacop(uvdata, 'SN', 7+i+1, 7+i)
-                    frng.fringe_clcal(uvdata, target, version = 10+i)
+                    uvdata.zap_table('SN', 6+i)
+                    tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
+                    frng.fringe_clcal(uvdata, target, version = 9+i)
 
             log_list[i].write('\nFringe fit corrections applied to the target! '\
-                + 'SN#' + str(7+i) + ' and CL#' + str(10+i) \
+                + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
                 + ' created.\n')
 
             print('\nFringe fit corrections applied to ' + target + '! SN#' \
-                + str(7+i) + ' and CL#' + str(10+i) + ' created.\n') 
+                + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
 
         if phase_ref[i] != 'NONE':
             try:
                 tfring_params = frng.target_fring_fit(uvdata, refant, phase_ref[i], \
                                                     solint=float(solint_list[i]), \
-                                                    version = 10+i)
+                                                    version = 9+i)
             
                 log_list[i].write('\nFringe search performed on the phase calibrator: ' \
                                   + phase_ref[i] + '. Windows '\
@@ -892,7 +892,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 
                 ## Get the ratio of bad to good solutions ##
         
-                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
+                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i) 
 
             except RuntimeError:
 
@@ -905,7 +905,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             # If the ratio is > 0.7, apply the solutions to a CL table
 
             if ratio >= 0.7:
-                frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
+                frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
 
             # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
 
@@ -922,7 +922,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 try:
                     tfring_params = frng.target_fring_fit(uvdata, refant, phase_ref[i], \
                                                     solint=float(solint_list[i]), 
-                                                    version = 10+i+1, solve_ifs=False)
+                                                    version = 9+i+1, solve_ifs=False)
                     
                     log_list[i].write('\nFringe search performed on the phase ' \
                                     + 'calibrator: ' + phase_ref[i] + '. Windows '\
@@ -937,7 +937,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     ## Get the new ratio of bad to good solutions ##
                 
                     ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], \
-                                                          version = 7+i+1) 
+                                                          version = 6+i+1) 
                     
                 except RuntimeError:
                     print('\nThe new fringe fit has failed, the previous one will ' \
@@ -968,7 +968,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The multi-IF fringe fit will be applied.\n ")
-                    frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
+                    frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
 
 
                 # If new ratio is better than the previous, then replace the SN table and 
@@ -981,23 +981,23 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The averaged IF fringe fit will be applied.\n ")
-                    uvdata.zap_table('SN', 7+i)
-                    tysm.tacop(uvdata, 'SN', 7+i+1, 7+i)
-                    frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
+                    uvdata.zap_table('SN', 6+i)
+                    tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
+                    frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
 
             log_list[i].write('\nFringe fit corrections applied to the target! '\
-                + 'SN#' + str(7+i) + ' and CL#' + str(10+i) \
+                + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
                 + ' created.\n')
 
             print('\nFringe fit corrections applied to ' + target + '! SN#' \
-                + str(7+i) + ' and CL#' + str(10+i) + ' created.\n') 
+                + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
 
-    t15 = time.time()
+    t14 = time.time()
     
     ## Print the ratio of bad to good solutions ##
     for i, pipeline_log in enumerate(log_list):        
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t14-t13))  
-    print('Execution time: {:.2f} s. \n'.format(t15-t14))
+    print('Execution time: {:.2f} s. \n'.format(t14-t13))
 
     ##  Export data ##
     disp.write_box(log_list, 'Exporting visibility data')
@@ -1032,13 +1032,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
     ## Calibrated ##
     for i, target in enumerate(target_list):
-        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 10+i, \
+        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 9+i, \
                            bpver = 1)
         
         log_list[i].write('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
-                           + target + '_CL' + str(10+i) + '_POSSM.ps\n')
+                           + target + '_CL' + str(9+i) + '_POSSM.ps\n')
         print('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
-             + target + '_CL' + str(10+i) + '_POSSM.ps\n')
+             + target + '_CL' + str(9+i) + '_POSSM.ps\n')
         
     ## Plot uv coverage ##
     for i, target in enumerate(target_list):
@@ -1051,7 +1051,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
     ## Plot visibilities as a function of time of target## 
     for i, target in enumerate(target_list):
-        plot.vplot_plotter(path_list[i], uvdata, target, 10+i)     
+        plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
         
         log_list[i].write('Visibilities as a function of time of ' + target \
                            + ' plotted in ' + path_list[i]  + '/' + target \
@@ -1059,10 +1059,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         print('Visibilities as a function of time of ' + target + ' plotted in ' \
               + path_list[i]  + '/' + target + '_VPLOT.ps\n')
 
-    t16 = time.time()
+    t15 = time.time()
     for pipeline_log in log_list:
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t16-t15))
-    print('Execution time: {:.2f} s. \n'.format(t16-t15))
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t15-t14))
+    print('Execution time: {:.2f} s. \n'.format(t15-t14))
 
     ## Total execution time ##
     tf = time.time()
