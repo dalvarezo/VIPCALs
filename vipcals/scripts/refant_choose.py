@@ -42,7 +42,7 @@ class Scan():
     
 
 def refant_choose_snr(data, sources, search_sources, target_list, full_source_list, \
-                      log_list, search_central = True):
+                      log_list, load_all = False, search_central = True):
     """Choose a suitable reference antenna using SNR values
 
     Select antennas based on its availability throughout the observation, then run a \
@@ -61,6 +61,8 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
     :type full_source_list: list of Source objects
     :param log: list of pipeline logs
     :type log_list: list of file
+    :param load_all: use all sources for the fringe fit, defaults to False
+    :type load_all: bool, optional  
     :param search_central: search for reference antenna only between \
                             KP, LA, PT, OV and FD, defaults to True
     :type search_central: bool, optional
@@ -183,7 +185,7 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
 
     for ant in antennas_list:
         if ant in snr_dict.keys():
-            dummy_fring(data, ant, search_sources)
+            dummy_fring(data, ant, search_sources, load_all = load_all)
             # Check the last SN table and store the median SNR (computed over IFs)
             last_table = data.table('SN', 0)
             for entry in last_table:
@@ -507,7 +509,7 @@ def refant_choose_tsys(data, sources, full_source_list, log_list):
     return(refant)
 
 def dummy_fring(data, refant, target_list, solint = 0, delay_w = 1000, \
-                       rate_w = 200):
+                       rate_w = 200, load_all = False):
     """Short fringe fit (only FFT) to select a reference antenna.
     
     Fringe fit each IF, solving for delays and rates. Default values for \
@@ -529,6 +531,8 @@ def dummy_fring(data, refant, target_list, solint = 0, delay_w = 1000, \
     :type delay_w: int, optional
     :param rate_w: rate window in hz in which the search is performed, defaults to 200
     :type rate_w: int, optional  
+    :param load_all: use all sources for the fringe fit, defaults to False
+    :type load_all: bool, optional  
     """    
     dummy_fring = AIPSTask('fring')
     dummy_fring.inname = data.name
@@ -539,7 +543,8 @@ def dummy_fring(data, refant, target_list, solint = 0, delay_w = 1000, \
     dummy_fring.docalib = 1    # Apply CL tables
     dummy_fring.gainuse = 0    # Apply the latest CL table
     dummy_fring.solint = solint
-    dummy_fring.calsour = AIPSList(target_list)
+    if load_all == False:
+        dummy_fring.calsour = AIPSList(target_list)
     
     dummy_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     dummy_fring.aparm[1] = 2    # At least 2 antennas per solution
@@ -559,7 +564,7 @@ def dummy_fring(data, refant, target_list, solint = 0, delay_w = 1000, \
     dummy_fring.go()
 
 def refant_choose_snr_alfrd(data, sources, search_sources, target_list, full_source_list, \
-                      log_list, search_central = True):
+                      log_list, load_all = False, search_central = True):
     """Choose a suitable reference antenna using SNR values
 
     MODIFIED VERSION FOR ALFRD, MERGE WITH MAIN FUNCTION!
@@ -580,6 +585,8 @@ def refant_choose_snr_alfrd(data, sources, search_sources, target_list, full_sou
     :type full_source_list: list of Source objects
     :param log: list of pipeline logs
     :type log_list: list of file
+    :param load_all: use all sources for the fringe fit, defaults to False
+    :type load_all: bool, optional  
     :param search_central: search for reference antenna only between \
                             KP, LA, PT, OV and FD, defaults to True
     :type search_central: bool, optional
@@ -706,7 +713,7 @@ def refant_choose_snr_alfrd(data, sources, search_sources, target_list, full_sou
 
     for ant in antennas_list:
         if ant in snr_dict.keys():
-            dummy_fring(data, ant, search_sources)
+            dummy_fring(data, ant, search_sources, load_all = load_all)
             # Check the last SN table and store the median SNR (computed over IFs)
             last_table = data.table('SN', 0)
             for entry in last_table:

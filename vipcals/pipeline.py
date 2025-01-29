@@ -449,7 +449,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         for pipeline_log in log_list:
             pipeline_log.write('\nCHOOSING REFANT WITH ALL SOURCES\n')
         refant = rant.refant_choose_snr(uvdata, sources, sources, target_list, \
-                                        full_source_list, log_list)
+                                        full_source_list, log_list, load_all)
     else:
         refant = [x['nosta'] for x in uvdata.table('AN',1) \
                   if default_refant in x['anname']][0]
@@ -783,9 +783,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 print("Fringe fit has failed.\n")
 
                 log_list[i].write("Fringe fit has failed.\n")
-                ratio = 0      
-
-
+                ratio = 0    
+                
             # If the ratio is > 0.7, apply the solutions to a CL table
 
             if ratio >= 0.7:
@@ -1112,6 +1111,7 @@ def pipeline(input_dict):
                 # If no sources are on the calibrator list, load all and print a message
                 if calibs == 999:
                     sources = [x.name for x in full_source_list]
+                    load_all = True
                     print("None of the sources was found on the VLBA calibrator list." \
                          + " All sources will be loaded.\n" )
                 else:
@@ -1186,9 +1186,16 @@ def pipeline(input_dict):
         full_source_list = load.get_source_list(filepath_list, multifreq_if[7])
         if load_all == False:
             calibs = load.find_calibrators(full_source_list)
-            sources = calibs.copy()
-            sources += target_list
-            sources += [x for x in phase_ref if x!='NONE']
+            # If no sources are on the calibrator list, load all and print a message
+            if calibs == 999:
+                sources = [x.name for x in full_source_list]
+                load_all = True
+                print("None of the sources was found on the VLBA calibrator list." \
+                        + " All sources will be loaded.\n" )
+            else:
+                sources = calibs.copy()
+                sources += target_list
+                sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
 
@@ -1244,9 +1251,16 @@ def pipeline(input_dict):
         full_source_list = load.get_source_list(filepath_list, multifreq_if[8])
         if load_all == False:
             calibs = load.find_calibrators(full_source_list)
-            sources = calibs.copy()
-            sources += target_list
-            sources += [x for x in phase_ref if x!='NONE']
+            # If no sources are on the calibrator list, load all and print a message
+            if calibs == 999:
+                sources = [x.name for x in full_source_list]
+                load_all = True
+                print("None of the sources was found on the VLBA calibrator list." \
+                        + " All sources will be loaded.\n" )
+            else:
+                sources = calibs.copy()
+                sources += target_list
+                sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
         
@@ -1307,9 +1321,16 @@ def pipeline(input_dict):
         full_source_list = load.get_source_list(filepath_list)
         if load_all == False:
             calibs = load.find_calibrators(full_source_list)
-            sources = calibs.copy()
-            sources += target_list
-            sources += [x for x in phase_ref if x!='NONE']
+            # If no sources are on the calibrator list, load all and print a message
+            if calibs == 999:
+                sources = [x.name for x in full_source_list]
+                load_all = True
+                print("None of the sources was found on the VLBA calibrator list." \
+                        + " All sources will be loaded.\n" )
+            else:
+                sources = calibs.copy()
+                sources += target_list
+                sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
 
