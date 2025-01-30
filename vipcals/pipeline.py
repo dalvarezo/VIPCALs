@@ -739,7 +739,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                                                     target_scans, refant))
             # Don't allow for solution intervals shorter than 1 minute
             if solint_list[i] < 1:
-                solint_list[i] == 1
+                solint_list[i] = 1
 
             if solint_list[i] != 1:
                 log_list[i].write('\nThe optimal solution interval for the target is '\
@@ -758,7 +758,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             
             # Don't allow for solution intervals shorter than 1 minute
             if solint_list[i] < 1:
-                solint_list[i] == 1
+                solint_list[i] = 1
 
             if solint_list[i] != 1:
                 log_list[i].write('\nThe optimal solution interval for the phase ' \
