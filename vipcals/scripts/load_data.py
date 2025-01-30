@@ -424,6 +424,70 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     # Remove the symbolic links
     os.system('rm ' + symlink_path + '/aux_*')
 
+
+def write_info(data, filepath_list, log_list, sources):
+    """Write some basic information about the loaded file to the logs
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param filepath_list: list of paths to the original uvfits/idifits files
+    :type filepath_list: list of str
+    :param log_list: list of the pipeline logs
+    :type log_list: list of file
+    :param sources: list of sources loaded
+    :type sources: list of str
+    """    
+    for log in log_list:
+        for path in filepath_list:
+            log.write('\nLoaded file: ' + os.path.basename(path) + '\n')
+            size = os.path.getsize(path)
+            if size >= 1024**3:
+                log.write('Size: ' + '{:.2f} GB \n'.format(os.path.getsize(path)/1024**3))
+            if size < 1024**3:
+                log.write('Size: ' + '{:.2f} MB \n'.format(os.path.getsize(path)/1024**2))
+
+        log.write('Observation date: ' + data.header['date_obs'])
+
+        freq_indx = data.header['ctype'].index('FREQ')
+        freq = data.header['crval'][freq_indx]
+        if freq >= 1e9:
+            log.write('\nFrequency: ' + str(np.round(freq/1e9,2)) + ' GHz')
+        if freq < 1e9:
+            log.write('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
+
+        log.write('\nLoaded sources: ' + str(list(set(sources))) + '\n')
+
+
+def print_info(data, filepath_list, sources):
+    """Print some basic information about the loaded file to the logs
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param filepath_list: list of paths to the original uvfits/idifits files
+    :type filepath_list: list of str
+    :param sources: list of sources loaded
+    :type sources: list of str
+    """    
+    for path in filepath_list:
+        print('\nLoaded file: ' + os.path.basename(path) + '\n')
+        size = os.path.getsize(path)
+        if size >= 1024**3:
+            print('Size: ' + '{:.2f} GB \n'.format(os.path.getsize(path)/1024**3))
+        if size < 1024**3:
+            print('Size: ' + '{:.2f} MB \n'.format(os.path.getsize(path)/1024**2))
+
+    print('Observation date: ' + data.header['date_obs'])
+
+    freq_indx = data.header['ctype'].index('FREQ')
+    freq = data.header['crval'][freq_indx]
+    if freq >= 1e9:
+        print('\nFrequency: ' + str(np.round(freq/1e9,2)) + ' GHz')
+    if freq < 1e9:
+        print('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
+
+    print('\nLoaded sources: ' + str(list(set(sources))) + '\n')
+
+
 def print_listr(data, path_list, filename_list):
     """Print scan information in an external file.
 
@@ -434,7 +498,7 @@ def print_listr(data, path_list, filename_list):
     :param path_list: list of filepaths for each source
     :type path_list: list of str
     :param filename_list: list of folder names for the different science targets
-    :type log: list of str
+    :type filename_list: list of str
     """    
     listr = AIPSTask('listr')
     listr.inname = data.name

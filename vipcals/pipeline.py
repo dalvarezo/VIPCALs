@@ -139,12 +139,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     load.load_data(filepath_list, aips_name, sources, disk_number, multi_id,\
     selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
     t1 = time.time() 
- 
+    load.write_info(uvdata, filepath_list, log_list, sources)
     for pipeline_log in log_list:
-        pipeline_log.write('\nData loaded! The loaded sources are ' + \
-                        str(list(set(sources))) + '.\n')
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t1-t0))
-    print('\nData loaded! The loaded sources are', list(set(sources)) ,'.\n')
+    load.print_info(uvdata, filepath_list, sources)
     print('Execution time: {:.2f} s. \n'.format(t1-t0))
 
     ## Check data integrity
@@ -1180,10 +1178,10 @@ def pipeline(input_dict):
                 log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
                             + '_pipeline_log.txt', 'w+')
                 log_list[i].write(ascii_logo + '\n')
-                for filepath in filepath_list:
-                    log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                        + '{:.2f} MB \n'.format\
-                                        (os.path.getsize(filepath)/1024**2 ))
+                #for filepath in filepath_list:
+                #    log_list[i].write(os.path.basename(filepath) + ' --- '\
+                #                        + '{:.2f} MB \n'.format\
+                #                        (os.path.getsize(filepath)/1024**2 ))
 
             ## START THE PIPELINE ##         
             calibrate(filepath_list, aips_name_short, sources, full_source_list, \
@@ -1252,10 +1250,10 @@ def pipeline(input_dict):
             log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
                         + '_pipeline_log.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
-            for filepath in filepath_list:
-                log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                    + '{:.2f} MB \n'.format\
-                                    (os.path.getsize(filepath)/1024**2 ))
+            #for filepath in filepath_list:
+            #    log_list[i].write(os.path.basename(filepath) + ' --- '\
+            #                        + '{:.2f} MB \n'.format\
+            #                        (os.path.getsize(filepath)/1024**2 ))
         
         ## START THE PIPELINE ##
         calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list, \
@@ -1317,10 +1315,10 @@ def pipeline(input_dict):
             log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
                         + '_pipeline_log.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
-            for filepath in filepath_list:
-                log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                    + '{:.2f} MB \n'.format\
-                                    (os.path.getsize(filepath)/1024**2 ))
+            #for filepath in filepath_list:
+            #    log_list[i].write(os.path.basename(filepath) + ' --- '\
+            #                        + '{:.2f} MB \n'.format\
+            #                        (os.path.getsize(filepath)/1024**2 ))
             
         ## START THE PIPELINE ##  
         calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list, \
@@ -1388,10 +1386,10 @@ def pipeline(input_dict):
             log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
                         + '_pipeline_log.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
-            for filepath in filepath_list:
-                log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                    + '{:.2f} MB \n'.format\
-                                    (os.path.getsize(filepath)/1024**2 ))
+            #for filepath in filepath_list:
+            #    log_list[i].write(os.path.basename(filepath) + ' --- '\
+            #                        + '{:.2f} MB \n'.format\
+            #                        (os.path.getsize(filepath)/1024**2 ))
             
         ## START THE PIPELINE ##               
         calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \

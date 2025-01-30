@@ -27,8 +27,8 @@ def print_box(s):
 def write_box(log_list, s):
     """Write some text inside a box in the log file
 
-    :param log: list of the pipeline logs
-    :type log: list of file
+    :param log_list: list of the pipeline logs
+    :type log_list: list of file
     :param s: text to display in the box
     :type s: str
     """    
