@@ -143,8 +143,93 @@ def get_optimal_scans(target, optimal_scans, full_source_list):
     if len(target_optimal_scans) == 0:
         return 404
 
-def optimize_solint(data, target, target_optimal_scans, refant):
+def optimize_solint_cm(data, target, target_optimal_scans, refant):
     """Find the optimal solution interval in which to fringe fit a target.
+
+    Algorithm for cm-wavelengths
+
+    Runs a fringe fit in a selected number of scans of the target for five different \
+    solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal \
+    solution interval is the one that produces the best SNR.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target: source name
+    :type target: str
+    :param target_optimal_scans: optimal scans for the target
+    :type target_optimal_scans: list of Scans objects
+    :param refant: reference antenna number
+    :type refant: int
+    :return: optimal solution interval in minutes
+    :rtype: float
+    """    
+    ###
+    ### NOT THE OPTIMAL SCANS ANYMORE! IF IT WORKS I NEED TO CHANGE THE DOCSTRING
+    ###
+    # Get scan length (assuming them equal) in minutes
+    scan_length = target_optimal_scans[0].time_interval*24*60
+    solint_dict = {}
+    for solint in np.round([scan_length/5.1, scan_length/4.1, \
+                            scan_length/3.1, scan_length/2.1, scan_length],1):
+        solint_dict[solint] = []
+        snr_dict = {}
+        # Initialize dictionary
+        for a in target_optimal_scans[0].antennas:
+            snr_dict[a] = []
+        for i, scan in enumerate(target_optimal_scans):
+            # If there are any antennas not initialized in the dictionary, then do so
+            # This  might happen when different scans have different available antennas
+            # I could avoid this but using only the ones with the max number of antennas
+            # available....
+            for a in target_optimal_scans[i].antennas:
+                if a not in snr_dict.keys():
+                    snr_dict[a] = []
+            # Get the timerange of the scan
+            scan_time = scan.time
+            scan_time_interval = scan.time_interval
+            init_time = ddhhmmss(scan_time - scan_time_interval/1.8)
+            final_time = ddhhmmss(scan_time + scan_time_interval/1.8)
+            timerang = [None] + init_time.tolist() + final_time.tolist()
+            # print(timerang)
+            # Perform an SNR fringe fit
+            snr_fring_optimiz(data, refant, float(solint), timerang, \
+                              AIPSList(target), 7)
+                
+            snr_table = data.table('SN', 7)
+            # Save the SNR of the scan
+            
+            for antennas in snr_table:
+                if antennas['antenna_no'] == refant:
+                    pass
+                    #snr_dict[antennas['antenna_no']].append(6.5)
+                else:
+                    try:
+                        snr_dict[antennas['antenna_no']].append\
+                        (antennas['weight_1'][0])
+                    except TypeError:
+                        snr_dict[antennas['antenna_no']].append\
+                        (antennas['weight_1'])
+                        
+            # Delete the solution table
+            data.zap_table('SN', 7)
+        # Check if the median SNR across scans reaches the threshold
+        snr_values = []
+        # Compute the median per antenna
+        for key in snr_dict.keys():
+            snr_values.append(np.median(snr_dict[key]))
+	    # Add median SNR of all antennas to dict
+        solint_dict[solint] = np.median(snr_values)
+    solint = list(dict(sorted(solint_dict.items(), key=lambda item: item[1], \
+                              reverse = True)).keys())[0]
+    return(solint)
+
+    # I should modify this function in such a way that can produce plots with
+    # the SNR as a function of the solution interval for each baseline
+
+def optimize_solint_mm(data, target, target_optimal_scans, refant):
+    """Find the optimal solution interval in which to fringe fit a target.
+
+    Algorithm for mm-wavelengths
 
     Runs a fringe fit in a selected number of scans of the target for five different \
     solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal \
@@ -213,7 +298,7 @@ def optimize_solint(data, target, target_optimal_scans, refant):
         # Compute the median per antenna
         for key in snr_dict.keys():
             snr_values.append(np.median(snr_dict[key]))
-	#Check if they are all over 5.5
+	    #Check if they are all over 5.5
         if all([x > 5.5 for x in snr_values]) == True:
             break
     return(solint)

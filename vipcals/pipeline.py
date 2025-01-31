@@ -732,11 +732,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         #         + ' minutes. \n')
         if phase_ref[i] == 'NONE':
             target_scans = [x for x in scan_list if x.name == target]
-            solint_list.append(opti.optimize_solint(uvdata, target, \
-                                                    target_scans, refant))
+            solint_list.append(opti.optimize_solint_cm(uvdata, target, \
+                                                       target_scans, refant))
             # Don't allow for solution intervals shorter than 1 minute
-            if solint_list[i] < 1:
-                solint_list[i] = 1
+            # NOT ENABLED FOR NOW
+            #if solint_list[i] < 1:
+            #    solint_list[i] = 1
 
             if solint_list[i] != 1:
                 log_list[i].write('\nThe optimal solution interval for the target is '\
@@ -754,8 +755,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                                                     phase_ref_scans, refant))
             
             # Don't allow for solution intervals shorter than 1 minute
-            if solint_list[i] < 1:
-                solint_list[i] = 1
+            # NOT ENABLED FOR NOW
+            #if solint_list[i] < 1:
+            #    solint_list[i] = 1
 
             if solint_list[i] != 1:
                 log_list[i].write('\nThe optimal solution interval for the phase ' \
@@ -764,9 +766,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     + str(solint_list[i]) + ' minutes. \n')
             else:
                 log_list[i].write('\nThe optimal solution interval for the phase ' \
-                                + 'calibrator is ' + str(solint_list[i]) + ' minutes. \n')
+                                + 'calibrator is ' + str(solint_list[i]) + ' minute. \n')
                 print('\nThe optimal solution interval for the phase calibrator is ' \
-                    + str(solint_list[i]) + ' minutes. \n')     
+                    + str(solint_list[i]) + ' minute. \n')     
                           
     t13 = time.time()
     
