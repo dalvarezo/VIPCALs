@@ -44,6 +44,7 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
         split.inseq = data.seq
 
         split.outdisk = data.disk
+        split.outclass = data.klass
         split.outseq = data.seq
 
         split.sources = AIPSList([target])
@@ -78,7 +79,7 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
     for i, target in enumerate(target_list):
         fittp = AIPSTask('fittp')
         fittp.inname = target
-        fittp.inclass = 'SPLIT'
+        fittp.inclass = data.klass
         fittp.indisk = data.disk
         fittp.inseq = data.seq
         fittp.dataout = path_list[i] + '/' + filename_list[i] + '.uvfits'

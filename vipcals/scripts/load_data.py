@@ -249,7 +249,7 @@ def redo_source_list(uvdata):
         b = Source()
         b.name = source['source'].replace(" ", "")
         b.id = source['id__no']
-        freq_indx = data.header['ctype'].index('FREQ')
+        freq_indx = uvdata.header['ctype'].index('FREQ')
         b.restfreq = uvdata.header['crval'][freq_indx]
         #try:
         #    b.restfreq = source['restfreq'][0]

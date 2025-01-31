@@ -299,11 +299,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'])
         
     if time_resol < 0.99:
-        avgdata = AIPSUVData(aips_name, 'AVGT', disk_number, seq)
+        avgdata = AIPSUVData(aips_name[:9] + '_AT', uvdata.klass, disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
         tabl.time_aver(uvdata, time_resol, 2)
-        uvdata = AIPSUVData(aips_name, 'AVGT', disk_number, seq)
+        uvdata = AIPSUVData(aips_name[:9] + '_AT', uvdata.klass, disk_number, seq)
 
         # Index the data again
         uvdata.zap_table('CL', 1)
@@ -316,9 +316,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                             + 's. It has been averaged to 2s.\n')
         print('\nThe time resolution was {:.2f}'.format(time_resol) \
             + 's. It has been averaged to 2s.\n')
+        is_data_avg = True
+    else:
+        is_data_avg = False
         
             
-    ## If the channel bandwidth is smaller than or equal to 0.5 MHz, average the dataset 
+    ## If the channel bandwidth is smaller than 0.5 MHz, average the dataset 
     ## in frequency up to 0.5 MHz per channel 
     try:
         ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'][0])
@@ -328,16 +331,30 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'])
         
     if ch_width < 500000:
-        avgdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
-        if avgdata.exists() == True:
-            avgdata.zap()
-        ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
-        
-        if time_resol >= 0.33: # => If it was not written before
-            disp.write_box(log_list, 'Data averaging')
-        
-        tabl.freq_aver(uvdata,ratio)
-        uvdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
+        if is_data_avg == False:
+            avgdata = AIPSUVData(aips_name[:9] + '_AF', uvdata.klass, \
+                                 disk_number, seq)
+            if avgdata.exists() == True:
+                avgdata.zap()
+            ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
+            
+            if time_resol >= 0.33: # => If it was not written before
+                disp.write_box(log_list, 'Data averaging')
+            
+            tabl.freq_aver(uvdata,ratio)
+            uvdata = AIPSUVData(aips_name[:9] + '_AF', uvdata.klass, \
+                                 disk_number, seq)
+
+        if is_data_avg == True:
+            avgdata = AIPSUVData(aips_name[-4:] + '_ATF', uvdata.klass, \
+                                 disk_number, seq)
+            if avgdata.exists() == True:
+                avgdata.zap()
+            ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
+            
+            tabl.freq_aver(uvdata,ratio)
+            uvdata = AIPSUVData(aips_name[-4:] + '_ATF', uvdata.klass, \
+                                 disk_number, seq)
 
         # Index the data again
         uvdata.zap_table('CL', 1)
@@ -1147,7 +1164,7 @@ def pipeline(input_dict):
 
             # Define AIPS name
             hdul = fits.open(filepath_list[0])
-            aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
+            aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_1
 
             ## Check if the AIPS catalogue name is too long, and rename ##
             # 12 is the maximum length for a file name in AIPS
@@ -1223,7 +1240,7 @@ def pipeline(input_dict):
 
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
-        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
+        aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_1
 
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -1292,7 +1309,7 @@ def pipeline(input_dict):
         
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
-        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_2
+        aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_2
         
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name

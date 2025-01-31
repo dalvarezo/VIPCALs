@@ -25,7 +25,7 @@ class gc_entry():
 def time_aver(data, oldtime, newtime):
     """Average visibility data in time
 
-    Creates a new entry in AIPS with the same name but with klass 'AVGT'
+    Creates a new entry in AIPS adding '_AT' to the name
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -45,8 +45,8 @@ def time_aver(data, oldtime, newtime):
     uvavg.zinc = oldtime
     uvavg.opcode = 'TIME'
     
-    uvavg.outname = data.name
-    uvavg.outclass = 'AVGT'
+    uvavg.outname = data.name[:9] + '_TA'
+    uvavg.outclass = data.klass
     uvavg.outdisk = data.disk
     uvavg.outseq = data.seq
     uvavg.msgkill = -4
@@ -56,7 +56,8 @@ def time_aver(data, oldtime, newtime):
 def freq_aver(data, ratio):
     """Average visibility data in frequency
 
-    Creates a new entry in AIPS with the same name but with klass 'AVGF'
+    Creates a new entry in AIPS adding '_AF' or '_ATF' to the name if it has 
+    already been averaged in time.
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -74,8 +75,11 @@ def freq_aver(data, ratio):
     avspc.channel = ratio
     avspc.avoption = 'SUBS'
 
-    avspc.outname = data.name
-    avspc.outclass = 'AVGF'
+    if data.name[-3:] == '_AT':
+        avspc.outname = data.name[-4:] + '_ATF'
+    else:
+        avspc.outname = data.name[:9] + '_AF'
+    avspc.outclass = data.klass
     avspc.outdisk = data.disk
     avspc.outseq = data.seq
     avspc.msgkill = -4
