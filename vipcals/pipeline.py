@@ -449,6 +449,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Choose refant ##
     disp.write_box(log_list, 'Reference antenna search')
+    print('\nSearch for reference antenna starts...\n')
     
     if default_refant == 'NONE':
         ## TESTING ##
