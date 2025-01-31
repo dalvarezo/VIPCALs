@@ -189,7 +189,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         # Move the temperature file to the target folders
         for path in path_list:
-            os.system('cp ./tsys.vlba ' + path + '/tsys.vlba')
+            os.system('cp ./tsys.vlba ' + path + '/TABLES/tsys.vlba')
     
         # And delete the files from the current directory
         os.system('rm ./tables*')
@@ -219,7 +219,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             
         # Move the gain curve file to the target folders
         for path in path_list:
-            os.system('cp ./gaincurves.vlba ' + path + '/gaincurves.vlba')
+            os.system('cp ./gaincurves.vlba ' + path + '/TABLES/gaincurves.vlba')
     
         # And delete the files from the main directory
         os.system('rm ./gaincurves.vlba')           
@@ -238,7 +238,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         # Move the flag file to the target folders
         for path in path_list:
-            os.system('cp ./flags.vlba ' + path + '/flags.vlba')
+            os.system('cp ./flags.vlba ' + path + '/TABLES/flags.vlba')
     
         # And delete the files from the main directory
         os.system('rm ./tables*')
@@ -366,7 +366,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## Print scan information ##    
     load.print_listr(uvdata, path_list, filename_list)
     for i, pipeline_log in enumerate(log_list):
-        pipeline_log.write('\nScan information printed in ' + path_list[i] + '/' \
+        pipeline_log.write('\nScan information printed in '  \
                             + filename_list[i] + '_scansum.txt \n')
     ## Smooth the TY table ##  
     ## Flag antennas with no TY or GC table entries ##  
@@ -407,19 +407,18 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     original_tsys, flagged_tsys = tysm.ty_assess(uvdata)
     
-    # Maybe this output could be written as a %, I just need to manually write
-    # the case where 0 points are flagged
+    tsys_flag_percent = np.round(flagged_tsys/original_tsys*100, 2)
+
     for pipeline_log in log_list:
-        pipeline_log.write('\nSystem temperatures clipped! ' + str(flagged_tsys) \
-                        + ' Tsys points out of a total of ' \
-                        + str(original_tsys) + ' have been flagged. '\
-                        + 'TY#2 created.\n')
+        pipeline_log.write('\nSystem temperatures clipped: ' + str(tsys_flag_percent) \
+                           + '% of the Tsys values have been flagged ('  \
+                           + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
+                           + 'TY#2 created.\n')
      
-    print('\nSystem temperatures clipped! ' + str(flagged_tsys) \
-          + ' Tsys points out of a total of ' \
-          + str(original_tsys) + ' have been flagged. '\
-          + 'TY#2 created.\n')
-    
+        print('\nSystem temperatures clipped: ' + str(tsys_flag_percent) \
+                + '% of the Tsys values have been flagged ('  \
+                + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
+                + 'TY#2 created.\n') 
     
     t2 = time.time()  
 
@@ -1020,18 +1019,19 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ##  Export data ##
     disp.write_box(log_list, 'Exporting visibility data')
 
-    expo.data_export(path_list, uvdata, target_list, flag_frac = flag_edge)
-    expo.table_export(path_list, uvdata, target_list)
+    expo.data_export(path_list, uvdata, target_list, filename_list, \
+                     flag_frac = flag_edge)
+    expo.table_export(path_list, uvdata, target_list, filename_list)
     for i, target in enumerate(target_list): 
-        log_list[i].write('\n' + target + ' visibilites exported to ' + path_list[i] \
-                          + '/' + target + '.uvfits\n')
-        print('\n' + target + ' visibilites exported to ' + path_list[i] + '/' \
-             + target + '.uvfits\n')
+        log_list[i].write('\n' + target + ' visibilites exported to ' + filename_list[i] \
+                          + '.uvfits\n')
+        print('\n' + target + ' visibilites exported to ' + filename_list[i] \
+                          + '.uvfits\n')
     for i, target in enumerate(target_list): 
-        log_list[i].write('\n' + target + ' calibration tables exported to ' \
-                          + path_list[i] + '/' + target + '.caltab.uvfits\n')
-        print('\n' + target + ' calibration tables exported to ' + path_list[i] + '/' \
-             + target + '.caltab.uvfits\n')
+        log_list[i].write('\n' + target + ' calibration tables exported to /TABLES/' \
+                          + filename_list[i] + '.caltab.uvfits\n')
+        print('\n' + target + ' calibration tables exported to /TABLES/' \
+              + filename_list[i] + '.caltab.uvfits\n')
 
     ## PLOTS ##
 
@@ -1043,39 +1043,37 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 1, \
                            bpver = 0, flag_edge=False)
     
-        log_list[i].write('\nUncalibrated visibilities plotted in '  + path_list[i]  \
-                           + '/' + target + '_CL1_POSSM.ps\n')
-        print('\nUncalibrated visibilities plotted in '  + path_list[i] +  '/' \
-                           + target + '_CL1_POSSM.ps\n')
+        log_list[i].write('\nUncalibrated visibilities plotted in /PLOTS/'  \
+                          + filename_list[i] + '_CL1_POSSM.ps\n')
+        print('\nUncalibrated visibilities plotted in /PLOTS/'  \
+                          + filename_list[i] + '_CL1_POSSM.ps\n')
         
     ## Calibrated ##
     for i, target in enumerate(target_list):
         plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 9+i, \
                            bpver = 1)
         
-        log_list[i].write('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
-                           + target + '_CL' + str(9+i) + '_POSSM.ps\n')
-        print('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
-             + target + '_CL' + str(9+i) + '_POSSM.ps\n')
+        log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
+                          + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
+        print('Calibrated visibilities plotted in /PLOTS/' \
+                          + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
         
     ## Plot uv coverage ##
     for i, target in enumerate(target_list):
         plot.uvplt_plotter(path_list[i], uvdata, target)
 
-        log_list[i].write('UV coverage of ' + target + ' plotted in ' \
-                           + path_list[i] + '/' + target + '_UVPLT.ps\n')
-        print('UV coverage of ' + target + ' plotted in ' + path_list[i] \
-             + '/' + target + '_UVPLT.ps\n')
+        log_list[i].write('UV coverage plotted in /PLOTS/' \
+                           + filename_list[i] + '_UVPLT.ps\n')
+        print('UV coverage plotted in /PLOTS/' + filename_list[i] + '_UVPLT.ps\n')
         
     ## Plot visibilities as a function of time of target## 
     for i, target in enumerate(target_list):
         plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
         
-        log_list[i].write('Visibilities as a function of time of ' + target \
-                           + ' plotted in ' + path_list[i]  + '/' + target \
-                           + '_VPLOT.ps\n')
-        print('Visibilities as a function of time of ' + target + ' plotted in ' \
-              + path_list[i]  + '/' + target + '_VPLOT.ps\n')
+        log_list[i].write('Visibilities as a function of time plotted in /PLOTS/' \
+                          + filename_list[i]  + '_VPLOT.ps\n')
+        print('Visibilities as a function of time plotted in /PLOTS/' \
+                          + filename_list[i]  + '_VPLOT.ps\n')
 
     t15 = time.time()
     for pipeline_log in log_list:
@@ -1169,14 +1167,17 @@ def pipeline(input_dict):
             log_list = target_list.copy()
             path_list = target_list.copy()
             for i, name in enumerate(filename_list):
-                filename_list[i] = name + '_' + klass_1
+                filename_list[i] = load.set_name(filepath_list[i], name, klass_1)
                 path_list[i] = project_dir + '/' + filename_list[i]
                 if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                     os.system('rm -rf ' + project_dir + '/' + filename_list[i])
                 os.system('mkdir ' + project_dir + '/' + filename_list[i])
-
-                log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                            + '_pipeline_log.txt', 'w+')
+                os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                          + '/PLOTS')
+                os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                          + '/TABLES')
+                log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                                   + filename_list[i] + '_VIPCALslog.txt', 'w+')
                 log_list[i].write(ascii_logo + '\n')
                 #for filepath in filepath_list:
                 #    log_list[i].write(os.path.basename(filepath) + ' --- '\
@@ -1241,14 +1242,18 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         path_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = name + '_' + klass_1
+            filename_list[i] = load.set_name(filepath_list[i], name, klass_1)
             path_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
             os.system('mkdir ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/PLOTS')
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/TABLES')
 
-            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                        + '_pipeline_log.txt', 'w+')
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                               + filename_list[i] + '_VIPCALslog.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
             #for filepath in filepath_list:
             #    log_list[i].write(os.path.basename(filepath) + ' --- '\
@@ -1306,14 +1311,18 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         path_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = name + '_' + klass_2
+            filename_list[i] = load.set_name(filepath_list[i], name, klass_2)
             path_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
             os.system('mkdir ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/PLOTS')
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/TABLES')
 
-            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                        + '_pipeline_log.txt', 'w+')
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                               + filename_list[i] + '_VIPCALslog.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
             #for filepath in filepath_list:
             #    log_list[i].write(os.path.basename(filepath) + ' --- '\
@@ -1376,15 +1385,19 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         path_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = name + '_' + klass_1
+            filename_list[i] = load.set_name(filepath_list[i], name, klass_1)
             path_list[i] = project_dir + '/' + filename_list[i]
             
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
             os.system('mkdir ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/PLOTS')
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/TABLES')
 
-            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                        + '_pipeline_log.txt', 'w+')
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                               + filename_list[i] + '_VIPCALslog.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
             #for filepath in filepath_list:
             #    log_list[i].write(os.path.basename(filepath) + ' --- '\

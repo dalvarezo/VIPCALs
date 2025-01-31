@@ -5,7 +5,8 @@ from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 from AIPSData import AIPSUVData
 
-def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1):
+def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
+                flag_frac = 0.1):
     """Split multi-source uv data to single source and export it to uvfits format.
 
     By default, it averages visibilities in frequency, producing one single channel 
@@ -19,6 +20,8 @@ def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1)
     :type data: AIPSUVData
     :param target_list: list of sources to split
     :type target_list: list of str
+    :param filename_list: list containing the subdirectories of each target
+    :type filename_list: list of str
     :param flag_edge: flag edge channels; defaults to True
     :type flag_edge: bool, optional
     :param flag_frac: number of edge channels to flag, either a percentage (if < 1) \
@@ -78,11 +81,11 @@ def data_export(path_list, data, target_list, flag_edge = True, flag_frac = 0.1)
         fittp.inclass = 'SPLIT'
         fittp.indisk = data.disk
         fittp.inseq = data.seq
-        fittp.dataout = path_list[i] + '/' + target + '_' + data.klass + '.uvfits'
+        fittp.dataout = path_list[i] + '/' + filename_list[i] + '.uvfits'
         fittp.msgkill = -4        
         fittp.go()
 
-def table_export(path_list, data, target_list):
+def table_export(path_list, data, target_list, filename_list):
     """Copy calibration tables to a dummy file and export them.
 
     :param path_list: list of filepaths for each source
@@ -91,6 +94,8 @@ def table_export(path_list, data, target_list):
     :type data: AIPSUVData
     :param target_list: list of sources to split
     :type target_list: list of str
+    :param filename_list: list containing the subdirectories of each target
+    :type filename_list: list of str
     """    
 
     tasav = AIPSTask('tasav')
@@ -109,7 +114,7 @@ def table_export(path_list, data, target_list):
         fittp.inname = data.name
         fittp.inclass = 'DUMMY'
         fittp.indisk = data.disk
-        fittp.dataout = path_list[i] + '/' + target + '_' + data.klass + '.caltab.uvfits'
+        fittp.dataout = path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits'
         fittp.msgkill = -4        
         fittp.go()
 

@@ -122,8 +122,40 @@ class Source():
             self.band = 'X'
         elif self.restfreq < 1.8e10:
             self.band = 'U'
-        else:
+        elif self.restfreq < 2.6e10:
             self.band = 'K'
+        else:
+            self.band = 'Ka'
+
+
+def set_name(path, source, klass):
+    hdul = fits.open(path)
+    obs = hdul[0].header['OBSERVER']
+    if '/' in hdul[0].header['DATE-OBS']:
+        date = hdul[0].header['DATE-OBS'].split('/')
+        if int(date[2]) > 90:
+            date_obs = '19' + date[2] + '-' + date[1] + '-' + date[0]
+        else:
+            date_obs = '20' + date[2] + '-' + date[1] + '-' + date[0]
+    if '-' in hdul[0].header['DATE-OBS']:
+        date_obs = hdul[0].header['DATE-OBS']
+    freq = int(klass.strip('G'))
+    if freq < 3:
+        band = 'S'
+    elif freq < 7:
+        band = 'C'
+    elif freq < 10:
+        band = 'X'
+    elif freq < 18:
+        band = 'U'
+    elif freq < 26:
+        band = 'K'
+    else:
+        band = 'Ka'
+
+    name = source + '_' + obs + '_' + band + '_' + date_obs
+    return(name)
+
 
 
 def open_log(path_list, filename_list):
@@ -136,7 +168,7 @@ def open_log(path_list, filename_list):
     """
     log_paths = []
     for i, path in enumerate(path_list):
-        log_paths.append(path + '/' + filename_list[i] + '_AIPS_log.txt')
+        log_paths.append(path + '/' + filename_list[i] + '_AIPSlog.txt')
 
     AIPS.log = MultiFile(*log_paths, mode = 'w')
 
@@ -446,7 +478,8 @@ def write_info(data, filepath_list, log_list, sources):
             if size < 1024**3:
                 log.write('Size: ' + '{:.2f} MB \n'.format(os.path.getsize(path)/1024**2))
 
-        log.write('Observation date: ' + data.header['date_obs'])
+        log.write('\nProject: ' + data.header['observer'])
+        log.write('\nObservation date: ' + data.header['date_obs'])
 
         freq_indx = data.header['ctype'].index('FREQ')
         freq = data.header['crval'][freq_indx]
@@ -476,7 +509,8 @@ def print_info(data, filepath_list, sources):
         if size < 1024**3:
             print('Size: ' + '{:.2f} MB \n'.format(os.path.getsize(path)/1024**2))
 
-    print('Observation date: ' + data.header['date_obs'])
+    print('\nProject: ' + data.header['observer'])
+    print('\nObservation date: ' + data.header['date_obs'])
 
     freq_indx = data.header['ctype'].index('FREQ')
     freq = data.header['crval'][freq_indx]

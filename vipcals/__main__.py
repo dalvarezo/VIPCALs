@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import string
 from datetime import datetime
 
 from astropy.io import fits
@@ -147,11 +148,17 @@ for i, entry in enumerate(entry_list):
             globals()[f"hdul_{i}"] = fits.open(path)
             all_sources.extend(list(globals()[f"hdul_{i}"]['SOURCE'].data['SOURCE']))
     all_sources = list(set(all_sources))    # Remove duplicates
+    # Clean the list from non ASCII characters
+    try:
+        all_sources_clean = [''.join(c for c in item.decode('ascii', 'ignore') if c in \
+                                    string.printable) for item in all_sources]
+    except AttributeError:
+        all_sources_clean = all_sources
 
     for t in input_dict['targets']:
-        if t not in all_sources:
+        if t not in all_sources_clean:
             print(t + ' was not found in any of the files provided.\n')
-    if any(x not in all_sources for x in input_dict['targets']):
+    if any(x not in all_sources_clean for x in input_dict['targets']):
         exit()
 
     # Phase reference sources have to be in the file/s
