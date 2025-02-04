@@ -346,14 +346,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                                  disk_number, seq)
 
         if is_data_avg == True:
-            avgdata = AIPSUVData(aips_name[-4:] + '_ATF', uvdata.klass, \
+            avgdata = AIPSUVData(aips_name[:9] + '_ATF', uvdata.klass, \
                                  disk_number, seq)
             if avgdata.exists() == True:
                 avgdata.zap()
             ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
             
             tabl.freq_aver(uvdata,ratio)
-            uvdata = AIPSUVData(aips_name[-4:] + '_ATF', uvdata.klass, \
+            uvdata = AIPSUVData(aips_name[:9] + '_ATF', uvdata.klass, \
                                  disk_number, seq)
 
         # Index the data again
@@ -750,12 +750,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         #         + ' minutes. \n')
         if phase_ref[i] == 'NONE':
             target_scans = [x for x in scan_list if x.name == target]
-            solint_list.append(opti.optimize_solint_cm(uvdata, target, \
+            solint_list.append(opti.optimize_solint_mm(uvdata, target, \
                                                        target_scans, refant))
             # Don't allow for solution intervals shorter than 1 minute
-            # NOT ENABLED FOR NOW
-            #if solint_list[i] < 1:
-            #    solint_list[i] = 1
+
+            if solint_list[i] < 1:
+                solint_list[i] = 1
 
             if solint_list[i] != 1:
                 log_list[i].write('\nThe optimal solution interval for the target is '\
@@ -773,9 +773,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                                                     phase_ref_scans, refant))
             
             # Don't allow for solution intervals shorter than 1 minute
-            # NOT ENABLED FOR NOW
-            #if solint_list[i] < 1:
-            #    solint_list[i] = 1
+
+            if solint_list[i] < 1:
+                solint_list[i] = 1
 
             if solint_list[i] != 1:
                 log_list[i].write('\nThe optimal solution interval for the phase ' \
@@ -869,11 +869,20 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 
                 # If both ratios are 0, end the pipeline
                 if (ratio + ratio_single) == 0:
+
                     print('\nThe pipeline was not able to find any good solutions.\n')
 
                     log_list[i].write('\nThe pipeline was not able to find any good ' \
                                     + 'solutions.\n')
-                    return()
+                    
+                    ## Total execution time ##
+                    tf = time.time()
+                    log_list[i].write('\nScript run time: '\
+                                        + '{:.2f} s. \n'.format(tf-t_i))
+                    log_list[i].close()
+                    ## Remove target from the workflow
+                    target_list[i] = 'IGNORE'
+                    log_list.remove(log_list[i])
     
                 
                 # If the new ratio is smaller or equal than the previous, 
@@ -991,7 +1000,15 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
                     log_list[i].write('\nThe pipeline was not able to find any good ' \
                                     + 'solutions.\n')
-                    return()
+                    
+                    ## Total execution time ##
+                    tf = time.time()
+                    log_list[i].write('\nScript run time: '\
+                                        + '{:.2f} s. \n'.format(tf-t_i))
+                    log_list[i].close()
+                    ## Remove target from the workflow
+                    target_list[i] = 'IGNORE'
+                    log_list.remove(log_list[i])
     
                 
                 # If the new ratio is smaller or equal than the previous, 
@@ -1039,15 +1056,29 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ##  Export data ##
     disp.write_box(log_list, 'Exporting visibility data')
 
-    expo.data_export(path_list, uvdata, target_list, filename_list, \
-                     flag_frac = flag_edge)
+    no_baseline = expo.data_export(path_list, uvdata, target_list, filename_list, \
+                                  flag_frac = flag_edge)
+
+
+    for i, target in enumerate(target_list): 
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:
+            log_list[i].write('\n' + target + ' visibilites exported to ' \
+                              + filename_list[i]  + '.uvfits\n')
+            print('\n' + target + ' visibilites exported to ' + filename_list[i] \
+                            + '.uvfits\n')
+        else:
+            log_list[i].write('\n' + target + ' visibilites could not be exported, ' \
+                              + 'there are not enough solutions to form a baseline.\n')
+            print('\n' + target + ' visibilites could not be exported, ' \
+                              + 'there are not enough solutions to form a baseline.\n')
+            
+
     expo.table_export(path_list, uvdata, target_list, filename_list)
     for i, target in enumerate(target_list): 
-        log_list[i].write('\n' + target + ' visibilites exported to ' + filename_list[i] \
-                          + '.uvfits\n')
-        print('\n' + target + ' visibilites exported to ' + filename_list[i] \
-                          + '.uvfits\n')
-    for i, target in enumerate(target_list): 
+        if target == 'IGNORE':
+            continue
         log_list[i].write('\n' + target + ' calibration tables exported to /TABLES/' \
                           + filename_list[i] + '.caltab.uvfits\n')
         print('\n' + target + ' calibration tables exported to /TABLES/' \
@@ -1060,40 +1091,52 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     ## Uncalibrated ##
     for i, target in enumerate(target_list):
-        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 1, \
-                           bpver = 0, flag_edge=False)
-    
-        log_list[i].write('\nUncalibrated visibilities plotted in /PLOTS/'  \
-                          + filename_list[i] + '_CL1_POSSM.ps\n')
-        print('\nUncalibrated visibilities plotted in /PLOTS/'  \
-                          + filename_list[i] + '_CL1_POSSM.ps\n')
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:
+            plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 1, \
+                            bpver = 0, flag_edge=False)
+        
+            log_list[i].write('\nUncalibrated visibilities plotted in /PLOTS/'  \
+                            + filename_list[i] + '_CL1_POSSM.ps\n')
+            print('\nUncalibrated visibilities plotted in /PLOTS/'  \
+                            + filename_list[i] + '_CL1_POSSM.ps\n')
         
     ## Calibrated ##
     for i, target in enumerate(target_list):
-        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 9+i, \
-                           bpver = 1)
-        
-        log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
-                          + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
-        print('Calibrated visibilities plotted in /PLOTS/' \
-                          + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:        
+            plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 9+i, \
+                            bpver = 1)
+            
+            log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
+                            + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
+            print('Calibrated visibilities plotted in /PLOTS/' \
+                            + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
         
     ## Plot uv coverage ##
     for i, target in enumerate(target_list):
-        plot.uvplt_plotter(path_list[i], uvdata, target)
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:
+            plot.uvplt_plotter(path_list[i], uvdata, target)
 
-        log_list[i].write('UV coverage plotted in /PLOTS/' \
-                           + filename_list[i] + '_UVPLT.ps\n')
-        print('UV coverage plotted in /PLOTS/' + filename_list[i] + '_UVPLT.ps\n')
+            log_list[i].write('UV coverage plotted in /PLOTS/' \
+                            + filename_list[i] + '_UVPLT.ps\n')
+            print('UV coverage plotted in /PLOTS/' + filename_list[i] + '_UVPLT.ps\n')
         
     ## Plot visibilities as a function of time of target## 
     for i, target in enumerate(target_list):
-        plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
-        
-        log_list[i].write('Visibilities as a function of time plotted in /PLOTS/' \
-                          + filename_list[i]  + '_VPLOT.ps\n')
-        print('Visibilities as a function of time plotted in /PLOTS/' \
-                          + filename_list[i]  + '_VPLOT.ps\n')
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:
+            plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
+            
+            log_list[i].write('Visibilities as a function of time plotted in /PLOTS/' \
+                            + filename_list[i]  + '_VPLOT.ps\n')
+            print('Visibilities as a function of time plotted in /PLOTS/' \
+                            + filename_list[i]  + '_VPLOT.ps\n')
 
     t15 = time.time()
     for pipeline_log in log_list:
@@ -1187,7 +1230,7 @@ def pipeline(input_dict):
             log_list = target_list.copy()
             path_list = target_list.copy()
             for i, name in enumerate(filename_list):
-                filename_list[i] = load.set_name(filepath_list[i], name, klass_1)
+                filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
                 path_list[i] = project_dir + '/' + filename_list[i]
                 if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                     os.system('rm -rf ' + project_dir + '/' + filename_list[i])
@@ -1262,7 +1305,7 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         path_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = load.set_name(filepath_list[i], name, klass_1)
+            filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
             path_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
@@ -1331,7 +1374,7 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         path_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = load.set_name(filepath_list[i], name, klass_2)
+            filename_list[i] = load.set_name(filepath_list[0], name, klass_2)
             path_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
@@ -1405,7 +1448,7 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         path_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = load.set_name(filepath_list[i], name, klass_1)
+            filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
             path_list[i] = project_dir + '/' + filename_list[i]
             
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
