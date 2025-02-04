@@ -81,7 +81,8 @@ def old_tecor(data):
             new_DDD = '00' + new_DDD
         
         if os.path.exists('/tmp/jplg' + new_DDD +'0.'+ YY +'i') == False:
-            curl_command = 'curl -u anonymous:daip@nrao.edu --ftp-ssl' \
+            curl_command = 'curl -f --retry 5 --retry-delay 10 -u '\
+                            + 'anonymous:daip@nrao.edu --ftp-ssl' \
                             + ' ftp://gdc.cddis.eosdis.nasa.gov/gps' \
                             + '/products/ionex/'+ str(YYYY) + '/' \
                             + new_DDD + '/' + 'jplg'+ new_DDD +'0.'+ YY \
@@ -154,7 +155,8 @@ def new_tecor(data):
             new_DDD = '00' + new_DDD
         
         if os.path.exists('/tmp/jplg' + new_DDD +'0.'+ YY +'i') == False:
-            curl_command = 'curl -u anonymous:daip@nrao.edu --ftp-ssl' \
+            curl_command = 'curl -f --retry 5 --retry-delay 10 -u ' \
+                            + 'anonymous:daip@nrao.edu --ftp-ssl' \
                             + ' ftp://gdc.cddis.eosdis.nasa.gov/gps' \
                             + '/products/ionex/'+ str(YYYY) + '/' \
                             + new_DDD + '/' + 'JPL0OPSFIN_' + str(YYYY)\
