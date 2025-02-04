@@ -14,6 +14,7 @@ ObitTask.py
 Obit.py
 vipcals/1_100/
 vipcals/1_100_v2/
+vipcals/1_100_v3/
 vipcals/1_100_ionos/
 vipcals/101_200/
 vipcals/test_input.json
