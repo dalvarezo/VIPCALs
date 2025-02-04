@@ -28,6 +28,8 @@ import scripts.export_data as expo
 import scripts.phase_shift as shft
 
 from AIPSData import AIPSUVData
+import Wizardry.AIPSData as wizard
+from AIPSTask import AIPSTask, AIPSList
 
 from alfrd.lib import GSC, LogFrame
 from alfrd.util import timeinmin, read_inputfile
@@ -38,6 +40,114 @@ from alfrd.util import timeinmin, read_inputfile
 # tasks onto a google sheet. Meant to be used only for SMILE.                     #
 ###################################################################################
 
+###################################################################################
+# Extra function to obtain the ratio of total to calibrated visibilities          #
+###################################################################################
+
+
+def vis_ratio(name, klass, target):   
+
+    # Load initial data and delete final in case it exists
+    initial_data = AIPSUVData(name, klass, 9, 1)
+    winitial_data = wizard.AIPSUVData(name, klass, 9, 1)
+
+    if AIPSUVData(target, 'RATIO', 9, 1).exists():
+        wfinal_data = wizard.AIPSUVData(target, 'RATIO', 9, 1)
+        wfinal_data.zap()
+
+    # Get source ID and antenna names/ids
+    su = initial_data.table('SU', 1)
+    source_id = [x['id__no'] for x in su if target in x['source']][0]
+
+    an_names = initial_data.antennas
+    id_to_an_name = {}
+    for an in an_names:
+        for entry in initial_data.table('AN', 1):
+            if an in entry.anname:
+                id_to_an_name[entry.nosta] = an
+                continue
+            
+    an_name_to_id = {v: k for k, v in id_to_an_name.items()} # Inverse dictionary
+
+    # Initiate dictionaries
+    initial_dict = {}
+    final_dict = {}
+    for k in list(id_to_an_name.keys()):
+        initial_dict[k] = 0
+        final_dict[k] = 0
+    
+    # Count initial visibilities
+    n_vis_initial = 0
+
+    for x in winitial_data:
+        if x.source == source_id:
+            for IF in x.visibility:
+                for chan in IF:
+                    for pol in chan:
+                        if pol[2] != 0:
+                            n_vis_initial += 1 
+                            for antennas in list(set(x.baseline)):
+                                initial_dict[antennas] += 1
+
+    # Export the source
+    split = AIPSTask('split')
+    split.inname = name
+    split.inclass = klass
+    split.indisk = 9
+    split.inseq = 1
+
+    split.outdisk = 9
+    split.outseq = 1
+    split.outclass = 'RATIO'
+
+    split.sources = AIPSList([target])
+    split.docal = 1
+    split.gainuse = 9
+    split.doband = 1
+    split.msgkill = -4
+    split.aparm[1] = 1  # Don't average 
+    split.aparm[5] = 1  # Pass xc and ac
+
+    try:
+        no_channels = int(initial_data.table('FQ',1)[0]['total_bandwidth'][0] / \
+                    initial_data.table('FQ',1)[0]['ch_width'][0])
+    except TypeError:   # Single IF datasets
+        no_channels = int(initial_data.table('FQ',1)[0]['total_bandwidth'] / \
+                    initial_data.table('FQ',1)[0]['ch_width'])
+    
+    flag_chann = 0 #round(0.1 * no_channels)
+
+
+    split.bchan = flag_chann + 1
+    split.echan = no_channels - flag_chann
+    split.go()
+
+    wfinal_data = wizard.AIPSUVData(target, 'RATIO', 9, 1)
+
+    # Count the final visibilities
+
+    n_vis_final = 0
+
+    for x in wfinal_data:
+        for IF in x.visibility:
+            for chan in IF:
+                for pol in chan:
+                    if pol[2] != 0:
+                        n_vis_final += 1 
+                        for antennas in list(set(x.baseline)):
+                            final_dict[antennas] += 1
+
+    flag_dict = {}
+
+    for ant in initial_dict:
+        if initial_dict[ant] != 0:
+            flag_dict[id_to_an_name[ant]] = round(100-final_dict[ant]/initial_dict[ant]*100, 2)
+        else: 
+            flag_dict[id_to_an_name[ant]] = ('-')
+
+    wfinal_data.zap()
+
+    return(n_vis_initial, n_vis_final, flag_dict)
 
 def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
              filename_list, log_list, path_list,\
@@ -96,6 +206,32 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## PIPELINE STARTS
     t_i = time.time()
 
+
+
+
+
+    ######################
+    #   INITIATE ALFRD   #
+    ###################### 
+
+    url='https://docs.google.com/spreadsheets/d/1-lJV4F53zjpfNnmp0Rx3k7CbkGWcTTR6wTPH4gIoK_0/edit?gid=0#gid=0'
+    worksheet='1_100'
+
+    gsc = GSC(url=url, wname=worksheet, key='/home/dalvarez/vipcals/vipcals/vipcals100-7434b0bfce89.json')
+    _ = gsc.open()
+    lf = LogFrame(gsc)
+
+    # Locate working row(s)
+    band = [s.band for s in full_source_list if s.name in target_list][0]
+    df_w_names = lf.df_sheet[(lf.df_sheet['TARGET'].isin(target_list))]
+    rows = list(df_w_names[df_w_names['BAND'] == band].index)
+
+
+
+
+
+
+    # AIPS log is registered simultaneously for all science targets
     load.open_log(path_list, filename_list)
         
     ## Check if the test file already exists and delete it ##
@@ -148,12 +284,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     load.load_data(filepath_list, aips_name, sources, disk_number, multi_id,\
     selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
     t1 = time.time() 
- 
+    load.write_info(uvdata, filepath_list, log_list, sources)
     for pipeline_log in log_list:
-        pipeline_log.write('\nData loaded! The loaded sources are ' + \
-                        str(list(set(sources))) + '.\n')
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t1-t0))
-    print('\nData loaded! The loaded sources are', list(set(sources)) ,'.\n')
+    load.print_info(uvdata, filepath_list, sources)
     print('Execution time: {:.2f} s. \n'.format(t1-t0))
 
     ## Check data integrity
@@ -200,7 +334,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         # Move the temperature file to the target folders
         for path in path_list:
-            os.system('cp ./tsys.vlba ' + path + '/tsys.vlba')
+            os.system('cp ./tsys.vlba ' + path + '/TABLES/tsys.vlba')
     
         # And delete the files from the current directory
         os.system('rm ./tables*')
@@ -230,7 +364,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             
         # Move the gain curve file to the target folders
         for path in path_list:
-            os.system('cp ./gaincurves.vlba ' + path + '/gaincurves.vlba')
+            os.system('cp ./gaincurves.vlba ' + path + '/TABLES/gaincurves.vlba')
     
         # And delete the files from the main directory
         os.system('rm ./gaincurves.vlba')           
@@ -249,7 +383,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         # Move the flag file to the target folders
         for path in path_list:
-            os.system('cp ./flags.vlba ' + path + '/flags.vlba')
+            os.system('cp ./flags.vlba ' + path + '/TABLES/flags.vlba')
     
         # And delete the files from the main directory
         os.system('rm ./tables*')
@@ -310,11 +444,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'])
         
     if time_resol < 0.99:
-        avgdata = AIPSUVData(aips_name, 'AVGT', disk_number, seq)
+        avgdata = AIPSUVData(aips_name[:9] + '_AT', uvdata.klass, disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
         tabl.time_aver(uvdata, time_resol, 2)
-        uvdata = AIPSUVData(aips_name, 'AVGT', disk_number, seq)
+        uvdata = AIPSUVData(aips_name[:9] + '_AT', uvdata.klass, disk_number, seq)
 
         # Index the data again
         uvdata.zap_table('CL', 1)
@@ -327,9 +461,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                             + 's. It has been averaged to 2s.\n')
         print('\nThe time resolution was {:.2f}'.format(time_resol) \
             + 's. It has been averaged to 2s.\n')
+        is_data_avg = True
+    else:
+        is_data_avg = False
         
             
-    ## If the channel bandwidth is smaller than or equal to 0.5 MHz, average the dataset 
+    ## If the channel bandwidth is smaller than 0.5 MHz, average the dataset 
     ## in frequency up to 0.5 MHz per channel 
     try:
         ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'][0])
@@ -339,16 +476,30 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'])
         
     if ch_width < 500000:
-        avgdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
-        if avgdata.exists() == True:
-            avgdata.zap()
-        ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
-        
-        if time_resol >= 0.33: # = If it was not written before
-            disp.write_box(log_list, 'Data averaging')
-        
-        tabl.freq_aver(uvdata,ratio)
-        uvdata = AIPSUVData(aips_name, 'AVGF', disk_number, seq)
+        if is_data_avg == False:
+            avgdata = AIPSUVData(aips_name[:9] + '_AF', uvdata.klass, \
+                                 disk_number, seq)
+            if avgdata.exists() == True:
+                avgdata.zap()
+            ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
+            
+            if time_resol >= 0.33: # => If it was not written before
+                disp.write_box(log_list, 'Data averaging')
+            
+            tabl.freq_aver(uvdata,ratio)
+            uvdata = AIPSUVData(aips_name[:9] + '_AF', uvdata.klass, \
+                                 disk_number, seq)
+
+        if is_data_avg == True:
+            avgdata = AIPSUVData(aips_name[:9] + '_ATF', uvdata.klass, \
+                                 disk_number, seq)
+            if avgdata.exists() == True:
+                avgdata.zap()
+            ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
+            
+            tabl.freq_aver(uvdata,ratio)
+            uvdata = AIPSUVData(aips_name[:9] + '_ATF', uvdata.klass, \
+                                 disk_number, seq)
 
         # Index the data again
         uvdata.zap_table('CL', 1)
@@ -377,7 +528,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## Print scan information ##    
     load.print_listr(uvdata, path_list, filename_list)
     for i, pipeline_log in enumerate(log_list):
-        pipeline_log.write('\nScan information printed in ' + path_list[i] + '/' \
+        pipeline_log.write('\nScan information printed in '  \
                             + filename_list[i] + '_scansum.txt \n')
     ## Smooth the TY table ##  
     ## Flag antennas with no TY or GC table entries ##  
@@ -418,19 +569,21 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     original_tsys, flagged_tsys = tysm.ty_assess(uvdata)
     
-    # Maybe this output could be written as a %, I just need to manually write
-    # the case where 0 points are flagged
+    tsys_flag_percent = np.round(flagged_tsys/original_tsys*100, 2)
+
     for pipeline_log in log_list:
-        pipeline_log.write('\nSystem temperatures clipped! ' + str(flagged_tsys) \
-                        + ' Tsys points out of a total of ' \
-                        + str(original_tsys) + ' have been flagged. '\
-                        + 'TY#2 created.\n')
+        pipeline_log.write('\nSystem temperatures clipped: ' + str(tsys_flag_percent) \
+                           + '% of the Tsys values have been flagged ('  \
+                           + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
+                           + 'TY#2 created.\n')
      
-    print('\nSystem temperatures clipped! ' + str(flagged_tsys) \
-          + ' Tsys points out of a total of ' \
-          + str(original_tsys) + ' have been flagged. '\
-          + 'TY#2 created.\n')
-    
+        print('\nSystem temperatures clipped: ' + str(tsys_flag_percent) \
+                + '% of the Tsys values have been flagged ('  \
+                + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
+                + 'TY#2 created.\n') 
+        
+    ## WRITE IN ALFRD
+    lf.df_sheet.loc[rows, 'TSYS_%_FLAGGED'] = tsys_flag_percent
     
     t2 = time.time()  
 
@@ -443,25 +596,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     full_source_list = load.redo_source_list(uvdata)
 
 
-
-    ######################
-    #   INITIATE ALFRD   #
-    ###################### 
-
-    url='https://docs.google.com/spreadsheets/d/1-lJV4F53zjpfNnmp0Rx3k7CbkGWcTTR6wTPH4gIoK_0/edit?gid=0#gid=0'
-    worksheet='Hoja 1'
-
-    gsc = GSC(url=url, wname=worksheet, key='/home/dalvarez/vipcals/vipcals/vipcals100-7434b0bfce89.json')
-    _ = gsc.open()
-    lf = LogFrame(gsc)
-
-    # Locate working row(s)
-    band = [s.band for s in full_source_list if s.name in target_list][0]
-    df_w_names = lf.df_sheet[(lf.df_sheet['TARGET'].isin(target_list))]
-    rows = list(df_w_names[df_w_names['BAND'] == band].index)
-
     ## Choose refant ##
     disp.write_box(log_list, 'Reference antenna search')
+    print('\nSearch for reference antenna starts...\n')
     
     if default_refant == 'NONE':
         ## TESTING ##
@@ -476,10 +613,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         for pipeline_log in log_list:
             pipeline_log.write('\nCHOOSING REFANT WITH ALL SOURCES\n')
         refant, refant_name, refant_snr = rant.refant_choose_snr_alfrd(uvdata, sources, sources, target_list, \
-                                        full_source_list, log_list)
+                                        full_source_list, log_list ,load_all = load_all)
     else:
         refant = [x['nosta'] for x in uvdata.table('AN',1) \
                   if default_refant in x['anname']][0]
+        refant_name = default_refant
+        refant_snr = '-'
         for pipeline_log in log_list:
             pipeline_log.write(default_refant + ' has been manually selected as the ' \
                                + 'reference antenna.\n')
@@ -493,6 +632,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     # WRITE REFANT INFO IN ALFRD
     lf.df_sheet.loc[rows, 'REFANT ALL'] = refant_name
     lf.df_sheet.loc[rows, 'REFANT ALL SNR'] = refant_snr
+
 
     ## Ionospheric correction ##
     disp.write_box(log_list, 'Ionospheric corrections')
@@ -731,17 +871,17 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('Execution time: {:.2f} s.\n'.format(t12-t11))
 
     ## Fringe fit of the calibrator ##  
-    disp.write_box(log_list, 'Calibrator fringe fit')
+    # disp.write_box(log_list, 'Calibrator fringe fit')
     
-    frng.calib_fring_fit(uvdata, refant, calibrator_scans)
-    t13 = time.time()
+    # frng.calib_fring_fit(uvdata, refant, calibrator_scans)
+    # t13 = time.time()
     
-    for pipeline_log in log_list:
-        pipeline_log.write('\nFringe fit applied to the calibrator! '\
-                        + 'SN#6 and CL#9 created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
-    print('\nFringe fit applied to the calibrator! SN#6 and CL#9 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t13-t12))
+    # for pipeline_log in log_list:
+    #     pipeline_log.write('\nFringe fit applied to the calibrator! '\
+    #                     + 'SN#6 and CL#9 created.\n')
+    #     pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
+    # print('\nFringe fit applied to the calibrator! SN#6 and CL#9 created.\n')
+    # print('Execution time: {:.2f} s. \n'.format(t13-t12))
     
     ## Get optimal solution interval for each target
     disp.write_box(log_list, 'Target fringe fit')
@@ -766,61 +906,88 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         #         + ' minutes. \n')
         if phase_ref[i] == 'NONE':
             target_scans = [x for x in scan_list if x.name == target]
-            solint_list.append(opti.optimize_solint(uvdata, target, \
-                                                    target_scans, refant))
-            log_list[i].write('\nThe optimal solution interval for the target is '\
-                        + str(solint_list[i]) + ' minutes. \n')
-            print('\nThe optimal solution interval for ' + target + ' is ' \
-                + str(solint_list[i]) + ' minutes. \n')
+            solint_list.append(opti.optimize_solint_mm(uvdata, target, \
+                                                       target_scans, refant))
+            # Don't allow for solution intervals shorter than 1 minute
+
+            if solint_list[i] < 1:
+                solint_list[i] = 1
+
+            if solint_list[i] != 1:
+                log_list[i].write('\nThe optimal solution interval for the target is '\
+                            + str(solint_list[i]) + ' minutes. \n')
+                print('\nThe optimal solution interval for ' + target + ' is ' \
+                    + str(solint_list[i]) + ' minutes. \n')
+            else:
+                log_list[i].write('\nThe optimal solution interval for the target is '\
+                            + str(solint_list[i]) + ' minute. \n')
+                print('\nThe optimal solution interval for ' + target + ' is ' \
+                    + str(solint_list[i]) + ' minute. \n')                
         else:
             phase_ref_scans = [x for x in scan_list if x.name == phase_ref[i]]
             solint_list.append(opti.optimize_solint(uvdata, phase_ref[i], \
                                                     phase_ref_scans, refant))
-            log_list[i].write('\nThe optimal solution interval for the phase ' \
-                            + 'calibrator is ' + str(solint_list[i]) + ' minutes. \n')
-            print('\nThe optimal solution interval for the phase calibrator is ' \
-                + str(solint_list[i]) + ' minutes. \n')
             
-    t14 = time.time()
+            # Don't allow for solution intervals shorter than 1 minute
+            
+            if solint_list[i] < 1:
+                solint_list[i] = 1
+
+            if solint_list[i] != 1:
+                log_list[i].write('\nThe optimal solution interval for the phase ' \
+                                + 'calibrator is ' + str(solint_list[i]) + ' minutes. \n')
+                print('\nThe optimal solution interval for the phase calibrator is ' \
+                    + str(solint_list[i]) + ' minutes. \n')
+            else:
+                log_list[i].write('\nThe optimal solution interval for the phase ' \
+                                + 'calibrator is ' + str(solint_list[i]) + ' minute. \n')
+                print('\nThe optimal solution interval for the phase calibrator is ' \
+                    + str(solint_list[i]) + ' minute. \n')    
+
+        # WRITE IN ALFRD
+        single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
+        single_row = list(single_name[df_w_names['BAND'] == band].index)
+        lf.df_sheet.loc[single_row, 'OPTIMAL_SOLINT'] = solint_list[i] 
+                          
+    t13 = time.time()
     
     for pipeline_log in log_list:    
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t13-t12)) 
-    print('Execution time: {:.2f} s. \n'.format(t14-t13))
+    print('Execution time: {:.2f} s. \n'.format(t13-t12))
 
     ## Fringe fit of the target ##
-    
+   
     ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
     for i, target in enumerate(target_list): 
         if phase_ref[i] == 'NONE':
             try:
                 tfring_params = frng.target_fring_fit(uvdata, refant, target, \
                                                     solint=float(solint_list[i]), \
-                                                    version = 10+i)
+                                                    version = 9+i)
             
-                log_list[i].write('\nFringe search performed on ' + target + '. Windows for ' \
-                                + 'the search were ' + tfring_params[1] + ' ns and ' \
-                                + tfring_params[2] + ' mHz.\n')
-             
+                log_list[i].write('\nFringe search performed on ' + target + '. Windows '\
+                                  + 'for the search were ' + tfring_params[1] \
+                                  + ' ns and ' + tfring_params[2] + ' mHz.\n')
+                
                 print('\nFringe search performed on ' + target + '. Windows for ' \
                     + 'the search were ' + tfring_params[1] + ' ns and ' \
                     + tfring_params[2] + ' mHz.\n')
                 
                 ## Get the ratio of bad to good solutions ##
         
-                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
+                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i) 
 
             except RuntimeError:
 
                 print("Fringe fit has failed.\n")
 
                 log_list[i].write("Fringe fit has failed.\n")
-                ratio = 0      
-
-
+                ratio = 0    
+                
             # If the ratio is > 0.7, apply the solutions to a CL table
 
             if ratio >= 0.7:
-                frng.fringe_clcal(uvdata, target, version = 10+i)
+                frng.fringe_clcal(uvdata, target, version = 9+i)
                 # WRITE IN ALFRD
                 single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                 single_row = list(single_name[df_w_names['BAND'] == band].index)
@@ -830,20 +997,21 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
             if ratio < 0.7:
 
-                print("Ratio of good/total solutions is : {:.2f}.\n".format(ratio))
-                print("Repeating the fringe fit solving for all IFs together:\n ")
+                print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
+                print('Repeating the fringe fit solving for all IFs together:\n')
 
-                log_list[i].write("Ratio of good/total solutions " \
-                                + "is : {:.2f}.\n".format(ratio))
-                log_list[i].write("Repeating the fringe fit solving for all IFs together:\n")
+                log_list[i].write('Ratio of good/total solutions ' \
+                                + 'is : {:.2f}.\n'.format(ratio))
+                log_list[i].write('Repeating the fringe fit solving for all IFs ' \
+                                + 'together:\n')
 
                 try:
                     tfring_params = frng.target_fring_fit(uvdata, refant, target, \
                                                     solint=float(solint_list[i]), 
-                                                    version = 10+i+1, solve_ifs=False)
+                                                    version = 9+i+1, solve_ifs=False)
                     
-                    log_list[i].write('\nFringe search performed on ' + target + '. Windows for '\
-                    + 'the search were ' + tfring_params[1] + ' ns and ' \
+                    log_list[i].write('\nFringe search performed on ' + target \
+                    + '. Windows for the search were ' + tfring_params[1] + ' ns and ' \
                     + tfring_params[2] + ' mHz.\n')
                     
                     print('\nFringe search performed on ' + target + '. Windows for ' \
@@ -852,12 +1020,15 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                         
                     ## Get the new ratio of bad to good solutions ##
                 
-                    ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i+1) 
+                    ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], \
+                                                          version = 6+i+1) 
                     
                 except RuntimeError:
-                    print("The new fringe fit has failed, the previous one will be kept.\n")
+                    print('\nThe new fringe fit has failed, the previous one will ' \
+                         + 'be kept.\n')
 
-                    log_list[i].write("The new fringe fit has failed, the previous one will be kept.\n")
+                    log_list[i].write('\nThe new fringe fit has failed, the previous ' \
+                                     + 'one will be kept.\n')
                     ratio_single = 0
 
                 
@@ -867,6 +1038,18 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
                     log_list[i].write('\nThe pipeline was not able to find any good ' \
                                     + 'solutions.\n')
+                    
+                    ## Total execution time ##
+                    tf = time.time()
+                    log_list[i].write('\nScript run time: '\
+                                        + '{:.2f} s. \n'.format(tf-t_i))
+                    log_list[i].close()
+                    ## Remove target from the workflow
+                    target_list[i] = 'IGNORE'
+                    log_list.remove(log_list[i])
+
+                    t14 = time.time()
+                    # WRITE IN ALFRD
                     single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                     single_row = list(single_name[df_w_names['BAND'] == band].index)
                     lf.df_sheet.loc[single_row, 'GOOD/TOTAL \n(SNR > 5)'] = 0
@@ -874,7 +1057,6 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     lf.df_sheet.loc[rows, 'TIME (s)'] = t14-t_i
                     ## UPDATE SHEET
                     lf.update_sheet(count=1, failed=0, csvfile='df_sheet.csv') 
-                    return()
     
                 
                 # If the new ratio is smaller or equal than the previous, 
@@ -888,8 +1070,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The multi-IF fringe fit will be applied.\n ")
-                    frng.fringe_clcal(uvdata, target, version = 10+i)
-                                # WRITE IN ALFRD
+                    frng.fringe_clcal(uvdata, target, version = 9+i)
+
+                    # WRITE IN ALFRD
                     single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                     single_row = list(single_name[df_w_names['BAND'] == band].index)
                     lf.df_sheet.loc[single_row, 'GOOD/TOTAL \n(SNR > 5)'] = ratio
@@ -905,27 +1088,27 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The averaged IF fringe fit will be applied.\n ")
-                    uvdata.zap_table('SN', 7+i)
-                    tysm.tacop(uvdata, 'SN', 7+i+1, 7+i)
-                    frng.fringe_clcal(uvdata, target, version = 10+i)
-                                # WRITE IN ALFRD
+                    uvdata.zap_table('SN', 6+i)
+                    tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
+                    frng.fringe_clcal(uvdata, target, version = 9+i)
+
+                    # WRITE IN ALFRD
                     single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                     single_row = list(single_name[df_w_names['BAND'] == band].index)
                     lf.df_sheet.loc[single_row, 'GOOD/TOTAL \n(SNR > 5)'] = ratio_single
 
             log_list[i].write('\nFringe fit corrections applied to the target! '\
-                + 'SN#' + str(7+i) + ' and CL#' + str(10+i) \
+                + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
                 + ' created.\n')
 
             print('\nFringe fit corrections applied to ' + target + '! SN#' \
-                + str(7+i) + ' and CL#' + str(10+i) + ' created.\n') 
-
+                + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
 
         if phase_ref[i] != 'NONE':
             try:
                 tfring_params = frng.target_fring_fit(uvdata, refant, phase_ref[i], \
                                                     solint=float(solint_list[i]), \
-                                                    version = 10+i)
+                                                    version = 9+i)
             
                 log_list[i].write('\nFringe search performed on the phase calibrator: ' \
                                   + phase_ref[i] + '. Windows '\
@@ -939,7 +1122,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 
                 ## Get the ratio of bad to good solutions ##
         
-                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 7+i) 
+                ratio = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i) 
 
             except RuntimeError:
 
@@ -952,7 +1135,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             # If the ratio is > 0.7, apply the solutions to a CL table
 
             if ratio >= 0.7:
-                frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
+                frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
                 # WRITE IN ALFRD
                 single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                 single_row = list(single_name[df_w_names['BAND'] == band].index)
@@ -973,7 +1156,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 try:
                     tfring_params = frng.target_fring_fit(uvdata, refant, phase_ref[i], \
                                                     solint=float(solint_list[i]), 
-                                                    version = 10+i+1, solve_ifs=False)
+                                                    version = 9+i+1, solve_ifs=False)
                     
                     log_list[i].write('\nFringe search performed on the phase ' \
                                     + 'calibrator: ' + phase_ref[i] + '. Windows '\
@@ -982,13 +1165,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     
                     print('\nFringe search performed on the phase calibrator: ' \
                         + phase_ref[i] \
-                        + '. Windows for the search were ' + tfring_params[1] + \
+                        + '. Windows for the search were ' + tfring_params[1] \
                         + ' ns and ' + tfring_params[2] + ' mHz.\n')
                         
                     ## Get the new ratio of bad to good solutions ##
                 
                     ratio_single = frng.assess_fringe_fit(uvdata, log_list[i], \
-                                                          version = 7+i+1) 
+                                                          version = 6+i+1) 
                     
                 except RuntimeError:
                     print('\nThe new fringe fit has failed, the previous one will ' \
@@ -1005,6 +1188,18 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
                     log_list[i].write('\nThe pipeline was not able to find any good ' \
                                     + 'solutions.\n')
+                    
+                    ## Total execution time ##
+                    tf = time.time()
+                    log_list[i].write('\nScript run time: '\
+                                        + '{:.2f} s. \n'.format(tf-t_i))
+                    log_list[i].close()
+                    ## Remove target from the workflow
+                    target_list[i] = 'IGNORE'
+                    log_list.remove(log_list[i])
+
+                    t14 = time.time()
+                    # WRITE IN ALFRD
                     single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                     single_row = list(single_name[df_w_names['BAND'] == band].index)
                     lf.df_sheet.loc[single_row, 'GOOD/TOTAL \n(SNR > 5)'] = 0
@@ -1012,7 +1207,6 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     lf.df_sheet.loc[rows, 'TIME (s)'] = t14-t_i
                     ## UPDATE SHEET
                     lf.update_sheet(count=1, failed=0, csvfile='df_sheet.csv') 
-                    return()
     
                 
                 # If the new ratio is smaller or equal than the previous, 
@@ -1026,12 +1220,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The multi-IF fringe fit will be applied.\n ")
-                    frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
-                                # WRITE IN ALFRD
+                    frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
+
+                    # WRITE IN ALFRD
                     single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                     single_row = list(single_name[df_w_names['BAND'] == band].index)
                     lf.df_sheet.loc[single_row, 'GOOD/TOTAL \n(SNR > 5)'] = ratio
-
 
                 # If new ratio is better than the previous, then replace the SN table and 
                 # apply the solutions
@@ -1043,44 +1237,60 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The averaged IF fringe fit will be applied.\n ")
-                    uvdata.zap_table('SN', 7+i)
-                    tysm.tacop(uvdata, 'SN', 7+i+1, 7+i)
-                    frng.fringe_phaseref_clcal(uvdata, target, version = 10+i)
-                                # WRITE IN ALFRD
+                    uvdata.zap_table('SN', 6+i)
+                    tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
+                    frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
+
+                    # WRITE IN ALFRD
                     single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
                     single_row = list(single_name[df_w_names['BAND'] == band].index)
                     lf.df_sheet.loc[single_row, 'GOOD/TOTAL \n(SNR > 5)'] = ratio_single
 
+
             log_list[i].write('\nFringe fit corrections applied to the target! '\
-                + 'SN#' + str(7+i) + ' and CL#' + str(10+i) \
+                + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
                 + ' created.\n')
 
             print('\nFringe fit corrections applied to ' + target + '! SN#' \
-                + str(7+i) + ' and CL#' + str(10+i) + ' created.\n') 
-               
-                    
-    t15 = time.time()
+                + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
+
+    t14 = time.time()
     
     ## Print the ratio of bad to good solutions ##
     for i, pipeline_log in enumerate(log_list):        
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t14-t13))  
-    print('Execution time: {:.2f} s. \n'.format(t15-t14))
+    print('Execution time: {:.2f} s. \n'.format(t14-t13))
 
-    ##  Export data ##
+     ##  Export data ##
     disp.write_box(log_list, 'Exporting visibility data')
 
-    expo.data_export(path_list, uvdata, target_list, flag_frac = flag_edge)
-    expo.table_export(path_list, uvdata, target_list)
+    no_baseline = expo.data_export(path_list, uvdata, target_list, filename_list, \
+                                  flag_frac = flag_edge)
+
+
     for i, target in enumerate(target_list): 
-        log_list[i].write('\n' + target + ' visibilites exported to ' + path_list[i] \
-                          + '/' + target + '.uvfits\n')
-        print('\n' + target + ' visibilites exported to ' + path_list[i] + '/' \
-             + target + '.uvfits\n')
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:
+            log_list[i].write('\n' + target + ' visibilites exported to ' \
+                              + filename_list[i]  + '.uvfits\n')
+            print('\n' + target + ' visibilites exported to ' + filename_list[i] \
+                            + '.uvfits\n')
+        else:
+            log_list[i].write('\n' + target + ' visibilites could not be exported, ' \
+                              + 'there are not enough solutions to form a baseline.\n')
+            print('\n' + target + ' visibilites could not be exported, ' \
+                              + 'there are not enough solutions to form a baseline.\n')
+            
+
+    expo.table_export(path_list, uvdata, target_list, filename_list)
     for i, target in enumerate(target_list): 
-        log_list[i].write('\n' + target + ' calibration tables exported to ' \
-                          + path_list[i] + '/' + target + '.caltab.uvfits\n')
-        print('\n' + target + ' calibration tables exported to ' + path_list[i] + '/' \
-             + target + '.caltab.uvfits\n')
+        if target == 'IGNORE':
+            continue
+        log_list[i].write('\n' + target + ' calibration tables exported to /TABLES/' \
+                          + filename_list[i] + '.caltab.uvfits\n')
+        print('\n' + target + ' calibration tables exported to /TABLES/' \
+              + filename_list[i] + '.caltab.uvfits\n')
 
     ## PLOTS ##
 
@@ -1089,47 +1299,56 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     ## Uncalibrated ##
     for i, target in enumerate(target_list):
-        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 1, \
-                           bpver = 0, flag_edge=False)
-    
-        log_list[i].write('\nUncalibrated visibilities plotted in '  + path_list[i]  \
-                           + '/' + target + '_CL1_POSSM.ps\n')
-        print('\nUncalibrated visibilities plotted in '  + path_list[i] +  '/' \
-                           + target + '_CL1_POSSM.ps\n')
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:
+            plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 1, \
+                            bpver = 0, flag_edge=False)
+        
+            log_list[i].write('\nUncalibrated visibilities plotted in /PLOTS/'  \
+                            + filename_list[i] + '_CL1_POSSM.ps\n')
+            print('\nUncalibrated visibilities plotted in /PLOTS/'  \
+                            + filename_list[i] + '_CL1_POSSM.ps\n')
         
     ## Calibrated ##
     for i, target in enumerate(target_list):
-        plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 10+i, \
-                           bpver = 1)
-        
-        log_list[i].write('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
-                           + target + '_CL' + str(10+i) + '_POSSM.ps\n')
-        print('Calibrated visibilities plotted in ' + path_list[i] +  '/' \
-             + target + '_CL' + str(10+i) + '_POSSM.ps\n')
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:        
+            plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 9+i, \
+                            bpver = 1)
+            
+            log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
+                            + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
+            print('Calibrated visibilities plotted in /PLOTS/' \
+                            + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
         
     ## Plot uv coverage ##
     for i, target in enumerate(target_list):
-        plot.uvplt_plotter(path_list[i], uvdata, target)
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:
+            plot.uvplt_plotter(path_list[i], uvdata, target)
 
-        log_list[i].write('UV coverage of ' + target + ' plotted in ' \
-                           + path_list[i] + '/' + target + '_UVPLT.ps\n')
-        print('UV coverage of ' + target + ' plotted in ' + path_list[i] \
-             + '/' + target + '_UVPLT.ps\n')
+            log_list[i].write('UV coverage plotted in /PLOTS/' \
+                            + filename_list[i] + '_UVPLT.ps\n')
+            print('UV coverage plotted in /PLOTS/' + filename_list[i] + '_UVPLT.ps\n')
         
     ## Plot visibilities as a function of time of target## 
     for i, target in enumerate(target_list):
-        plot.vplot_plotter(path_list[i], uvdata, target, 10+i)     
-        
-        log_list[i].write('Visibilities as a function of time of ' + target \
-                           + ' plotted in ' + path_list[i]  + '/' + target \
-                           + '_VPLOT.ps\n')
-        print('Visibilities as a function of time of ' + target + ' plotted in ' \
-              + path_list[i]  + '/' + target + '_VPLOT.ps\n')
-
-    t16 = time.time()
+        if target == 'IGNORE':
+            continue
+        if target not in no_baseline:
+            plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
+            
+            log_list[i].write('Visibilities as a function of time plotted in /PLOTS/' \
+                            + filename_list[i]  + '_VPLOT.ps\n')
+            print('Visibilities as a function of time plotted in /PLOTS/' \
+                            + filename_list[i]  + '_VPLOT.ps\n')
+    t15 = time.time()
     for pipeline_log in log_list:
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t16-t15))
-    print('Execution time: {:.2f} s. \n'.format(t16-t15))
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t15-t14))
+    print('Execution time: {:.2f} s. \n'.format(t15-t14))
 
     ## Total execution time ##
     tf = time.time()
@@ -1141,9 +1360,25 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## WRITE TOTAL EXECUTION TIME IN ALFRD
     lf.df_sheet.loc[rows, 'TIME (s)'] = tf-t_i
+
+    ## GET VISIBILITY RATIOS FOR ALFRD
+    for target in target_list:
+        n_vis_initial, n_vis_final, flag_dict =  vis_ratio(uvdata.name, uvdata.klass, target)
+        single_name = lf.df_sheet[(lf.df_sheet['TARGET'] == target)]
+        single_row = list(single_name[df_w_names['BAND'] == band].index)
+
+        ## WRITE VALUES IN ALFRD
+        lf.df_sheet.loc[single_row, 'initial_visibilities'] = n_vis_initial
+        lf.df_sheet.loc[single_row, 'final_visibilities'] = n_vis_final
+
+        long_string = ''
+        for ant in flag_dict:
+            long_string = long_string + ant + ':' + str(flag_dict[ant]) + '%,'
+            
+        lf.df_sheet.loc[single_row, 'ratio_per_antenna'] = long_string
+
     ## UPDATE SHEET
     lf.update_sheet(count=1, failed=0, csvfile='df_sheet.csv')  
-
 
 def pipeline(input_dict):
     """Read the inputs, split multiple frequencies and calibrate the dataset
@@ -1175,7 +1410,6 @@ def pipeline(input_dict):
     multifreq_id = load.is_it_multifreq_id(filepath_list[0])
     # In IFs
     multifreq_if = load.is_it_multifreq_if(filepath_list[0])
-
     # If there are multiple IDs:
     if multifreq_id[0] == True:
         for ids in range(multifreq_id[1]):
@@ -1183,8 +1417,16 @@ def pipeline(input_dict):
             full_source_list = load.get_source_list(filepath_list, multifreq_id[2][ids])
             if load_all == False:
                 calibs = load.find_calibrators(full_source_list)
-                sources = calibs.copy()
-                sources += target_list
+                # If no sources are on the calibrator list, load all and print a message
+                if calibs == 999:
+                    sources = [x.name for x in full_source_list]
+                    load_all = True
+                    print("None of the sources was found on the VLBA calibrator list." \
+                         + " All sources will be loaded.\n" )
+                else:
+                    sources = calibs.copy()
+                    sources += target_list
+                    sources += [x for x in phase_ref if x!='NONE']
             if load_all == True:
                 sources = [x.name for x in full_source_list]
 
@@ -1195,7 +1437,7 @@ def pipeline(input_dict):
 
             # Define AIPS name
             hdul = fits.open(filepath_list[0])
-            aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
+            aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_1
 
             ## Check if the AIPS catalogue name is too long, and rename ##
             # 12 is the maximum length for a file name in AIPS
@@ -1217,23 +1459,26 @@ def pipeline(input_dict):
             log_list = target_list.copy()
             path_list = target_list.copy()
             for i, name in enumerate(filename_list):
-                filename_list[i] = name + '_' + klass_1
+                filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
                 path_list[i] = project_dir + '/' + filename_list[i]
                 if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                     os.system('rm -rf ' + project_dir + '/' + filename_list[i])
                 os.system('mkdir ' + project_dir + '/' + filename_list[i])
-
-                log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                            + '_pipeline_log.txt', 'w+')
+                os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                          + '/PLOTS')
+                os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                          + '/TABLES')
+                log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                                   + filename_list[i] + '_VIPCALslog.txt', 'w+')
                 log_list[i].write(ascii_logo + '\n')
-                for filepath in filepath_list:
-                    log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                        + '{:.2f} MB \n'.format\
-                                        (os.path.getsize(filepath)/1024**2 ))
+                #for filepath in filepath_list:
+                #    log_list[i].write(os.path.basename(filepath) + ' --- '\
+                #                        + '{:.2f} MB \n'.format\
+                #                        (os.path.getsize(filepath)/1024**2 ))
 
             ## START THE PIPELINE ##         
-            calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list,\
-                        filename_list, log_list, path_list, \
+            calibrate(filepath_list, aips_name_short, sources, full_source_list, \
+                        target_list, filename_list, log_list, path_list, \
                         disk_number, klass = klass_1, \
                         multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
                         default_refant = def_refant, input_calibrator = inp_cal, \
@@ -1253,14 +1498,22 @@ def pipeline(input_dict):
         full_source_list = load.get_source_list(filepath_list, multifreq_if[7])
         if load_all == False:
             calibs = load.find_calibrators(full_source_list)
-            sources = calibs.copy()
-            sources += target_list
+            # If no sources are on the calibrator list, load all and print a message
+            if calibs == 999:
+                sources = [x.name for x in full_source_list]
+                load_all = True
+                print("None of the sources was found on the VLBA calibrator list." \
+                        + " All sources will be loaded.\n" )
+            else:
+                sources = calibs.copy()
+                sources += target_list
+                sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
 
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
-        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_1
+        aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_1
 
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -1280,20 +1533,26 @@ def pipeline(input_dict):
         filename_list = target_list.copy()
         log_list = target_list.copy()
         path_list = target_list.copy()
+        #print(filename_list)
+        #print(filepath_list)
         for i, name in enumerate(filename_list):
-            filename_list[i] = name + '_' + klass_1
+            filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
             path_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
             os.system('mkdir ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/PLOTS')
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/TABLES')
 
-            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                        + '_pipeline_log.txt', 'w+')
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                               + filename_list[i] + '_VIPCALslog.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
-            for filepath in filepath_list:
-                log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                    + '{:.2f} MB \n'.format\
-                                    (os.path.getsize(filepath)/1024**2 ))
+            #for filepath in filepath_list:
+            #    log_list[i].write(os.path.basename(filepath) + ' --- '\
+            #                        + '{:.2f} MB \n'.format\
+            #                        (os.path.getsize(filepath)/1024**2 ))
         
         ## START THE PIPELINE ##
         calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list, \
@@ -1310,14 +1569,22 @@ def pipeline(input_dict):
         full_source_list = load.get_source_list(filepath_list, multifreq_if[8])
         if load_all == False:
             calibs = load.find_calibrators(full_source_list)
-            sources = calibs.copy()
-            sources += target_list
+            # If no sources are on the calibrator list, load all and print a message
+            if calibs == 999:
+                sources = [x.name for x in full_source_list]
+                load_all = True
+                print("None of the sources was found on the VLBA calibrator list." \
+                        + " All sources will be loaded.\n" )
+            else:
+                sources = calibs.copy()
+                sources += target_list
+                sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
         
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
-        aips_name = hdul[0].header['OBSERVER'] + '_' + klass_2
+        aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_2
         
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -1338,26 +1605,30 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         path_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = name + '_' + klass_2
+            filename_list[i] = load.set_name(filepath_list[0], name, klass_2)
             path_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
             os.system('mkdir ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/PLOTS')
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/TABLES')
 
-            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                        + '_pipeline_log.txt', 'w+')
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                               + filename_list[i] + '_VIPCALslog.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
-            for filepath in filepath_list:
-                log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                    + '{:.2f} MB \n'.format\
-                                    (os.path.getsize(filepath)/1024**2 ))
+            #for filepath in filepath_list:
+            #    log_list[i].write(os.path.basename(filepath) + ' --- '\
+            #                        + '{:.2f} MB \n'.format\
+            #                        (os.path.getsize(filepath)/1024**2 ))
             
         ## START THE PIPELINE ##  
         calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list, \
                 filename_list, log_list, path_list, \
                 disk_number, klass = klass_2, \
                 bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
-                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts, 
+                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts,
                 flag_edge = flag_edge, phase_ref = phase_ref)
 
         # End the pipeline
@@ -1372,8 +1643,16 @@ def pipeline(input_dict):
         full_source_list = load.get_source_list(filepath_list)
         if load_all == False:
             calibs = load.find_calibrators(full_source_list)
-            sources = calibs.copy()
-            sources += target_list
+            # If no sources are on the calibrator list, load all and print a message
+            if calibs == 999:
+                sources = [x.name for x in full_source_list]
+                load_all = True
+                print("None of the sources was found on the VLBA calibrator list." \
+                        + " All sources will be loaded.\n" )
+            else:
+                sources = calibs.copy()
+                sources += target_list
+                sources += [x for x in phase_ref if x!='NONE']
         if load_all == True:
             sources = [x.name for x in full_source_list]
 
@@ -1400,24 +1679,28 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         path_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = name + '_' + klass_1
+            filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
             path_list[i] = project_dir + '/' + filename_list[i]
             
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
             os.system('mkdir ' + project_dir + '/' + filename_list[i])
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/PLOTS')
+            os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                        + '/TABLES')
 
-            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' + name \
-                        + '_pipeline_log.txt', 'w+')
+            log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                               + filename_list[i] + '_VIPCALslog.txt', 'w+')
             log_list[i].write(ascii_logo + '\n')
-            for filepath in filepath_list:
-                log_list[i].write(os.path.basename(filepath) + ' --- '\
-                                    + '{:.2f} MB \n'.format\
-                                    (os.path.getsize(filepath)/1024**2 ))
+            #for filepath in filepath_list:
+            #    log_list[i].write(os.path.basename(filepath) + ' --- '\
+            #                        + '{:.2f} MB \n'.format\
+            #                        (os.path.getsize(filepath)/1024**2 ))
             
         ## START THE PIPELINE ##               
         calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
                 filename_list, log_list, path_list, \
                 disk_number, klass = klass_1, default_refant = def_refant, \
-                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts, 
+                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts,
                 flag_edge = flag_edge, phase_ref = phase_ref)   

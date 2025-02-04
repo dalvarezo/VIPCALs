@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import string
 from datetime import datetime
 
 from astropy.io import fits
@@ -116,8 +117,13 @@ for i, entry in enumerate(entry_list):
         + 'the input file.\n')
         exit()
 
+    # Load all has to be True/False
+    if type(input_dict['load_all']) != bool:
+        print('load_all option has to be True/False.\n')
+        exit()
+
     # Phase reference #
-    if input_dict['phase_ref'] != 'NONE':
+    if input_dict['phase_ref'] != ['NONE']:
         if len(input_dict['targets']) != len(input_dict['phase_ref']):
             print('\nThe number of phase reference calibrators does not match ' \
             + 'the number of targets to calibrate.\n')
@@ -131,8 +137,8 @@ for i, entry in enumerate(entry_list):
 
 
         for i, coord in enumerate(input_dict['shifts']):
-            ra = coord.split(',')[0]
-            dec = coord.split(',')[1]
+            ra = coord[0]
+            dec = coord[1]
             try:
                 input_dict['shifts'][i] =  SkyCoord(ra, dec, unit = 'deg')
             except: 
@@ -140,9 +146,36 @@ for i, entry in enumerate(entry_list):
                     + ' Please make sure that the input is correct.\n')
                 exit()
 
+    # Science targets have to be in the file/s
+    all_sources = []
+    for i, path in enumerate(input_dict['paths'],1):
+            globals()[f"hdul_{i}"] = fits.open(path)
+            all_sources.extend(list(globals()[f"hdul_{i}"]['SOURCE'].data['SOURCE']))
+    all_sources = list(set(all_sources))    # Remove duplicates
+    # Clean the list from non ASCII characters
+    try:
+        all_sources_clean = [''.join(c for c in item.decode('ascii', 'ignore') if c in \
+                                    string.printable) for item in all_sources]
+    except AttributeError:
+        all_sources_clean = all_sources
+
+    for t in input_dict['targets']:
+        if t not in all_sources_clean:
+            print(t + ' was not found in any of the files provided.\n')
+    if any(x not in all_sources_clean for x in input_dict['targets']):
+        exit()
+
+    # Phase reference sources have to be in the file/s
+    if input_dict['phase_ref'] != ['NONE']:
+        for prs in input_dict['phase_ref']:
+            if prs not in all_sources:
+                print(prs + ' was not found in any of the files provided.\n')
+        if any(x not in all_sources for x in input_dict['phase_ref']):
+            exit()
+
     # Load multiple files together:
+    if len(input_dict['paths']) > 1:
     # Same frequency setup
-#    if len(input_dict['paths']) > 1:
 #        for i, path in enumerate(input_dict['paths'],1):
 #            globals()[f"hdul_{i}"] = fits.open(path)
 #            
