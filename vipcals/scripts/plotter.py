@@ -35,7 +35,7 @@ def possm_plotter(filepath, data, target, cal_scans, \
     :type cal_scans: list of Scan object
     :param gainuse: CL version to apply
     :type gainuse: int
-    :param bpver: BP table version to use, if = 0 then don't correct for bandpass, \
+    :param bpver: BP table version to use, if = 0 then don't correct for bandpass; \
                   defaults to 0
     :type bpver: int, optional
     :param flag_edge: flag edge channels; defaults to True
@@ -95,12 +95,14 @@ def possm_plotter(filepath, data, target, cal_scans, \
     possm.msgkill = -4
     
     possm.go()
-    
-    # Get the maximum plot number from POSSM
+
+    # Check if plots have been created, if not, exit with an error message
+    # Also get the maximum plot file number 
     for elements in reversed(data.tables):
         if 'AIPS PL' in elements:
             max_plot = elements[0]
             break
+        return(999)
     
     lwpla = AIPSTask('lwpla')
     lwpla.inname = data.name
@@ -155,6 +157,14 @@ def uvplt_plotter(filepath, data, target, solint = 0.17):
     
     uvplt.go()
 
+    # Check if plots have been created, if not, exit with an error message
+    # Also get the maximum plot file number 
+    for elements in reversed(data.tables):
+        if 'AIPS PL' in elements:
+            max_plot = elements[0]
+            break
+        return(999)
+    
     # Export the plot
 
     lwpla = AIPSTask('lwpla')
@@ -227,11 +237,13 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     
     vplot.go()
 
-    # Get the maximum plot file number 
+    # Check if plots have been created, if not, exit with an error message
+    # Also get the maximum plot file number 
     for elements in reversed(data.tables):
         if 'AIPS PL' in elements:
             max_plot = elements[0]
             break
+        return(999)
     
     lwpla = AIPSTask('lwpla')
 
