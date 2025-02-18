@@ -51,6 +51,8 @@ def bp_correction(data,refant, calib_scans):
         bpass.timerang = timer
     bpass.docalib = 1
     bpass.solint = -1  # Whole timerange
+
+    bpass.weightit = 1  # Weight data by 1/sigma, more stable 
     
     bpass.bpassprm[1:] = [0,0,0,0,0,0,0,0,0,0,0]  # Reset parameters
     bpass.bpassprm[5] = 0  # Divide by channel 0 (central 75 per cent of channels)
@@ -63,4 +65,3 @@ def bp_correction(data,refant, calib_scans):
     bpass.msgkill = -4
     
     bpass.go()
-        
