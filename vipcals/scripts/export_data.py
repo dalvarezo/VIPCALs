@@ -141,6 +141,7 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
             if baselines == False:
                 no_baseline.append(target)
             else:
+                # THIS WILL CRASH THE PIPELINE, NEEDS TO BE ADDRESSED
                 print("\n\nDATA COULD NOT BE EXPORTED \n\n")
                 return(999)
 
@@ -191,7 +192,7 @@ def table_export(path_list, data, target_list, filename_list):
         fittp.indisk = data.disk
 
         # AIPS name limit is 135 characters
-        if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') < 136:
+        if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') < 135:
             fittp.dataout = path_list[i] + '/TABLES/' + filename_list[i] \
                             + '.caltab.uvfits'
         # If the name is too long, save the tables on aux.caltab.fits   
@@ -202,7 +203,7 @@ def table_export(path_list, data, target_list, filename_list):
         fittp.go()
 
         # If created, rename aux.caltab.fits with the proper name
-        if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') >= 136:
+        if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') >= 135:
             os.system('mv ' + path_list[i] + '/TABLES/aux.caltab.uvfits ' \
                       + path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits')
 
