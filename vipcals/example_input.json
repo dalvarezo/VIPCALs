@@ -1,7 +1,8 @@
 {
 "userno": 4,
-"disk": 10,
-"paths": ["/data/pipeline_test_sample/diego/BP133/VLBA_VSN005247_file22.uvfits"],
-"targets": ["J0524+70"],
-"output_directory": "/home/dalvarez/vipcals/vipcals/1_100_v2"
+"disk": 2,
+"paths": ["/data/Diego/milli_lens_candidates/J1805-0438/BL292/BL292R/VLBA_BL292R_bl292r_BIN0_SRC0_0_220705T194523.idifits"],
+"targets": ["J1805-0438"],
+"phase_ref": ["J1803-0433"],
+"output_directory": "/data/Diego/milli_lens_candidates/calibrated/"
 }

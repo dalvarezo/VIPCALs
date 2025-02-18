@@ -432,10 +432,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                            + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
                            + 'TY#2 created.\n')
      
-        print('\nSystem temperatures clipped: ' + str(tsys_flag_percent) \
-                + '% of the Tsys values have been flagged ('  \
-                + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
-                + 'TY#2 created.\n') 
+    print('\nSystem temperatures clipped: ' + str(tsys_flag_percent) \
+            + '% of the Tsys values have been flagged ('  \
+            + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
+            + 'TY#2 created.\n') 
     
     t2 = time.time()  
 
@@ -795,6 +795,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('Execution time: {:.2f} s. \n'.format(t13-t12))
 
     ## Fringe fit of the target ##
+
+    ignore_list = []
    
     ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
     for i, target in enumerate(target_list): 
@@ -823,14 +825,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 log_list[i].write("Fringe fit has failed.\n")
                 ratio = 0    
                 
-            # If the ratio is > 0.7, apply the solutions to a CL table
+            # If the ratio is > 0.99, apply the solutions to a CL table
 
-            if ratio >= 0.7:
+            if ratio >= 0.99:
                 frng.fringe_clcal(uvdata, target, version = 9+i)
 
-            # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
+            # If the ratio is < 0.99 (arbitrary) repeat the fringe fit but averaging IFs
 
-            if ratio < 0.7:
+            if ratio < 0.99:
 
                 print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
                 print('Repeating the fringe fit solving for all IFs together:\n')
@@ -879,10 +881,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     tf = time.time()
                     log_list[i].write('\nScript run time: '\
                                         + '{:.2f} s. \n'.format(tf-t_i))
-                    log_list[i].close()
+                    # log_list[i].close()
                     ## Remove target from the workflow
-                    target_list[i] = 'IGNORE'
-                    log_list.remove(log_list[i])
+                    ignore_list.append(target_list[i])
+                    # target_list[i] = 'IGNORE'
+                    #log_list.remove(log_list[i])
     
                 
                 # If the new ratio is smaller or equal than the previous, 
@@ -948,14 +951,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 ratio = 0      
 
 
-            # If the ratio is > 0.7, apply the solutions to a CL table
+            # If the ratio is > 0.99, apply the solutions to a CL table
 
-            if ratio >= 0.7:
+            if ratio >= 0.99:
                 frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
 
-            # If the ratio is < 0.7 (arbitrary) repeat the fringe fit but averaging IFs
+            # If the ratio is < 0.99 (arbitrary) repeat the fringe fit but averaging IFs
 
-            if ratio < 0.7:
+            if ratio < 0.99:
 
                 print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
                 print('Repeating the fringe fit solving for all IFs together:\n')
@@ -1005,10 +1008,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     tf = time.time()
                     log_list[i].write('\nScript run time: '\
                                         + '{:.2f} s. \n'.format(tf-t_i))
-                    log_list[i].close()
+                    # log_list[i].close()
                     ## Remove target from the workflow
-                    target_list[i] = 'IGNORE'
-                    log_list.remove(log_list[i])
+                    ignore_list.append(target_list[i])
+                    # target_list[i] = 'IGNORE'
+                    #log_list.remove(log_list[i])
     
                 
                 # If the new ratio is smaller or equal than the previous, 
@@ -1061,7 +1065,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
 
     for i, target in enumerate(target_list): 
-        if target == 'IGNORE':
+        if target in ignore_list:
             continue
         if target not in no_baseline:
             log_list[i].write('\n' + target + ' visibilites exported to ' \
@@ -1077,8 +1081,6 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     expo.table_export(path_list, uvdata, target_list, filename_list)
     for i, target in enumerate(target_list): 
-        if target == 'IGNORE':
-            continue
         log_list[i].write('\n' + target + ' calibration tables exported to /TABLES/' \
                           + filename_list[i] + '.caltab.uvfits\n')
         print('\n' + target + ' calibration tables exported to /TABLES/' \
@@ -1091,52 +1093,71 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     ## Uncalibrated ##
     for i, target in enumerate(target_list):
-        if target == 'IGNORE':
+        if target in ignore_list:
             continue
         if target not in no_baseline:
-            plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 1, \
-                            bpver = 0, flag_edge=False)
-        
-            log_list[i].write('\nUncalibrated visibilities plotted in /PLOTS/'  \
-                            + filename_list[i] + '_CL1_POSSM.ps\n')
-            print('\nUncalibrated visibilities plotted in /PLOTS/'  \
-                            + filename_list[i] + '_CL1_POSSM.ps\n')
+            plot_check = 0
+            plot_check = plot.possm_plotter(path_list[i], uvdata, target, 
+                                            calibrator_scans, 1, bpver = 0, \
+                                            flag_edge=False)
+            if plot_check == 999:
+                log_list[i].write('\nUncalibrated visibilities could not be plotted!\n')
+                print('\nUncalibrated visibilities could not be plotted!\n')
+            else:
+                log_list[i].write('\nUncalibrated visibilities plotted in /PLOTS/'  \
+                                + filename_list[i] + '_CL1_POSSM.ps\n')
+                print('\nUncalibrated visibilities plotted in /PLOTS/'  \
+                                + filename_list[i] + '_CL1_POSSM.ps\n')
         
     ## Calibrated ##
     for i, target in enumerate(target_list):
-        if target == 'IGNORE':
+        if target in ignore_list:
             continue
-        if target not in no_baseline:        
-            plot.possm_plotter(path_list[i], uvdata, target, calibrator_scans, 9+i, \
-                            bpver = 1)
-            
-            log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
-                            + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
-            print('Calibrated visibilities plotted in /PLOTS/' \
-                            + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
+        if target not in no_baseline:    
+            plot_check = 0    
+            plot_check = plot.possm_plotter(path_list[i], uvdata, target, 
+                                            calibrator_scans, 9+i, bpver = 1, 
+                                            flag_edge=False)
+            if plot_check == 999:
+                log_list[i].write('\nUncalibrated visibilities could not be plotted!\n')
+                print('\nUncalibrated visibilities could not be plotted!\n')
+            else:
+                log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
+                                + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
+                print('Calibrated visibilities plotted in /PLOTS/' \
+                                + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
         
     ## Plot uv coverage ##
     for i, target in enumerate(target_list):
-        if target == 'IGNORE':
+        if target in ignore_list:
             continue
         if target not in no_baseline:
-            plot.uvplt_plotter(path_list[i], uvdata, target)
-
-            log_list[i].write('UV coverage plotted in /PLOTS/' \
-                            + filename_list[i] + '_UVPLT.ps\n')
-            print('UV coverage plotted in /PLOTS/' + filename_list[i] + '_UVPLT.ps\n')
+            plot_check = 0
+            plot_check = plot.uvplt_plotter(path_list[i], uvdata, target)
+            if plot_check == 999:
+                log_list[i].write('UV coverage could not be plotted\n')
+                print('UV coverage could not be plotted!\n')    
+            else:
+                log_list[i].write('UV coverage plotted in /PLOTS/' \
+                                + filename_list[i] + '_UVPLT.ps\n')
+                print('UV coverage plotted in /PLOTS/' + filename_list[i] + '_UVPLT.ps\n')
         
     ## Plot visibilities as a function of time of target## 
     for i, target in enumerate(target_list):
-        if target == 'IGNORE':
+        if target in ignore_list:
             continue
         if target not in no_baseline:
-            plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
-            
-            log_list[i].write('Visibilities as a function of time plotted in /PLOTS/' \
-                            + filename_list[i]  + '_VPLOT.ps\n')
-            print('Visibilities as a function of time plotted in /PLOTS/' \
-                            + filename_list[i]  + '_VPLOT.ps\n')
+            plot_check = 0
+            plot_check = plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
+            if plot_check == 999:
+                log_list[i].write('Visibilities as a function of time could not be ' \
+                                  + 'plotted!\n')
+                print('Visibilities as a function of time could not be plotted!\n')
+            else:
+                log_list[i].write('Visibilities as a function of time plotted in /PLOTS/' \
+                                + filename_list[i]  + '_VPLOT.ps\n')
+                print('Visibilities as a function of time plotted in /PLOTS/' \
+                                + filename_list[i]  + '_VPLOT.ps\n')
 
     t15 = time.time()
     for pipeline_log in log_list:

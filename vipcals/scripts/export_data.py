@@ -192,7 +192,7 @@ def table_export(path_list, data, target_list, filename_list):
         fittp.indisk = data.disk
 
         # AIPS name limit is 135 characters
-        if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') < 135:
+        if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') < 100:
             fittp.dataout = path_list[i] + '/TABLES/' + filename_list[i] \
                             + '.caltab.uvfits'
         # If the name is too long, save the tables on aux.caltab.fits   
@@ -203,7 +203,7 @@ def table_export(path_list, data, target_list, filename_list):
         fittp.go()
 
         # If created, rename aux.caltab.fits with the proper name
-        if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') >= 135:
+        if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') >= 100:
             os.system('mv ' + path_list[i] + '/TABLES/aux.caltab.uvfits ' \
                       + path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits')
 

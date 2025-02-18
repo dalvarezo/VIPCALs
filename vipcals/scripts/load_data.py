@@ -6,6 +6,9 @@ import pkg_resources
 
 from astropy.io import fits
 from astropy.table import Table
+from astropy.coordinates import SkyCoord
+from astropy.coordinates import search_around_sky
+from astropy import units as u
 
 from AIPS import AIPS
 from AIPSData import AIPSUVData
@@ -111,6 +114,9 @@ class Source():
         self.restfreq = None
         self.band = None
         self.band_flux = None
+        self.coord = None
+        self.ra = None
+        self.dec = None
         
     def set_band(self):
         """Set band name depending on rest frequency."""
@@ -204,6 +210,12 @@ def get_source_list(file_path_list, freq = 0):
             a = Source()
             a.name = elements['SOURCE']
             try:
+                a.ra = elements['RAOBS']
+                a.dec = elements['DECOBS']
+            except KeyError:
+                a.ra = elements['RAEPO']
+                a.dec = elements['DECEPO']
+            try:
                 a.id = elements['ID_NO.']
             except KeyError:
                 a.id = elements['SOURCE_ID']
@@ -263,7 +275,7 @@ def redo_source_list(uvdata):
 
     return full_source_list
 
-def find_calibrators(full_source_list):
+def find_calibrators(full_source_list, choose = 'BYNAME'):
     """Choose possible calibrators from a source list.
 
     It loads information of ~ 9000 sources from an external file.
@@ -275,6 +287,9 @@ def find_calibrators(full_source_list):
 
     :param full_source_list: list of sources contained in the file
     :type full_source_list: list of Source objects
+    :param choose: cross-match the sources using names ("BYNAME") or coordinates \
+    ("BYCOORD"); default "BYNAME"
+    :type choose: str 
     :return: names of possible calibrators available in the file
     :rtype: list of str
     """    
@@ -290,13 +305,39 @@ def find_calibrators(full_source_list):
     calib_list = pd.read_fwf(catalogue_path, skiprows = 16,\
                              names = col_names)
 
-    
-    for elements in full_source_list:
-        row = calib_list.loc[calib_list.isin([elements.name]).any(axis=1)]
-        try:
-            elements.band_flux = float(row.iloc[0][elements.band + '_short'])
-        except:
-            elements.band_flux = np.NaN
+    if choose == "BYCOORD":
+        source_coords = SkyCoord([x.ra for x in full_source_list], \
+                             [y.dec for y in full_source_list], unit = 'deg')
+        calib_coords = SkyCoord(calib_list['RA'].to_list(), calib_list['DEC'].to_list())
+        idx1, idx2 ,_ ,_ = search_around_sky(source_coords, calib_coords, 100 * u.arcsec)
+        for i, idx in enumerate(idx1):
+            try:
+                full_source_list[idx].band_flux = \
+                    float(calib_list.iloc[idx2[i]][full_source_list[idx].band + '_short'])
+            except:
+                full_source_list[idx].band_flux = np.NaN
+
+
+
+        # for elements in full_source_list:
+        #     elements.band_flux = np.NaN
+        #     src_coord = SkyCoord(elements.ra, elements.dec, unit = 'deg')
+        #     for i, row in calib_list.iterrows():
+        #         calib_coord = SkyCoord(row['RA'], row['DEC'])
+        #         if calib_coord.separation(src_coord).arcsecond <= 100:
+        #             try:
+        #                 elements.band_flux = float(row[elements.band + '_short'])
+        #             except:
+        #                 elements.band_flux = np.NaN
+        #             break
+
+    if choose == "BYNAME":
+        for elements in full_source_list:
+            row = calib_list.loc[calib_list.isin([elements.name]).any(axis=1)]
+            try:
+                elements.band_flux = float(row.iloc[0][elements.band + '_short'])
+            except:
+                elements.band_flux = np.NaN
         
     full_source_list.sort(key = lambda x: 0 if math.isnan(x.band_flux)\
                           else x.band_flux, reverse = True)
