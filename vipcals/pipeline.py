@@ -769,7 +769,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     + str(solint_list[i]) + ' minute. \n')                
         else:
             phase_ref_scans = [x for x in scan_list if x.name == phase_ref[i]]
-            solint_list.append(opti.optimize_solint(uvdata, phase_ref[i], \
+            solint_list.append(opti.optimize_solint_mm(uvdata, phase_ref[i], \
                                                     phase_ref_scans, refant))
             
             # Don't allow for solution intervals shorter than 1 minute
