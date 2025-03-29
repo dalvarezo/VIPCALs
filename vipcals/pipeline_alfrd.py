@@ -857,10 +857,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## Amplitude calibration ##
     disp.write_box(log_list, 'Amplitude calibration')
 
-    # Check which antennas have GC, only calibrate those
-    gc_antennas = [y['antenna_no'] for y in uvdata.table('GC',1)]
-    gc_antennas = list(set(gc_antennas)) # Remove duplicates
-    ampc.amp_cal(uvdata, gc_antennas)
+    ampc.amp_cal(uvdata)
     t12 = time.time()
     for pipeline_log in log_list:
         pipeline_log.write('\nAmplitude calibration applied! SN#5 and CL#8'\
