@@ -107,7 +107,7 @@ def snr_fring_only_fft(data, refant, solint = 0, delay_w = 1000, \
     snr_fring.go()
     
 
-def snr_scan_list_v2(data, full_source_list, version = 1):
+def snr_scan_list_v2(data, version = 1):
     """Create a list of scans ordered by SNR.
 
     Scans are returned ordered by their SNR. A warning will be printed \
@@ -115,17 +115,13 @@ def snr_scan_list_v2(data, full_source_list, version = 1):
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param full_source_list: list containing all sources in the dataset
-    :type full_source_list: list of Source objects
     :param version: SN table version containing the SNR values, defaults to 1
     :type version: int, optional
     :return: ordered list of scans with SNR > 5
     :rtype: list of SNRScan objects
     """    
-    max_n_antennas = len(data.table('AN', 1))
     snr_table = data.table('SN', version)
     scan_list = []
-    optimal_scan_list = []
     time_list = []
     for entry in snr_table:
         if entry['time'] not in time_list:
@@ -146,28 +142,20 @@ def snr_scan_list_v2(data, full_source_list, version = 1):
     # Order them by SNR
     scan_list.sort(key=lambda x: np.median(x.snr),\
                    reverse=True)
-    # Drop no detections (SNR less than five)
-    # Causes problems later on, better keep them
-    #aux_list = []
-    #for s in scan_list:
-    #    if np.median(s.snr) > 5:
-    #        aux_list.append(s)
-    #scan_list = aux_list
+    
     # If there are no scans, tell the main worflow to print an error message
     # and stop the pipeline
     if len(scan_list) == 0:
         return(404)
+    
     # Right now, the median includes the value at the reference 
     # antenna, which is always (SNR threshold + 1). This should be fixed.
-    # Assign source names to both lists
+    
+    # Assign source names to the lists
     for scans in scan_list:
-        for src in full_source_list:
-            if scans.id == src.id:
-                scans.name = src.name
-    for scans in optimal_scan_list:
-        for src in full_source_list:
-            if scans.id == src.id:
-                scans.name = src.name
+        for src in data.table('SU', 1):
+            if scans.id == src.id__no:
+                scans.name = src.source.strip()
     return(scan_list)
 
 def get_calib_scans(data, ordered_scan_list, refant):

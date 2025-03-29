@@ -702,7 +702,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
         ## Get a list of scans ordered by SNR ##
         
-        scan_list = cali.snr_scan_list_v2(uvdata, full_source_list)
+        scan_list = cali.snr_scan_list_v2(uvdata)
         
         ## Check if snr_scan_list() returned an error and, if so, end the pipeline
         if scan_list == 404:
@@ -772,7 +772,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
         ## Get a list of scans ordered by SNR ##
         
-        scan_list = cali.snr_scan_list_v2(uvdata, full_source_list)
+        scan_list = cali.snr_scan_list_v2(uvdata)
         
         ## Get the scans for the input calibrator ## 
         calibrator_scans = [x for x in scan_list if x.name == input_calibrator]
