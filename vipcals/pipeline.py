@@ -336,12 +336,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                                  disk_number, seq)
             if avgdata.exists() == True:
                 avgdata.zap()
-            ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
+            f_ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
             
             if time_resol >= 0.33: # => If it was not written before
                 disp.write_box(log_list, 'Data averaging')
             
-            tabl.freq_aver(uvdata,ratio)
+            tabl.freq_aver(uvdata,f_ratio)
             uvdata = AIPSUVData(aips_name[:9] + '_AF', uvdata.klass, \
                                  disk_number, seq)
 
@@ -350,9 +350,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                                  disk_number, seq)
             if avgdata.exists() == True:
                 avgdata.zap()
-            ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
+            f_ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
             
-            tabl.freq_aver(uvdata,ratio)
+            tabl.freq_aver(uvdata,f_ratio)
             uvdata = AIPSUVData(aips_name[:9] + '_ATF', uvdata.klass, \
                                  disk_number, seq)
 
@@ -887,12 +887,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 if ratio_single <= ratio:
                     print("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
-                    print("The multi-IF fringe fit will be applied.\n ")
+                    print("The multi-IF fringe fit will be applied.\n")
 
                     log_list[i].write("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The multi-IF fringe fit will be applied.\n ")
                     frng.fringe_clcal(uvdata, target, version = 9+i)
+                    # Remove the single-IF fringe fit SN table
+                    uvdata.zap_table('SN', 6+i+1)
 
 
                 # If new ratio is better than the previous, then replace the SN table and 
@@ -1020,6 +1022,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                         + "is : {:.2f}.\n".format(ratio_single))
                     log_list[i].write("The multi-IF fringe fit will be applied.\n ")
                     frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
+                    # Remove the single-IF fringe fit SN table
+                    uvdata.zap_table('SN', 6+i+1)
 
 
                 # If new ratio is better than the previous, then replace the SN table and 
@@ -1086,9 +1090,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     ## Uncalibrated ##
     for i, target in enumerate(target_list):
-        if target in ignore_list:
-            continue
-        if target not in no_baseline:
+        #if target in ignore_list:
+        #    continue
+        #if target not in no_baseline:
             plot_check = 0
             plot_check = plot.possm_plotter(path_list[i], uvdata, target, 
                                             calibrator_scans, 1, bpver = 0, \

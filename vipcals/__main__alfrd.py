@@ -88,7 +88,7 @@ entry_list = read_args(args.file)
 
 ## Print ASCII art ##
 
-ascii_logo = open('./ascii_logo_string.txt', 'r').read()
+ascii_logo = open('../GUI/ascii_logo_string.txt', 'r').read()
 print(ascii_logo)
 
 # Iterate over every entry on the input file

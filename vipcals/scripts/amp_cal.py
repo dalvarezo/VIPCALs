@@ -27,7 +27,7 @@ def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     :type ref_if: int, optional
     """    
     # Check which antennas have GC, only calibrate those
-    gc_antennas = [y['antenna_no'] for y in uvdata.table('GC',1)]
+    gc_antennas = [y['antenna_no'] for y in data.table('GC',1)]
     antenna_list = list(set(gc_antennas))
 
     apcal = AIPSTask('apcal')
