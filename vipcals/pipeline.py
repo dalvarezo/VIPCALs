@@ -657,10 +657,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## Instrumental phase correction ##
     disp.write_box(log_list, 'Instrumental phase corrections')
     
-    if len(calibrator_scans) == 1:
-        inst.manual_phasecal(uvdata, refant, calibrator_scans[0])
-    else:
-        inst.manual_phasecal_multi(uvdata, refant, calibrator_scans)
+    inst.manual_phasecal_multi(uvdata, refant, calibrator_scans)
     t9 = time.time()
     
     for pipeline_log in log_list:
@@ -1175,7 +1172,7 @@ def pipeline(input_dict):
     :type input_dict: _type_
     """    
     # Read logo
-    ascii_logo = open('./ascii_logo_string.txt', 'r').read()
+    ascii_logo = open('../GUI/ascii_logo_string.txt', 'r').read()
 
     # Read the input dictionary
     filepath_list = input_dict['paths']

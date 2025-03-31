@@ -147,7 +147,7 @@ def manual_phasecal(data, refant, cal_scan):
     
     phasecal_fring.dparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     phasecal_fring.dparm[1] = 1    # Number of baseline combinations searched
-    phasecal_fring.dparm[2] = 500    # Delay window (ns)
+    phasecal_fring.dparm[2] = 1000    # Delay window (ns)
     phasecal_fring.dparm[9] = 1    # Do NOT fit rates 
     
     phasecal_fring.snver = 3
@@ -219,7 +219,7 @@ def manual_phasecal_multi(data, refant, calib_scans):
         
         phasecal_fring.dparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
         phasecal_fring.dparm[1] = 1    # Number of baseline combinations searched
-        phasecal_fring.dparm[2] = 500    # Delay window (ns)
+        phasecal_fring.dparm[2] = 1000    # Delay window (ns)
         phasecal_fring.dparm[9] = 1    # Do NOT fit rates 
         
         phasecal_fring.snver = 3 + n
@@ -227,20 +227,21 @@ def manual_phasecal_multi(data, refant, calib_scans):
         
         phasecal_fring.go()
     
-    # Merge tables, producing SN(4+n+1)
+    # If multiple calib scans, merge tables producing SN(4+n+1)
     
-    clcal_merge = AIPSTask('clcal')
-    clcal_merge.inname = data.name
-    clcal_merge.inclass = data.klass
-    clcal_merge.indisk = data.disk
-    clcal_merge.inseq = data.seq
+    if n > 0:
+        clcal_merge = AIPSTask('clcal')
+        clcal_merge.inname = data.name
+        clcal_merge.inclass = data.klass
+        clcal_merge.indisk = data.disk
+        clcal_merge.inseq = data.seq
 
-    clcal_merge.opcode = 'MERG'
-    clcal_merge.snver = 3 # First table to merge
-    clcal_merge.invers = 3+n # Last table to merge
-    clcal_merge.refant = refant
+        clcal_merge.opcode = 'MERG'
+        clcal_merge.snver = 3 # First table to merge
+        clcal_merge.invers = 3+n # Last table to merge
+        clcal_merge.refant = refant
 
-    clcal_merge.go()
+        clcal_merge.go()
 
     # Apply solutions
 
@@ -258,10 +259,10 @@ def manual_phasecal_multi(data, refant, calib_scans):
     
     clcal_apply.go()
     
-    # Remove previous tables and leave only the merged one
-    for i in range (3, 3+n+1):
-        data.zap_table('SN', i)
-
-    tacop(data, 'SN', 3+n+1, 3)
-    data.zap_table('SN', 3+n+1)
-    
+    # If multiple calib scans, 
+    # remove previous tables and leave only the merged one
+    if n > 0:
+        for i in range (3, 3+n+1):
+            data.zap_table('SN', i)
+        tacop(data, 'SN', 3+n+1, 3)
+        data.zap_table('SN', 3+n+1)    

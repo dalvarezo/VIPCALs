@@ -169,13 +169,9 @@ def get_calib_scans(data, ordered_scan_list, refant):
     :type ordered_scan_list: lists of SNRScan objects
     """    
     # Retrieve all antennas with TY and GC
-    an_table = data.table('AN', 1)
-    all_antennas = [x['nosta'] for x in an_table]
-    gc_antennas = [y['antenna_no'] for y in data.table('GC',1)]
-    ty_antennas = []
-    for t in data.table('TY', 2):
-        ty_antennas.append(t['antenna_no'])
-    ty_antennas = list(set(ty_antennas))
+    all_antennas = [x['nosta'] for x in data.table('AN', 1)]
+    gc_antennas = list(set([y['antenna_no'] for y in data.table('GC',1)]))
+    ty_antennas = list(set([z['antenna_no'] for z in data.table('TY', 2)]))
 
     available_antennas = [z for z in all_antennas if z in ty_antennas and\
                           z in gc_antennas]
