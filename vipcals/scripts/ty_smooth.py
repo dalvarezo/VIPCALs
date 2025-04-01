@@ -4,6 +4,8 @@ import os
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
+AIPSTask.msgkill = -8
+
 def tacop(data, ext, invers, outvers):
     """Copy one calibration table to another.
 
@@ -32,7 +34,7 @@ def tacop(data, ext, invers, outvers):
     tacop.inext = ext
     tacop.invers = invers
     tacop.outvers = outvers
-    tacop.msgkill = -4
+    # tacop.msgkill = -4
     
     tacop.go()
   
@@ -77,7 +79,7 @@ def ty_smooth(data, tmin = 0, tmax = 1000, time_interv = 15, max_dev = 250):
     tysmo.aparm[6] = tmax
     tysmo.cparm[1] = time_interv
     tysmo.cparm[6] = max_dev 
-    tysmo.msgkill = -4
+    # tysmo.msgkill = -4
     
     tysmo.go()
 
@@ -114,7 +116,7 @@ def ty_smooth(data, tmin = 0, tmax = 1000, time_interv = 15, max_dev = 250):
         uvflg.antennas = AIPSList(bad_antennas)
         uvflg.outfgver = 2
         uvflg.reason = 'NO TSYS'
-        uvflg.msgkill = -4
+        # uvflg.msgkill = -4
 
         uvflg.go()
 

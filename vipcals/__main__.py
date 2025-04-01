@@ -9,6 +9,9 @@ from astropy.coordinates import SkyCoord
 
 from pipeline import pipeline
 
+import functools
+print = functools.partial(print, flush=True)
+
 
 def read_args(file):
     """Read arguments from a json file and return them as a list of dictionaries.
@@ -95,9 +98,22 @@ for i, entry in enumerate(entry_list):
     input_dict = create_default_dict()
     # Unzip inputs
     for key in entry:
-        input_dict[key] = entry[key]
+        if entry[key] != "":
+            input_dict[key] = entry[key]
 
     ## Input sanity check ##
+    # Some inputs need to be integers #
+    try:
+        input_dict['userno'] = int(input_dict['userno'])
+    except ValueError:
+        print('User number has to be a number.\n')
+        exit()
+    try:
+        input_dict['disk'] = int(input_dict['disk'])
+    except ValueError:
+        print('Disk number has to be a number.\n')
+        exit()
+
     # Some inputs need to be given as a list #
     if type(input_dict['paths']) != list:
         print('Filepaths have to be given as a list in the input file.\n')
@@ -112,6 +128,8 @@ for i, entry in enumerate(entry_list):
         print('Phase reference calibrators have to be given as a list in ' \
         + 'the input file.\n')
         exit()
+
+    print(input_dict['paths'])
 
     # Load all has to be True/False
     if type(input_dict['load_all']) != bool:

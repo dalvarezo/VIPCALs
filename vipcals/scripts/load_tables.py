@@ -11,6 +11,10 @@ from astropy.table import Table
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
+import functools
+print = functools.partial(print, flush=True)
+
+AIPSTask.msgkill = -8
 
 class gc_entry():
     """Entries from the master gain curve (vlba_gains.key)"""
@@ -49,7 +53,7 @@ def time_aver(data, oldtime, newtime):
     uvavg.outclass = data.klass
     uvavg.outdisk = data.disk
     uvavg.outseq = data.seq
-    uvavg.msgkill = -4
+    #uvavg.msgkill = -4
     
     uvavg.go()
     
@@ -82,7 +86,7 @@ def freq_aver(data, ratio):
     avspc.outclass = data.klass
     avspc.outdisk = data.disk
     avspc.outseq = data.seq
-    avspc.msgkill = -4
+    #avspc.msgkill = -4
 
     avspc.go()
 
@@ -102,7 +106,7 @@ def run_indxr(data):
     
     indxr.cparm[3] = 0.1  # Create CL#1
     indxr.cparm[4] = 1    # Recalculate CL entry group delays using IM table
-    indxr.msgkill = -4
+    #indxr.msgkill = -4
     
     indxr.go()
     
@@ -522,7 +526,7 @@ def load_ty_tables(data, bif, eif):
     antab.inseq = data.seq
     antab.calin = './tsys.vlba'
     # We might need to add SELBAND and SELFREQ here...
-    antab.msgkill = -4
+    #antab.msgkill = -4
     
     antab.go()
 
@@ -773,7 +777,7 @@ def load_fg_tables(data):
     uvflg.inseq = data.seq
     uvflg.intext = './flags.vlba'
     # We might need to add SELBAND and SELFREQ here...
-    uvflg.msgkill = -4
+    #uvflg.msgkill = -4
     
     uvflg.go()
 
@@ -796,7 +800,8 @@ def load_gc_tables(data): # , bk_antennas):
     """
     # Read data
     good_url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/vlba_gains.key'
-    inputfile = open("./catalogues/vlba_gains.key", "r") 
+    inputfile = open(os.path.dirname(__file__) + 
+                     "/../catalogues/vlba_gains.key", "r") 
     readfile = inputfile.read() 
     # Split into list
     input_list = readfile.split("\n\n")
@@ -890,7 +895,7 @@ def load_gc_tables(data): # , bk_antennas):
     antab.inseq = data.seq
     antab.calin = './gaincurves.vlba'
     # We might need to add SELBAND and SELFREQ here...
-    antab.msgkill = -4
+    # antab.msgkill = -4
     
     antab.go()
     return 0
@@ -913,7 +918,7 @@ def tborder(data, log):
     uvsrt.outseq = data.seq
     
     uvsrt.sort = 'TB'
-    uvsrt.msgkill = -4
+    # uvsrt.msgkill = -4
         
     uvsrt.go()
 
@@ -963,7 +968,7 @@ def remove_ascii_antname(data,filepath):
         
         tabed_antname.keystrng = AIPSList(backup_names[i]) # Antenna name
         
-        tabed_antname.msgkill = -4
+        # tabed_antname.msgkill = -4
         tabed_antname.go()
     
 def remove_ascii_poltype(data, value = ''):
@@ -1004,5 +1009,5 @@ def remove_ascii_poltype(data, value = ''):
         
         tabed_poltype.keystrng = AIPSList(value)  # Replace value
         
-        tabed_poltype.msgkill = -4
+        # tabed_poltype.msgkill = -4
         tabed_poltype.go()

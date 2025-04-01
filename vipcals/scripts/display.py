@@ -4,6 +4,9 @@ from AIPSTask import AIPSTask, AIPSList
 import numpy as np
 import os
 
+import functools
+print = functools.partial(print, flush=True)
+
 def print_box(s):
     """Print some text inside a box in the terminal 
 

@@ -4,6 +4,8 @@ from AIPSTask import AIPSTask, AIPSList
 import numpy as np
 import os
 
+AIPSTask.msgkill = -8
+
 def ddhhmmss(time):
     """Convert decimal dates into AIPS dd hh mm ss format.
 
@@ -92,7 +94,7 @@ def possm_plotter(filepath, data, target, cal_scans, \
     possm.nplots = 9
     
     possm.dotv = -1
-    possm.msgkill = -4
+    # possm.msgkill = -4
     
     possm.go()
 
@@ -116,7 +118,7 @@ def possm_plotter(filepath, data, target, cal_scans, \
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
     lwpla.outfile = filepath +  '/PLOTS/' + filename + '_CL' + str(gainuse) + '_POSSM.ps'
     
-    lwpla.msgkill = -4
+    # lwpla.msgkill = -4
     
     lwpla.go()
     
@@ -153,7 +155,7 @@ def uvplt_plotter(filepath, data, target, solint = 0.17):
 
     uvplt.do3color = -1  # Black and white plot
     uvplt.dotv = -1
-    uvplt.msgkill = -4
+    # uvplt.msgkill = -4
     
     uvplt.go()
 
@@ -179,7 +181,7 @@ def uvplt_plotter(filepath, data, target, solint = 0.17):
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
     lwpla.outfile = filepath + '/PLOTS/' + filename + '_UVPLT.ps'
     
-    lwpla.msgkill = -4
+    # lwpla.msgkill = -4
     
     lwpla.go()
     
@@ -233,7 +235,7 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     vplot.nplots = 2
 
     vplot.dotv = -1
-    vplot.msgkill = -4
+    # vplot.msgkill = -4
     
     vplot.go()
 
@@ -258,7 +260,7 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
     lwpla.outfile = filepath + '/PLOTS/' + filename + '_VPLOT.ps'
     
-    lwpla.msgkill = -4
+    # lwpla.msgkill = -4
     
     lwpla.go()
     

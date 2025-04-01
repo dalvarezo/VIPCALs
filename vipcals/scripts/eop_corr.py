@@ -4,6 +4,8 @@ import os
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
+AIPSTask.msgkill = -8
+
 def eop_correct(data):
     """Earth orientation parameters correction.
     
@@ -30,6 +32,6 @@ def eop_correct(data):
     clcor.infile = '/tmp/usno_finals_bis.erp'
     clcor.gainver = 2
     clcor.gainuse = 3
-    clcor.msgkill = -4
+    #clcor.msgkill = -4
 
     clcor.go()

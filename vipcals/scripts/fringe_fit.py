@@ -4,6 +4,11 @@ from AIPSTask import AIPSTask, AIPSList
 import numpy as np
 import os
 
+import functools
+print = functools.partial(print, flush=True)
+
+AIPSTask.msgkill = -8
+
 
 def ddhhmmss(time):
     """Convert decimal dates into AIPS dd hh mm ss format.
@@ -73,7 +78,7 @@ def calib_fring_fit(data, refant, calib_scans, solint = 0, \
     calib_fring.dparm[3] = rate_w  # Rate window (mHz)
     
     calib_fring.snver = 6
-    calib_fring.msgkill = -4
+    #calib_fring.msgkill = -4
     
     calib_fring.go()
     
@@ -89,7 +94,7 @@ def calib_fring_fit(data, refant, calib_scans, solint = 0, \
     clcal.snver = 6
     clcal.gainver = 8
     clcal.gainuse = 9
-    clcal.msgkill = -4
+    #clcal.msgkill = -4
     
     clcal.go()
     
@@ -152,7 +157,7 @@ def target_fring_fit(data, refant, target_name, solint = 0, version = 10, delay_
     target_fring.dparm[3] = rate_w  # Rate window (mHz)
     
     target_fring.snver = version-3
-    target_fring.msgkill = -4
+    #target_fring.msgkill = -4
     
     target_fring.go()
 
@@ -182,7 +187,7 @@ def fringe_clcal(data, target_name, version=9):
     clcal.snver = version-3
     clcal.gainver = 8
     clcal.gainuse = version
-    clcal.msgkill = -4
+    #clcal.msgkill = -4
     
     clcal.go()
 
@@ -210,7 +215,7 @@ def fringe_phaseref_clcal(data, target_name, version=9):
     clcal.snver = version-3
     clcal.gainver = 8
     clcal.gainuse = version
-    clcal.msgkill = -4
+    #clcal.msgkill = -4
     
     clcal.go()
  

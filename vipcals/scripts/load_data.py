@@ -14,6 +14,10 @@ from AIPS import AIPS
 from AIPSData import AIPSUVData
 from AIPSTask import AIPSTask, AIPSList
 
+import functools
+print = functools.partial(print, flush=True)
+
+AIPSTask.msgkill = -8
 
 class MultiFile:
     def __init__(self, *file_paths, mode='r'):
@@ -113,7 +117,7 @@ class Source():
         self.inlist = None
         self.restfreq = None
         self.band = None
-        self.band_flux = None
+        self.band_flux = np.NaN
         self.coord = None
         self.ra = None
         self.dec = None
@@ -309,15 +313,13 @@ def find_calibrators(full_source_list, choose = 'BYNAME'):
         source_coords = SkyCoord([x.ra for x in full_source_list], \
                              [y.dec for y in full_source_list], unit = 'deg')
         calib_coords = SkyCoord(calib_list['RA'].to_list(), calib_list['DEC'].to_list())
-        idx1, idx2 ,_ ,_ = search_around_sky(source_coords, calib_coords, 100 * u.arcsec)
+        idx1, idx2 ,_ ,_ = search_around_sky(source_coords, calib_coords, 60 * u.arcsec)
         for i, idx in enumerate(idx1):
             try:
                 full_source_list[idx].band_flux = \
                     float(calib_list.iloc[idx2[i]][full_source_list[idx].band + '_short'])
             except:
                 full_source_list[idx].band_flux = np.NaN
-
-
 
         # for elements in full_source_list:
         #     elements.band_flux = np.NaN
@@ -488,7 +490,7 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     fitld.bif = bif
     fitld.eif = eif
     fitld.clint = 0.1
-    fitld.msgkill = -4
+    #fitld.msgkill = -4
     if multi_id == True:
         fitld.selfreq = float(selfreq)  
 
@@ -587,6 +589,6 @@ def print_listr(data, path_list, filename_list):
     listr.docrt = -2
     for i, name in enumerate(filename_list):
         listr.outprint = path_list[i] + '/' + name + '_scansum.txt'
-        listr.msgkill = -4
+        #listr.msgkill = -4
         
         listr.go()

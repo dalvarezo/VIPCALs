@@ -5,6 +5,8 @@ from astropy.coordinates import SkyCoord
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
+AIPSTask.msgkill = -8
+
 def uv_shift(data, target, new_coord):
     """Shift the phase center of a dataset.
 
@@ -45,5 +47,5 @@ def uv_shift(data, target, new_coord):
     uvfix.srcname = target
     uvfix.shift = AIPSList([float(shift_1), float(shift_2)])
 
-    uvfix.msgkill = -4
+    # uvfix.msgkill = -4
     uvfix.go()

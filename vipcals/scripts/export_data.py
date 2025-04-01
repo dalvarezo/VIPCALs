@@ -6,6 +6,10 @@ from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 from AIPSData import AIPSUVData
 
+import functools
+print = functools.partial(print, flush=True)
+
+AIPSTask.msgkill = -8
 
 def are_there_baselines(data, table_number, source_name):
     """Check if there are enough unflagged visibilities to form at least a baseline
@@ -110,7 +114,7 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
         split.docal = 1
         split.gainuse = 9+i
         split.doband = 1
-        split.msgkill = -4
+        # split.msgkill = -4
         split.aparm[1] = 2  # Average frequency in IFs, produce one channel per IF
     
         try:
@@ -156,7 +160,7 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
             fittp.indisk = data.disk
             fittp.inseq = data.seq
             fittp.dataout = path_list[i] + '/' + filename_list[i] + '.uvfits'
-            fittp.msgkill = -4        
+            # fittp.msgkill = -4        
             fittp.go()
 
     return(no_baseline)
@@ -199,7 +203,7 @@ def table_export(path_list, data, target_list, filename_list):
         else:
             fittp.dataout = path_list[i] + '/TABLES/aux.caltab.uvfits' 
 
-        fittp.msgkill = -4        
+        # fittp.msgkill = -4        
         fittp.go()
 
         # If created, rename aux.caltab.fits with the proper name

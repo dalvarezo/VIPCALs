@@ -5,8 +5,7 @@ from datetime import datetime
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
-#from AIPSData import AIPSUVData, AIPSImage
-#import Wizardry.AIPSData as wizard
+AIPSTask.msgkill = -8
 
 def tacop(data, ext, invers, outvers):
     """Copy one calibration table to another.
@@ -36,7 +35,7 @@ def tacop(data, ext, invers, outvers):
     tacop.inext = ext
     tacop.invers = invers
     tacop.outvers = outvers
-    tacop.msgkill = -4
+    # tacop.msgkill = -4
     
     tacop.go()
 
@@ -110,7 +109,7 @@ def old_tecor(data):
     tecor.aparm[1] = 1   # Correct for dispersive delays
     tecor.gainver = 1
     tecor.gainuse = 2
-    tecor.msgkill = -4
+    # tecor.msgkill = -4
 
     tecor.go()
 
@@ -185,7 +184,7 @@ def new_tecor(data):
     tecor.aparm[1] = 1   # Correct for dispersive delays
     tecor.gainver = 1
     tecor.gainuse = 2
-    tecor.msgkill = -4
+    # tecor.msgkill = -4
 
     tecor.go()
 def ionos_correct(data):

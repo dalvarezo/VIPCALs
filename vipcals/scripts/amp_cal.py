@@ -4,6 +4,9 @@ import os
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
+
+AIPSTask.msgkill = -8
+
 def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     """Apply a-priori amplitude corrections
     
@@ -41,7 +44,7 @@ def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     #  apcal.sources = AIPSList(sources)
     apcal.aparm[6] = average
     apcal.aparm[7] = ref_if
-    apcal.msgkill = -4
+    #apcal.msgkill = -4
     
     apcal.go()
     
@@ -55,6 +58,6 @@ def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     clcal.snver = 5
     clcal.gainver = 7
     clcal.gainuse = 8
-    clcal.msgkill = -4
+    #clcal.msgkill = -4
 
     clcal.go()

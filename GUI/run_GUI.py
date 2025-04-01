@@ -1,6 +1,7 @@
 import sys
+import time
+import json
 import os
-os.environ["PYTHONUNBUFFERED"] = "1"
 import matplotlib
 import subprocess
 
@@ -47,16 +48,20 @@ class PipelineWorker(QThread):
     def run(self):
         """Runs mock_pipeline.py in a subprocess and streams output."""
         process = subprocess.Popen(
-            ["conda", "run", "-n", "aips", "ParselTongue", "mock_pipeline.py"],
+            ["conda", "run", "--no-capture-output" ,"-n", "vipcals", 
+             "ParselTongue", "../vipcals/__main__.py",
+             "temp.json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1  # Line buffering for real-time output
+            bufsize=1,  # Line buffering for real-time output
+            universal_newlines=True
         )
 
         # Read stdout line by line
         for line in iter(process.stdout.readline, ''):
             self.output_received.emit(line.strip())  # Emit each line immediately
+           
 
         # Read and emit errors if any
         for err in iter(process.stderr.readline, ''):
@@ -113,20 +118,34 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         super().__init__()
         self.main_window = main_window
         self.setupUi(self)  
-        
+
         self.fields = {
-            self.disk_lbl: self.disk_line,
-            self.filepath_lbl: self.filepath_line,
-            self.output_lbl: self.output_line,
-            self.target_lbl: self.target_line,
-            self.userno_lbl: self.userno_line,
-            self.calsour_lbl: self.calsour_line,
-            self.edgeflag_lbl: self.edgeflag_line,
-            self.phasref_lbl: self.phasref_line,
-            self.refant_lbl: self.refant_line,
-            self.shift_lbl: self.shift_line,
-            self.loadall_lbl: self.loadall_line
+            "disk": self.disk_line,
+            "paths": self.filepath_line,
+            "output_directory": self.output_line,
+            "targets": self.target_line,
+            "userno": self.userno_line,
+            "calib": self.calsour_line,
+            "flag_edge": self.edgeflag_line,
+            "phase_ref": self.phasref_line,
+            "refant": self.refant_line,
+            "shifts": self.shift_line,
+            "load_all": self.loadall_line
         }
+        
+        #self.fields = {
+        #    self.disk_lbl: self.disk_line,
+        #    self.filepath_lbl: self.filepath_line,
+        #    self.output_lbl: self.output_line,
+        #    self.target_lbl: self.target_line,
+        #    self.userno_lbl: self.userno_line,
+        #    self.calsour_lbl: self.calsour_line,
+        #    self.edgeflag_lbl: self.edgeflag_line,
+        #    self.phasref_lbl: self.phasref_line,
+        #    self.refant_lbl: self.refant_line,
+        #    self.shift_lbl: self.shift_line,
+        #    self.loadall_lbl: self.loadall_line
+        #}
         
         self.loadall_line.addItems(['False', 'True'])
         
@@ -155,14 +174,24 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         )
         self.filepath_line.setText(str(response[0]))
     def retrieve_inputs(self):
-        data = {}
+        inputs = {}
         for label, line_edit in self.fields.items():
-            if label != self.loadall_lbl:
-                data[label.text()] = line_edit.text()
+            print(label, line_edit)
+            if label == "load_all":
+                inputs[label] = self.loadall_line.currentText()
+            elif label == "paths":
+                inputs[label] = [line_edit.text()]
+            elif label == "targets":
+                inputs[label] = [line_edit.text()]
             else:
-                data[label.text()] = self.loadall_line.currentText()
-        #data = {label.text(): line_edit.text() for label, line_edit in self.fields.items()}
-        print(f"Inputs: {data}")
+                inputs[label] = line_edit.text()
+
+        # Save inputs as JSON
+        json_inputs = json.dumps(inputs)
+        with open('./temp.json', 'w') as f:
+            f.write(json_inputs)
+
+        print(f"Inputs: {inputs}")
     
     def showEvent(self, event):
         for label, line_edit in list(self.fields.items()):

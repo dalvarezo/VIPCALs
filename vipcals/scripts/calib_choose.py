@@ -4,6 +4,8 @@ from AIPSTask import AIPSTask, AIPSList
 import numpy as np
 import os
 
+AIPSTask.msgkill = -8
+
 class SNRScan():
     """Scans within an observation.""" ## SHOULD BE MERGED WITH THE Scan() CLASS
     def __init__(self):
@@ -52,7 +54,7 @@ def snr_fring(data, refant, solint = 0):
     snr_fring.dparm[9] = 1    # Do NOT fit rates    
     
     snr_fring.snver = 1
-    snr_fring.msgkill = -4
+    #snr_fring.msgkill = -4
     
     snr_fring.go()
     
@@ -102,7 +104,7 @@ def snr_fring_only_fft(data, refant, solint = 0, delay_w = 1000, \
     #snr_fring.dparm[9] = 1    # Do NOT fit rates    
     
     snr_fring.snver = 1
-    snr_fring.msgkill = -4
+    #snr_fring.msgkill = -4
     
     snr_fring.go()
     

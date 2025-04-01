@@ -4,6 +4,8 @@ from AIPSTask import AIPSTask, AIPSList
 import numpy as np
 import os
 
+AIPSTask.msgkill = -8
+
 def tacop(data, ext, invers, outvers):
     """Copy one calibration table to another.
 
@@ -32,7 +34,7 @@ def tacop(data, ext, invers, outvers):
     tacop.inext = ext
     tacop.invers = invers
     tacop.outvers = outvers
-    tacop.msgkill = -4
+    # tacop.msgkill = -4
     
     tacop.go()
 
@@ -86,7 +88,7 @@ def pulse_phasecal(data, refant, cal_scan):
     pccor.calsour = AIPSList([calib])
     pccor.timerang = timer
     pccor.snver = 3
-    pccor.msgkill = -4
+    # pccor.msgkill = -4
     
     pccor.go()
 
@@ -100,7 +102,7 @@ def pulse_phasecal(data, refant, cal_scan):
     clcal.snver = 3
     clcal.gainver = 5
     clcal.gainuse = 6
-    clcal.msgkill = -4
+    # clcal.msgkill = -4
     
     clcal.go()
 
@@ -151,7 +153,7 @@ def manual_phasecal(data, refant, cal_scan):
     phasecal_fring.dparm[9] = 1    # Do NOT fit rates 
     
     phasecal_fring.snver = 3
-    phasecal_fring.msgkill = -2
+    # phasecal_fring.msgkill = -2
     
     # # Debugging line
     # print(phasecal_fring.inputs())
@@ -168,7 +170,7 @@ def manual_phasecal(data, refant, cal_scan):
     clcal.snver = 3
     clcal.gainver = 5
     clcal.gainuse = 6
-    clcal.msgkill = -4
+    # clcal.msgkill = -4
     
     clcal.go()
     
@@ -223,7 +225,7 @@ def manual_phasecal_multi(data, refant, calib_scans):
         phasecal_fring.dparm[9] = 1    # Do NOT fit rates 
         
         phasecal_fring.snver = 3 + n
-        phasecal_fring.msgkill = -2
+        # phasecal_fring.msgkill = -2
         
         phasecal_fring.go()
     
@@ -255,7 +257,7 @@ def manual_phasecal_multi(data, refant, calib_scans):
     clcal_apply.snver = 3 + n + 1
     clcal_apply.gainver = 5
     clcal_apply.gainuse = 6
-    clcal_apply.msgkill = -4
+    # clcal_apply.msgkill = -4
     
     clcal_apply.go()
     

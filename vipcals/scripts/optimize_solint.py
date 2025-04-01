@@ -6,6 +6,7 @@ import os
 
 from random import sample 
 
+AIPSTask.msgkill = -8
 
 def ddhhmmss(time):
     """Convert decimal dates into AIPS dd hh mm ss format.
@@ -76,10 +77,9 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
                                        # range
     optimiz_fring.dparm[3] = rate_w    # Rate window (mHz) 0 => Full Nyquist 
                                        # range
-    optimiz_fring.dparm[5] = 1    # Stop at the FFT step
-    #optimiz_fring.dparm[9] = 1    # Do NOT fit rates    
+    optimiz_fring.dparm[5] = 1    # Stop at the FFT step  
     
-    optimiz_fring.msgkill = -4
+    # optimiz_fring.msgkill = -4
     
     optimiz_fring.go()
 

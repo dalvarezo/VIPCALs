@@ -4,6 +4,8 @@ import os
 from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
+AIPSTask.msgkill = -8
+
 def sampling_correct(data, solint = -3):
     """Digital sampling correction
     
@@ -24,7 +26,7 @@ def sampling_correct(data, solint = -3):
     accor.indisk = data.disk
     accor.inseq = data.seq
     accor.solint = solint 
-    accor.msgkill = -2  
+    #accor.msgkill = -2  
 
     accor.go()
 
@@ -38,7 +40,7 @@ def sampling_correct(data, solint = -3):
     clcal.snver = 2
     clcal.gainver = 4
     clcal.gainuse = 5
-    clcal.msgkill = -4
+    #clcal.msgkill = -4
 
     clcal.go()
 
@@ -64,7 +66,7 @@ def correct_autocorr(data, solint = -5):
     acscl.docalib = 1
     acscl.gainuse = 0
     acscl.doband = 1
-    acscl.msgkill = -2  
+    #acscl.msgkill = -2  
 
     acscl.go()
 
@@ -78,6 +80,6 @@ def correct_autocorr(data, solint = -5):
     clcal.snver = 4
     clcal.gainver = 6
     clcal.gainuse = 7
-    clcal.msgkill = -4
+    #clcal.msgkill = -4
 
     clcal.go()

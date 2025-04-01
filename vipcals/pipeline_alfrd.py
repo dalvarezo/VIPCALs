@@ -34,6 +34,9 @@ from AIPSTask import AIPSTask, AIPSList
 from alfrd.lib import GSC, LogFrame
 from alfrd.util import timeinmin, read_inputfile
 
+import functools
+print = functools.partial(print, flush=True)
+
 
 ###################################################################################
 # Modified version of the pipeline to include ALFRD and write the output of some  #
@@ -1461,7 +1464,7 @@ def pipeline(input_dict):
             ## Select sources to load ##
             full_source_list = load.get_source_list(filepath_list, multifreq_id[2][ids])
             if load_all == False:
-                calibs = load.find_calibrators(full_source_list)
+                calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
                 # If no sources are on the calibrator list, load all and print a message
                 if calibs == 999:
                     sources = [x.name for x in full_source_list]
@@ -1542,7 +1545,7 @@ def pipeline(input_dict):
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list, multifreq_if[7])
         if load_all == False:
-            calibs = load.find_calibrators(full_source_list)
+            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
             # If no sources are on the calibrator list, load all and print a message
             if calibs == 999:
                 sources = [x.name for x in full_source_list]
@@ -1613,7 +1616,7 @@ def pipeline(input_dict):
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list, multifreq_if[8])
         if load_all == False:
-            calibs = load.find_calibrators(full_source_list)
+            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
             # If no sources are on the calibrator list, load all and print a message
             if calibs == 999:
                 sources = [x.name for x in full_source_list]
@@ -1687,7 +1690,7 @@ def pipeline(input_dict):
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list)
         if load_all == False:
-            calibs = load.find_calibrators(full_source_list)
+            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
             # If no sources are on the calibrator list, load all and print a message
             if calibs == 999:
                 sources = [x.name for x in full_source_list]

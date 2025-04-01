@@ -9,6 +9,9 @@ from astropy.coordinates import SkyCoord
 
 from pipeline_alfrd import pipeline
 
+import functools
+print = functools.partial(print, flush=True)
+
 ###################################################################################
 # Modified version of the pipeline to include ALFRD and write the output of some  #
 # tasks onto a google sheet. Meant to be used only for SMILE.                     #
@@ -99,9 +102,22 @@ for i, entry in enumerate(entry_list):
     input_dict = create_default_dict()
     # Unzip inputs
     for key in entry:
-        input_dict[key] = entry[key]
+        if entry[key] != "":
+            input_dict[key] = entry[key]
 
     ## Input sanity check ##
+    # Some inputs need to be integers #
+    try:
+        input_dict['userno'] = int(input_dict['userno'])
+    except ValueError:
+        print('User number has to be a number.\n')
+        exit()
+    try:
+        input_dict['disk'] = int(input_dict['disk'])
+    except ValueError:
+        print('Disk number has to be a number.\n')
+        exit()
+
     # Some inputs need to be given as a list #
     if type(input_dict['paths']) != list:
         print('Filepaths have to be given as a list in the input file.\n')
@@ -128,6 +144,7 @@ for i, entry in enumerate(entry_list):
             print('\nThe number of phase reference calibrators does not match ' \
             + 'the number of targets to calibrate.\n')
             exit()
+            
     # Phase shift #
     if input_dict['shifts'] != 'NONE':
         if len(input_dict['targets']) != len(input_dict['shifts']):

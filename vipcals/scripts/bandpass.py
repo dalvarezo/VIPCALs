@@ -4,6 +4,7 @@ from AIPSTask import AIPSTask, AIPSList
 import numpy as np
 import os
 
+AIPSTask.msgkill = -8
 
 def ddhhmmss(time):
     """Convert decimal dates into AIPS dd hh mm ss format.
@@ -62,6 +63,6 @@ def bp_correction(data,refant, calib_scans):
                             # voltage
     bpass.gainuse = 0
     bpass.outvers = 1
-    bpass.msgkill = -4
+    # bpass.msgkill = -4
     
     bpass.go()

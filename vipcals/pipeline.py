@@ -29,6 +29,9 @@ import scripts.phase_shift as shft
 
 from AIPSData import AIPSUVData
 
+import functools
+print = functools.partial(print, flush=True)
+
 def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
              filename_list, log_list, path_list,\
              disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
@@ -1158,16 +1161,16 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     t15 = time.time()
     for pipeline_log in log_list:
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t15-t14))
-    print('Execution time: {:.2f} s. \n'.format(t15-t14))
+        pipeline_log.write('\nExecution time: {:.2f} s.\n'.format(t15-t14))
+    print('Execution time: {:.2f} s.\n'.format(t15-t14))
 
     ## Total execution time ##
     tf = time.time()
     for pipeline_log  in log_list:
         pipeline_log.write('\nScript run time: '\
-                         + '{:.2f} s. \n'.format(tf-t_i))
+                         + '{:.2f} s.\n'.format(tf-t_i))
         pipeline_log.close()
-    print('\nScript run time: {:.2f} s. \n'.format(tf-t_i))
+    print('\nScript run time: {:.2f} s.\n'.format(tf-t_i))
 
 def pipeline(input_dict):
     """Read the inputs, split multiple frequencies and calibrate the dataset
@@ -1205,7 +1208,7 @@ def pipeline(input_dict):
             ## Select sources to load ##
             full_source_list = load.get_source_list(filepath_list, multifreq_id[2][ids])
             if load_all == False:
-                calibs = load.find_calibrators(full_source_list)
+                calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
                 # If no sources are on the calibrator list, load all and print a message
                 if calibs == 999:
                     sources = [x.name for x in full_source_list]
@@ -1286,7 +1289,7 @@ def pipeline(input_dict):
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list, multifreq_if[7])
         if load_all == False:
-            calibs = load.find_calibrators(full_source_list)
+            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
             # If no sources are on the calibrator list, load all and print a message
             if calibs == 999:
                 sources = [x.name for x in full_source_list]
@@ -1355,7 +1358,7 @@ def pipeline(input_dict):
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list, multifreq_if[8])
         if load_all == False:
-            calibs = load.find_calibrators(full_source_list)
+            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
             # If no sources are on the calibrator list, load all and print a message
             if calibs == 999:
                 sources = [x.name for x in full_source_list]
@@ -1429,7 +1432,7 @@ def pipeline(input_dict):
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list)
         if load_all == False:
-            calibs = load.find_calibrators(full_source_list)
+            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
             # If no sources are on the calibrator list, load all and print a message
             if calibs == 999:
                 sources = [x.name for x in full_source_list]
