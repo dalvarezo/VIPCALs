@@ -4,13 +4,17 @@ import json
 import os
 import matplotlib
 import subprocess
+import pickle
 
 matplotlib.use('QtAgg')
 
 from io import StringIO
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.collections import PathCollection
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+
 
 from PySide6 import QtCore as qtc
 from PySide6.QtCore import QThread, Signal
@@ -44,13 +48,16 @@ class OutputRedirector(StringIO):
 class PipelineWorker(QThread):
     output_received = Signal(str)  # Signal to send stdout
     error_received = Signal(str)   # Signal to send stderr
+    process_finished = Signal()
 
     def run(self):
         """Runs mock_pipeline.py in a subprocess and streams output."""
         process = subprocess.Popen(
+            #["conda", "run", "--no-capture-output" ,"-n", "vipcals", 
+            # "ParselTongue", "../vipcals/__main__.py",
+            # "temp.json"],
             ["conda", "run", "--no-capture-output" ,"-n", "vipcals", 
-             "ParselTongue", "../vipcals/__main__.py",
-             "temp.json"],
+             "ParselTongue", "mock_pipeline.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -68,6 +75,8 @@ class PipelineWorker(QThread):
             self.error_received.emit("\n[ERROR]: " + err.strip())
 
         process.wait()  # Ensure process finishes
+
+        self.process_finished.emit()  # Notify when done
 
         
 # Main Window
@@ -132,21 +141,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             "shifts": self.shift_line,
             "load_all": self.loadall_line
         }
-        
-        #self.fields = {
-        #    self.disk_lbl: self.disk_line,
-        #    self.filepath_lbl: self.filepath_line,
-        #    self.output_lbl: self.output_line,
-        #    self.target_lbl: self.target_line,
-        #    self.userno_lbl: self.userno_line,
-        #    self.calsour_lbl: self.calsour_line,
-        #    self.edgeflag_lbl: self.edgeflag_line,
-        #    self.phasref_lbl: self.phasref_line,
-        #    self.refant_lbl: self.refant_line,
-        #    self.shift_lbl: self.shift_line,
-        #    self.loadall_lbl: self.loadall_line
-        #}
-        
+               
         self.loadall_line.addItems(['False', 'True'])
         
         self.selectfile_btn.clicked.connect(self.get_input_file)
@@ -228,6 +223,9 @@ class RunWindow(qtw.QWidget, Ui_run_window):
         self.text_output.setReadOnly(True)
         sys.stdout = OutputRedirector(self.text_output)  # Redirect stdout
 
+        self.plots_btn.setVisible(False)
+        self.return_btn.setVisible(False)
+
         self.plots_btn.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.plots_page))
         self.return_btn.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.main_page))
 
@@ -241,8 +239,14 @@ class RunWindow(qtw.QWidget, Ui_run_window):
         self.worker = PipelineWorker()
         self.worker.output_received.connect(self.text_output.append)  # Live update
         self.worker.error_received.connect(self.text_output.append)   # Live error update
+        self.worker.process_finished.connect(self.show_buttons)  # Show buttons when finished
 
-        self.worker.start()  # Run in the background
+        self.worker.start()  # Start pipeline process
+
+    def show_buttons(self):
+        """Show plots and return buttons after process finishes."""
+        self.plots_btn.setVisible(True)
+        self.return_btn.setVisible(True)
 
 
 class PlotsWindow(qtw.QWidget, Ui_plots_window):
@@ -253,18 +257,107 @@ class PlotsWindow(qtw.QWidget, Ui_plots_window):
 
         self.canvas_window = []
 
-        self.vplot_btn.clicked.connect(self.openCanvas)
-        self.possm_uncal_btn.clicked.connect(self.openCanvas)
-        self.possm_cal_btn.clicked.connect(self.openCanvas)
-        self.uvplot_btn.clicked.connect(self.openCanvas)
+        self.vplot_btn.clicked.connect(self.openVplotCanvas)
+        self.possm_uncal_btn.clicked.connect(self.openPossmCanvas)
+        self.possm_cal_btn.clicked.connect(self.openRadplotCanvas)
+        self.uvplot_btn.clicked.connect(self.openUvplotCanvas)
         self.return_btn.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.run_page)) 
 
-    def openCanvas(self):
-        canvas = CanvasWindow()
+    def openVplotCanvas(self):
+        canvas = VplotWindow()
+        self.canvas_window.append(canvas)
+        canvas.show()
+    def openPossmCanvas(self):
+        canvas = PossmWindow()
+        self.canvas_window.append(canvas)
+        canvas.show()
+    def openRadplotCanvas(self):
+        canvas = RadplotWindow()
+        self.canvas_window.append(canvas)
+        canvas.show()
+    def openUvplotCanvas(self):
+        canvas = UvplotWindow()
         self.canvas_window.append(canvas)
         canvas.show()
         
-class CanvasWindow(qtw.QMainWindow):
+class VplotWindow(qtw.QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("VPLOT")
+
+        # Create a central widget and layout
+        central_widget = qtw.QWidget()
+        layout = qtw.QVBoxLayout()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
+        # Create the matplotlib figure and canvas
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+
+        # Create a toolbar for navigation
+        self.toolbar = NavigationToolbar(self.canvas, self)
+
+        # Add widgets to layout
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+
+        # Plot some data
+        self.plot_data()
+
+    def plot_data(self):
+        # Load the pickled figure
+        loaded_figure = pickle.load(open('./tmp/1_2.vplt.pickle', 'rb'))
+        original_axes = loaded_figure.get_axes()
+
+        # Create new figure and canvas
+        new_figure = Figure()
+        new_canvas = FigureCanvas(new_figure)
+        new_toolbar = NavigationToolbar(new_canvas, self)
+
+        # Recreate subplots and copy content
+        new_axes = []
+        for i, ax in enumerate(original_axes):
+            new_ax = new_figure.add_subplot(2, 1, i + 1, sharex=new_axes[0] if new_axes else None)
+
+            # Copy lines
+            for line in ax.lines:
+                new_ax.plot(line.get_xdata(), line.get_ydata(), label=line.get_label(), color=line.get_color())
+
+            # Copy scatter plots
+            for artist in ax.collections:
+                if isinstance(artist, PathCollection):
+                    offsets = artist.get_offsets()
+                    colors = artist.get_facecolor()
+                    new_ax.scatter(offsets[:, 0], offsets[:, 1], c=colors, s=artist.get_sizes(), marker='.')
+
+            # Copy labels
+            new_ax.set_title(ax.get_title())
+            new_ax.set_xlabel(ax.get_xlabel())
+            new_ax.set_ylabel(ax.get_ylabel())
+            new_axes.append(new_ax)
+
+        # Remove old widgets
+        layout = self.centralWidget().layout()
+        layout.removeWidget(self.canvas)
+        layout.removeWidget(self.toolbar)
+        self.canvas.setParent(None)
+        self.toolbar.setParent(None)
+
+        # Add new canvas and toolbar
+        self.figure = new_figure
+        self.canvas = new_canvas
+        self.toolbar = new_toolbar
+
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+
+        self.canvas.draw()
+
+
+
+class PossmWindow(qtw.QMainWindow):
     def __init__(self):
         super().__init__()
 
@@ -298,6 +391,157 @@ class CanvasWindow(qtw.QMainWindow):
         ax.set_ylabel("Y-axis")
 
         self.canvas.draw()  # Update the canvas
+    
+class RadplotWindow(qtw.QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("PySide6 + Matplotlib Example")
+
+        # Create a central widget and layout
+        central_widget = qtw.QWidget()
+        layout = qtw.QVBoxLayout()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
+        # Create the matplotlib figure and canvas
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+
+        # Create a toolbar for navigation
+        self.toolbar = NavigationToolbar(self.canvas, self)
+
+        # Add widgets to layout
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+
+        # Plot some data
+        self.plot_data()
+
+    def plot_data(self):
+        # Load the pickled figure
+        loaded_figure = pickle.load(open('./tmp/J1329+3154.radplot.pickle', 'rb'))
+        original_axes = loaded_figure.get_axes()
+
+        # Create new figure and canvas
+        new_figure = Figure()
+        new_canvas = FigureCanvas(new_figure)
+        new_toolbar = NavigationToolbar(new_canvas, self)
+
+        # Recreate subplots and copy content
+        new_axes = []
+        for i, ax in enumerate(original_axes):
+            new_ax = new_figure.add_subplot(2, 1, i + 1, sharex=new_axes[0] if new_axes else None)
+
+            # Copy lines
+            for line in ax.lines:
+                new_ax.plot(line.get_xdata(), line.get_ydata(), label=line.get_label(), color=line.get_color())
+
+            # Copy scatter plots
+            for artist in ax.collections:
+                if isinstance(artist, PathCollection):
+                    offsets = artist.get_offsets()
+                    colors = artist.get_facecolor()
+                    new_ax.scatter(offsets[:, 0], offsets[:, 1], c=colors, s=artist.get_sizes(), marker='.')
+
+            # Copy labels
+            new_ax.set_title(ax.get_title())
+            new_ax.set_xlabel(ax.get_xlabel())
+            new_ax.set_ylabel(ax.get_ylabel())
+            new_axes.append(new_ax)
+
+        # Remove old widgets
+        layout = self.centralWidget().layout()
+        layout.removeWidget(self.canvas)
+        layout.removeWidget(self.toolbar)
+        self.canvas.setParent(None)
+        self.toolbar.setParent(None)
+
+        # Add new canvas and toolbar
+        self.figure = new_figure
+        self.canvas = new_canvas
+        self.toolbar = new_toolbar
+
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+
+        self.canvas.draw()
+
+class UvplotWindow(qtw.QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("PySide6 + Matplotlib Example")
+
+        # Create a central widget and layout
+        central_widget = qtw.QWidget()
+        layout = qtw.QVBoxLayout()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
+        # Create the matplotlib figure and canvas
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+
+        # Create a toolbar for navigation
+        self.toolbar = NavigationToolbar(self.canvas, self)
+
+        # Add widgets to layout
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+
+        # Plot some data
+        self.plot_data()
+
+    def plot_data(self):
+        # Load the pickled figure
+        loaded_figure = pickle.load(open('./tmp/J1329+3154.uvplt.pickle', 'rb'))
+        original_axes = loaded_figure.get_axes()
+
+        # Create new figure and canvas
+        new_figure = Figure()
+        new_canvas = FigureCanvas(new_figure)
+        new_toolbar = NavigationToolbar(new_canvas, self)
+
+        # Recreate subplots and copy content
+        new_axes = []
+        for i, ax in enumerate(original_axes):
+            new_ax = new_figure.add_subplot(2, 1, i + 1, sharex=new_axes[0] if new_axes else None)
+
+            # Copy lines
+            for line in ax.lines:
+                new_ax.plot(line.get_xdata(), line.get_ydata(), label=line.get_label(), color=line.get_color())
+
+            # Copy scatter plots
+            for artist in ax.collections:
+                if isinstance(artist, PathCollection):
+                    offsets = artist.get_offsets()
+                    colors = artist.get_facecolor()
+                    new_ax.scatter(offsets[:, 0], offsets[:, 1], c=colors, s=artist.get_sizes(), marker='.')
+
+            # Copy labels
+            new_ax.set_title(ax.get_title())
+            new_ax.set_xlabel(ax.get_xlabel())
+            new_ax.set_ylabel(ax.get_ylabel())
+            new_ax.set_aspect('equal')
+            new_axes.append(new_ax)
+
+        # Remove old widgets
+        layout = self.centralWidget().layout()
+        layout.removeWidget(self.canvas)
+        layout.removeWidget(self.toolbar)
+        self.canvas.setParent(None)
+        self.toolbar.setParent(None)
+
+        # Add new canvas and toolbar
+        self.figure = new_figure
+        self.canvas = new_canvas
+        self.toolbar = new_toolbar
+
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+
+        self.canvas.draw()
   
 # Run the Application
 if __name__ == "__main__":

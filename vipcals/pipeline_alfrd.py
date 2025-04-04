@@ -247,6 +247,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## 1.- LOAD DATA ##
     disp.write_box(log_list, 'Loading data')
+    disp.print_box('Loading data')
     
     ## Check if the filepath is > 46 characters
     ## IN PRINCIPLE THIS PART IS NOT NEEDED ANYMORE, SYMLINKS ARE ALWAYS USED INSTEAD
@@ -323,6 +324,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     if ([1, 'AIPS TY'] not in uvdata.tables or [1, 'AIPS GC'] \
     not in uvdata.tables or [1, 'AIPS FG'] not in uvdata.tables):
         disp.write_box(log_list, 'Loading external table information')
+        disp.print_box('Loading external table information')
         missing_tables = True
         t_i_table = time.time()
 
@@ -408,7 +410,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     if shift_coords != 'NONE':
         disp.write_box(log_list, 'Shifting phase center')
-        print('\nShifting phase center\n')
+        disp.print_box('Shifting phase center')
         for i, target in enumerate(target_list):
             if shift_coords[i] == SkyCoord(0, 0, unit = 'deg'):
                 continue
@@ -458,6 +460,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         tabl.run_indxr(uvdata)
 
         disp.write_box(log_list, 'Data averaging')
+        disp.print_box('Data averaging')
         for pipeline_log in log_list:
             pipeline_log.write('\nThe time resolution was ' \
                             + '{:.2f}'.format(time_resol) \
@@ -488,6 +491,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             
             if time_resol >= 0.33: # => If it was not written before
                 disp.write_box(log_list, 'Data averaging')
+                disp.print_box('Data averaging')
             
             tabl.freq_aver(uvdata,f_ratio)
             uvdata = AIPSUVData(aips_name[:9] + '_AF', uvdata.klass, \
@@ -537,6 +541,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## Flag antennas with no TY or GC table entries ##  
     
     disp.write_box(log_list, 'Flagging system temperatures')
+    disp.print_box('Flagging system temperatures')
     
     no_tsys_ant, no_gc_ant = tysm.ty_smooth(uvdata)
 
@@ -601,6 +606,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Choose refant ##
     disp.write_box(log_list, 'Reference antenna search')
+    disp.print_box('Reference antenna search')
     print('\nSearch for reference antenna starts...\n')
     
     if default_refant == 'NONE':
@@ -639,6 +645,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Ionospheric correction ##
     disp.write_box(log_list, 'Ionospheric corrections')
+    disp.print_box('Ionospheric corrections')
     
     YYYY = int(uvdata.header.date_obs[:4])
     MM = int(uvdata.header.date_obs[5:7])
@@ -668,6 +675,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
     ## Earth orientation parameters correction ##
     disp.write_box(log_list, 'Earth orientation parameters corrections')
+    disp.print_box('Earth orientation parameters corrections')
     
     eopc.eop_correct(uvdata)
     t5 = time.time()
@@ -682,6 +690,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Parallatic angle correction ##
     disp.write_box(log_list, 'Parallactic angle corrections')
+    disp.print_box('Parallactic angle corrections')
     
     pang.pang_corr(uvdata)
     t6 = time.time()
@@ -699,6 +708,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
+        disp.print_box('Calibrator search')
         
         #snr_fring(uvdata, refant)
         cali.snr_fring_only_fft(uvdata, refant)
@@ -768,6 +778,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
+        disp.print_box('Calibrator search')
         
         #snr_fring(uvdata, refant)
         cali.snr_fring_only_fft(uvdata, refant)
@@ -802,6 +813,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Digital sampling correction ##
     disp.write_box(log_list, 'Digital sampling corrections')
+    disp.print_box('Digital sampling corrections')
     
     accr.sampling_correct(uvdata)
     t8 = time.time()
@@ -815,6 +827,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Instrumental phase correction ##
     disp.write_box(log_list, 'Instrumental phase corrections')
+    disp.print_box('Instrumental phase corrections')
     
     inst.manual_phasecal_multi(uvdata, refant, calibrator_scans)
     t9 = time.time()
@@ -830,6 +843,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Bandpass correction ##
     disp.write_box(log_list, 'Bandpass correction')
+    disp.print_box('Bandpass correction')
+    
     
     bpas.bp_correction(uvdata, refant, calibrator_scans)
     t10 = time.time()
@@ -842,6 +857,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Correcting autocorrelations ##
     disp.write_box(log_list, 'Correcting autocorrelations')
+    disp.print_box('Correcting autocorrelations')
     
     accr.correct_autocorr(uvdata)
     t11 = time.time()
@@ -856,6 +872,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Amplitude calibration ##
     disp.write_box(log_list, 'Amplitude calibration')
+    disp.print_box('Amplitude calibration')
 
     ampc.amp_cal(uvdata)
     t12 = time.time()
@@ -901,6 +918,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     ## Get optimal solution interval for each target
     disp.write_box(log_list, 'Target fringe fit')
+    disp.print_box('Target fringe fit')
 
     # If there are no phase reference sources, make the length of the list match the 
     # target list length
@@ -1290,6 +1308,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
      ##  Export data ##
     disp.write_box(log_list, 'Exporting visibility data')
+    disp.print_box('Exporting visibility data')
 
     no_baseline = expo.data_export(path_list, uvdata, target_list, filename_list, \
                                   flag_frac = flag_edge)
@@ -1321,6 +1340,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Plot visibilities as a function of frequency of target and calibrator ## 
     disp.write_box(log_list, 'Plotting visibilities')
+    disp.print_box('Plotting visibilities')
     
     ## Uncalibrated ##
     for i, target in enumerate(target_list):

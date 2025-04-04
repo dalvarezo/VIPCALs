@@ -1,10 +1,46 @@
+import os
+import copy
+import pickle
+import numpy as np
+
+from matplotlib import pyplot as plt
+
 from AIPS import AIPS
+from AIPSData import AIPSUVData
 from AIPSTask import AIPSTask, AIPSList
 
-import numpy as np
-import os
+import Wizardry.AIPSData as wizard
 
-AIPSTask.msgkill = -8
+AIPSTask.msgkill = -1
+
+class Datum(wizard._AIPSVisibility):
+    def __init__(self):
+        super().__init__()
+        self.if_avg_vis = None
+        self.uvdist = None
+        self.visshape = None
+        self.timestamp = None
+        self.bline = None
+        self.central_freq = None
+    def set_attributes(self, if_freq):
+        central_uv_dist = np.sqrt(self.uvw[0]**2 + self.uvw[1]**2)
+        self.uvdist = [central_uv_dist * (1+x/self.central_freq) for x in if_freq]
+        self.visshape = self.visibility.shape
+        self.if_avg_vis = np.full([self.visshape[0], 1, self.visshape[2], 
+                                   self.visshape[3]], 1, dtype = float)
+        for IF in range(self.visshape[0]):
+            for pol in range(self.visshape[2]):
+                reals = self.visibility[IF, :, pol, 0]
+                imags = self.visibility[IF, :, pol, 1]
+                weights = self.visibility[IF, :, pol, 2]
+                if sum(weights) == 0:
+                    self.if_avg_vis[IF, 0, pol, 0] = 0
+                    self.if_avg_vis[IF, 0, pol, 1] = 0
+                    self.if_avg_vis[IF, 0, pol, 2] = 0
+                else:
+                    self.if_avg_vis[IF, 0, pol, :] = np.average(reals, weights= weights), \
+                                                     np.average(imags, weights= weights), \
+                                                     sum(weights)
 
 def ddhhmmss(time):
     """Convert decimal dates into AIPS dd hh mm ss format.
@@ -266,3 +302,248 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     
     # Clean all plots
     data.zap_table('PL', -1)
+
+def generate_pickle_plots(data, target_list):
+    """Generate multiple plots and serialize them in pickle format.
+
+    The function applies all the different calibration tables to the data and 
+    creates multiple matplotlib figures with each of them. This figures are 
+    serialized with pickle and can be later displayed in the GUI.
+
+    Generated plots are amp&phase vs freq (for each table), amp&phase vs time 
+    (for the last table), amp&phase vs uvdist (for the last table), and 
+    uv coverage. They are stores in a temporary directory in order to be read 
+    by the GUI.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target_list: list of sources to split
+    :type target_list: list of str  
+    """
+    # Apply all calibrations tables to each target
+    max_cl = data.table_highver('CL')
+    for i, target in enumerate(target_list):
+        max_cl = data.table_highver('CL')
+        for n in range(max_cl):
+            pickle_split = AIPSTask('split')
+            pickle_split = AIPSTask('split')
+            pickle_split.inname = data.name
+            pickle_split.inclass = data.klass
+            pickle_split.indisk = data.disk
+            pickle_split.inseq = data.seq
+            pickle_split.outdisk = data.disk
+            pickle_split.outclass = 'PLOTS'
+            pickle_split.outseq = n+1
+            pickle_split.sources = AIPSList([target])
+            pickle_split.docal = 1
+            pickle_split.gainuse = n+1
+            if n >= 7:
+                pickle_split.doband = 1
+            pickle_split.aparm[1] = 1  #Don't average frequency in IFs, multi-channel out
+            # NO FLAGGING FOR NOW
+            # if it fails, then that's the maximum table that can be produced
+            try:
+                pickle_split.go()
+            except RuntimeError:
+                max_cl = n
+                break
+        # Generate amp&phas vs freq
+        for n in range(max_cl):
+            wuvdata = wizard.AIPSUVData(target, 'PLOTS', data.disk, n+1)
+            pickle_possm(wuvdata, './tmp/')
+
+        # Generate amp&phas vs time
+        pickle_vplot(wuvdata, './tmp/')
+
+        # Generate amp&phas vs uvdist
+        pickle_radplot(wuvdata, './tmp/')
+
+        # Generate uvplot
+        pickle_uvplt(wuvdata, './tmp/')
+
+        # Delete the AIPS entries
+        for n in range(max_cl):
+            pickle_data = AIPSUVData(target, 'PLOTS', data.disk, n+1)
+            pickle_data.zap()
+
+def pickle_uvplt(wuvdata, path):
+        u = []
+        v = []
+        fq_table = wuvdata.table('FQ', 0)
+        if_freq = fq_table[0]['if_freq']
+        central_freq =  wuvdata.header['crval'][2]
+        for vis in wuvdata:
+            for i, IF in enumerate(vis.visibility):
+                if sum(IF.flatten()) == 0:
+                    continue
+                else:
+                    u.append(vis.uvw[0]/(1e6) * (1 + if_freq[i]/central_freq))
+                    u.append(-vis.uvw[0]/(1e6) * (1 + if_freq[i]/central_freq))     
+                    v.append(vis.uvw[1]/(1e6) * (1 + if_freq[i]/central_freq))
+                    v.append(-vis.uvw[1]/(1e6) * (1 + if_freq[i]/central_freq))
+        umax, vmax = max(u), max(v)
+        m = 1.05* max(umax, vmax)
+        uvplt_fig = plt.figure()
+        plt.scatter(u, v, marker = '.', s = 3, c = 'k') 
+        plt.xlim(+m, -m)
+        plt.ylim(-m, +m)
+        plt.gca().set_aspect('equal')
+        plt.title('U-V coverage')
+        plt.xlabel('U (M$\lambda$)')
+        plt.ylabel('V (M$\lambda$)')
+        #plt.show()
+        with open(f'{path}{wuvdata.name}.uvplt.pickle', 'wb') as f:
+            pickle.dump(uvplt_fig, f)
+        plt.close()
+
+def pickle_radplot(wuvdata, path):
+    visibilities = []
+    for v in wuvdata:
+        x = copy.copy(v)
+        x.__class__ = Datum
+        x.central_freq = wuvdata.header['crval'][2]
+        x.set_attributes(wuvdata.table('FQ', 0)[0]['if_freq'])
+        visibilities.append(x)
+    reals = []
+    imags = []
+    amps = []
+    phases = []
+    uvdists = []
+    for v in visibilities:
+        indx = np.nonzero(v.if_avg_vis[:,0,0,2])[0].tolist()
+        reals += [x for x in v.if_avg_vis[:,0,0,0][indx]]
+        imags += [x for x in v.if_avg_vis[:,0,0,1][indx]]
+        uvdists += (np.array(v.uvdist)[indx]/1e6).tolist()
+    for i in range(len(reals)):
+        amps.append(np.sqrt(reals[i]**2 + imags[i]**2))
+        phases.append(np.arctan2(imags[i], reals[i]) * 360/(2*np.pi))
+
+    radplot_fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True) 
+    radplot_fig.suptitle('Amp&Phase - UV Radius')
+
+    # First subplot - Amplitudes vs. UV distances
+    axes[0].scatter(uvdists, amps, label='Amplitude', marker = '.',
+                    s = 3, c = 'k')
+    axes[0].set_ylabel('Amplitude (JY)')
+
+    # Second subplot - Phases vs. UV distances
+    axes[1].scatter(uvdists, phases, label='Phase', marker = '.',
+                    s = 3, c = 'k')
+    axes[1].set_xlabel(r'UV Radius (M$\lambda$)')
+    axes[1].set_ylabel('Phase (degrees)')
+
+    plt.subplots_adjust(hspace=0)
+
+    with open(f'{path}{wuvdata.name}.radplot.pickle', 'wb') as f:
+        pickle.dump(radplot_fig, f)
+
+def pickle_vplot(wuvdata, path):
+    blines = [x.baseline for x in wuvdata]
+    blines_unique =  list(set(tuple(x) for x in blines))
+    for bl in blines_unique:
+        vis = [copy.deepcopy(x.visibility) for x in wuvdata if tuple(x.baseline) == bl]
+        times = [copy.deepcopy(x.time) for x in wuvdata if tuple(x.baseline) == bl]
+        amps = []
+        phases= []
+        for i, t in enumerate(times):
+            real = np.average(vis[i][:,:,:,0].flatten(), weights = vis[i][:,:,:,2].flatten())
+            imag = np.average(vis[i][:,:,:,1].flatten(), weights = vis[i][:,:,:,2].flatten())
+            amps.append(np.sqrt(real**2 + imag**2))
+            phases.append(np.arctan2(imag, real) * 360/np.pi)
+        
+        fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True) 
+        fig.suptitle('Amp&Phase - UV Radius')
+
+        # First subplot - Amplitudes vs. UV distances
+        axes[0].scatter(times, amps, label='Amplitude', marker = '.',
+                        s = 3, c = 'k')
+        axes[0].set_ylabel('Amplitude (JY)')
+        axes[0].set_ylim(bottom = 0, top = 1.15* max(amps))
+
+        # Second subplot - Phases vs. UV distances
+        axes[1].scatter(times, phases, label='Phase', marker = '.',
+                        s = 3, c = 'k')
+        axes[1].set_xlabel('Time')
+        axes[1].set_ylabel('Phase (degrees)')
+        with open(f'{path}{bl[0]}_{bl[1]}.vplt.pickle', 'wb') as f:
+            pickle.dump(fig, f)
+        plt.close(fig)
+
+def pickle_possm(wuvdata, path):
+    blines = [x.baseline for x in wuvdata]
+    blines_unique =  list(set(tuple(x) for x in blines))
+    POSSM = {}
+    scans = []
+
+    for s in wuvdata.table('NX', 1):
+        scans.append((s['time'] - + s['time_interval'], s['time'] + s['time_interval']))
+    for v in wuvdata:
+        try:
+            _ = POSSM[tuple(v.baseline)]
+        except KeyError:
+            POSSM[tuple(v.baseline)] = [[] for x in range(len(scans))]
+        for m, s in enumerate(scans):
+            if v.time <= s[1] and v.time >= s[0]:
+                vis = copy.deepcopy(v.visibility)
+                POSSM[tuple(v.baseline)][m].append(vis)
+
+    POSSM['if_freq'] = wuvdata.table('FQ', 0)[0]['if_freq']
+    POSSM['total_bandwith'] = wuvdata.table('FQ', 0)[0]['total_bandwidth']
+    POSSM['ch_width'] = wuvdata.table('FQ', 0)[0]['ch_width']
+    POSSM['central_freq'] = wuvdata.header['crval'][2]
+            
+    with open(f'{path}{wuvdata.name}_CL{wuvdata.seq}.possm.pickle', 'wb') as f:
+            pickle.dump(POSSM, f)
+
+def interactive_possm(POSSM, bline, scan):
+            
+            n = scan
+    #for n, scan in enumerate(scans):
+            bl = bline
+        #for bl in blines_unique:
+            reals = np.array(POSSM[bl][n])[:,:,:,:,0]
+            imags = np.array(POSSM[bl][n])[:,:,:,:,1]
+            weights = np.array(POSSM[bl][n])[:,:,:,:,2]
+            avg_reals = sum(reals*weights)/sum(weights)
+            avg_imags = sum(imags*weights)/sum(weights) 
+            amps = np.sqrt(avg_reals**2 + avg_imags**2).flatten()
+            phases = (np.arctan2(avg_imags, avg_reals) * 360/(2*np.pi)).flatten()
+            
+            if_freq = POSSM['if_freq']
+            # central_freq =  wuvdata.header['crval'][2]
+            chan_freq = []
+            for IF, freq in enumerate(if_freq):
+                n_chan = int(POSSM['total_bandwidth'][IF]/POSSM['ch_width'][IF])
+                for c in range(n_chan):
+                    chan_freq.append(POSSM['central_freq'] + freq + c * POSSM['ch_width'][IF]) 
+            chan_freq = np.array(chan_freq) / 1e9
+            # Number of chunks
+            chunk_size = n_chan
+            num_chunks = len(chan_freq) // chunk_size
+            possm_fig, axes = plt.subplots(2, num_chunks, figsize=(8, 4), gridspec_kw = {'height_ratios': [1,2]})
+            axes_top, axes_bottom = axes
+            # Plot each chunk in its respective subplot
+            for i in range(num_chunks):
+                start, end = i * chunk_size, (i + 1) * chunk_size   
+                axes_top[i].plot(chan_freq[start:end], phases[start:end], color="g",  mec = 'c', mfc='c', marker="+", markersize = 12,
+                                linestyle="none")
+                axes_bottom[i].plot(chan_freq[start:end], amps[start:end], color="g",  mec = 'c', mfc='c', marker="+", markersize = 12, )
+                axes_top[i].hlines(y = 0, xmin =  chan_freq[start], xmax = chan_freq[end-1], color = 'y')
+                axes_top[i].set_ylim(-180,180)
+                axes_bottom[i].set_ylim(0, np.nanmax(amps) * 1.10)
+                axes_top[i].tick_params(labelbottom=False)
+                axes_top[i].spines['bottom'].set_color('yellow')
+                axes_top[i].spines['top'].set_color('yellow')
+                axes_top[i].spines['right'].set_color('yellow')
+                axes_top[i].spines['left'].set_color('yellow')
+                axes_bottom[i].spines['bottom'].set_color('yellow')
+                axes_bottom[i].spines['top'].set_color('yellow')
+                axes_bottom[i].spines['right'].set_color('yellow')
+                axes_bottom[i].spines['left'].set_color('yellow')
+            axes_top[0].set_ylabel('Phase (Degrees)', fontsize = 16)
+            axes_bottom[0].set_ylabel('Amplitude (Jy)', fontsize = 16)
+            plt.style.use('dark_background')
+            possm_fig.supxlabel("Frequency (GHz)", fontsize = 16)
+            plt.subplots_adjust(wspace=0, hspace = 0)  # No horizontal spacing
+
+            plt.show()   

@@ -90,6 +90,8 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
     if flag_frac == 0:
         flag_edge = False
     # Delete the file if it already exists
+
+    # The 'IGNORE' part has to be changed, it's not needed anymore!
     for name in target_list:
         if name == 'IGNORE':
             continue

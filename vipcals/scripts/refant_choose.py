@@ -3,6 +3,12 @@ import Wizardry.AIPSData as wizard
 
 from AIPSTask import AIPSTask, AIPSList
 
+import functools
+print = functools.partial(print, flush=True)
+
+
+AIPSTask.msgkill = -8
+
 
 class AntennaTY():
     """Obvserving Antennas."""
@@ -559,7 +565,7 @@ def dummy_fring(data, refant, target_list, solint = 0, delay_w = 1000, \
     dummy_fring.dparm[5] = 1    # Stop at the FFT step
     
     dummy_fring.snver = 0       # One more than the highest existing version
-    dummy_fring.msgkill = -4
+    # dummy_fring.msgkill = -4
     
     dummy_fring.go()
 
