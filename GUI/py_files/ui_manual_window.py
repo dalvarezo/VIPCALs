@@ -159,12 +159,30 @@ class Ui_manual_window(object):
         self.selectfile_btn.setSizeIncrement(QSize(0, 0))
         self.selectfile_btn.setIconSize(QSize(16, 16))
 
+        self.selectfile_btn.setFixedWidth(150)
+
         self.gridLayout_2.addWidget(self.selectfile_btn, 2, 2, 1, 1)
+
+        self.selectdir_btn = QPushButton(self.basic_options)
+        self.selectdir_btn.setObjectName(u"selectdir_btn")
+        self.selectdir_btn.setEnabled(True)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.selectdir_btn.sizePolicy().hasHeightForWidth())
+        self.selectdir_btn.setSizePolicy(sizePolicy)
+        self.selectdir_btn.setMaximumSize(QSize(16777215, 16777215))
+        self.selectdir_btn.setSizeIncrement(QSize(0, 0))
+        self.selectdir_btn.setIconSize(QSize(16, 16))
+
+        self.selectdir_btn.setFixedWidth(150)
+
+        self.gridLayout_2.addWidget(self.selectdir_btn, 5, 2, 1, 1)
 
         self.output_line = QLineEdit(self.basic_options)
         self.output_line.setObjectName(u"output_line")
 
-        self.gridLayout_2.addWidget(self.output_line, 5, 1, 1, 2)
+        self.gridLayout_2.addWidget(self.output_line, 5, 1, 1, 1)
 
         self.target_lbl = QLabel(self.basic_options)
         self.target_lbl.setObjectName(u"target_lbl")
@@ -186,6 +204,8 @@ class Ui_manual_window(object):
 
         self.retranslateUi(manual_window)
 
+
+
         QMetaObject.connectSlotsByName(manual_window)
     # setupUi
 
@@ -206,7 +226,8 @@ class Ui_manual_window(object):
         self.filepath_lbl.setText(QCoreApplication.translate("manual_window", u"Filepath", None))
         self.output_lbl.setText(QCoreApplication.translate("manual_window", u"Output directory", None))
         self.disk_lbl.setText(QCoreApplication.translate("manual_window", u"Disk number", None))
-        self.selectfile_btn.setText(QCoreApplication.translate("manual_window", u"          Select file          ", None))
+        self.selectfile_btn.setText(QCoreApplication.translate("manual_window", u"        Select file        ", None))
+        self.selectdir_btn.setText(QCoreApplication.translate("manual_window", u"        Select folder      ", None))
         self.target_lbl.setText(QCoreApplication.translate("manual_window", u"Target", None))
     # retranslateUi
 

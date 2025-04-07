@@ -101,7 +101,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
 
     ## 1.- LOAD DATA ##
-    disp.write_box(log_list, 'Loading data')
+    disp.write_box(log_list, 'Loading data') 
     disp.print_box('Loading data')  
 
     ## Check if the filepath is > 46 characters
@@ -200,8 +200,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         os.system('rm ./tables*')
         os.system('rm ./tsys.vlba')
    
-        print('\nSystem temperatures were not available in the file, they ' \
-               + 'have been retrieved online.\n')
+        print('\nSystem temperatures were not available in the ' \
+                                  + 'file, they have been retrieved from \n' \
+                                  + good_url + '\n')
         print('TY#1 created.\n')
         
     if [1, 'AIPS GC'] not in uvdata.tables:
@@ -219,7 +220,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
         for pipeline_log in log_list:
             pipeline_log.write('\nGain curve information was not available in the '\
-                               + 'file, it has been retrieved from ' + good_url \
+                               + 'file, it has been retrieved from\n' + good_url \
                                + '\nGC#1 created.\n\n')
             
         # Move the gain curve file to the target folders
@@ -230,7 +231,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         os.system('rm ./gaincurves.vlba')           
         
         print('\nGain curve information was not available in the file, it has '\
-          + 'been retrieved from ' + good_url + '\nGC#1 created.\n')
+          + 'been retrieved from\n' + good_url + '\nGC#1 created.\n')
         
         
     if [1, 'AIPS FG'] not in uvdata.tables:
@@ -249,8 +250,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         os.system('rm ./tables*')
         os.system('rm ./flags.vlba')
 
-        print('\nFlag information was not available in the file, it ' \
-               + 'has been retrieved online.\n')
+        print('Flag information was not available in the file, ' \
+                        + 'it has been retrieved from\n' + good_url + '\n')
         print('FG#1 created.\n')
 
     if missing_tables == True:
@@ -499,10 +500,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         iono.ionos_correct(uvdata)
         t4 = time.time()
         for pipeline_log in log_list:
-            pipeline_log.write('\nIonospheric corrections applied! CL#2 created.'\
+            pipeline_log.write('\nIonospheric corrections applied!\nCL#2 created.'\
                             + '\n')
             pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t4-t3))
-        print('\nIonospheric corrections applied! CL#2 created.\n')
+        print('\nIonospheric corrections applied!\nCL#2 created.\n')
         print('Execution time: {:.2f} s. \n'.format(t4-t3))
         os.system('rm -rf /tmp/jplg*')
     else:
@@ -511,10 +512,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         for pipeline_log in log_list:
             pipeline_log.write('\nIonospheric corrections not applied! IONEX '\
                             + 'files are not available for observations '\
-                            + 'older than June 1998. CL#2 will be copied '\
+                            + 'older than June 1998.\nCL#2 will be copied '\
                             + 'from CL#1.\n')
         print('\nIonospheric corrections not applied! IONEX files are not '\
-              + 'available for observations older than June 1998. CL#2 '\
+              + 'available for observations older than June 1998.\nCL#2 '\
               + 'will be copied from CL#1.\n')
         
     ## Earth orientation parameters correction ##
@@ -525,10 +526,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     t5 = time.time()
 
     for pipeline_log in log_list:
-        pipeline_log.write('\nEarth orientation parameter corrections applied! '\
+        pipeline_log.write('\nEarth orientation parameter corrections applied!\n'\
                         + 'CL#3 created.\n')
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t5-t4))
-    print('\nEarth orientation parameter corrections applied! CL#3 created.\n')
+    print('\nEarth orientation parameter corrections applied!\nCL#3 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t5-t4))
     os.system('rm -rf /tmp/usno_finals.erp')
 
@@ -540,10 +541,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     t6 = time.time()
 
     for pipeline_log in log_list:
-        pipeline_log.write('\nParallactic angle corrections applied! CL#4'\
+        pipeline_log.write('\nParallactic angle corrections applied!\nCL#4'\
                         + ' created.\n')
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t6-t5))
-    print('\nParallactic angle corrections applied! CL#4 created.\n')
+    print('\nParallactic angle corrections applied!\nCL#4 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t6-t5))
 
     ## Selecting calibrator scan ##
@@ -663,10 +664,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     t8 = time.time()
 
     for pipeline_log in log_list:
-        pipeline_log.write('\nDigital sampling corrections applied! SN#2 and CL#5'\
+        pipeline_log.write('\nDigital sampling corrections applied!\nSN#2 and CL#5'\
                         + ' created.\n')
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t8-t7))
-    print('\nDigital sampling corrections applied! SN#2 and CL#5 created.\n')
+    print('\nDigital sampling corrections applied!\nSN#2 and CL#5 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t8-t7))
 
     ## Instrumental phase correction ##
@@ -678,10 +679,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     for pipeline_log in log_list:
         pipeline_log.write('\nInstrumental phase correction applied using'\
-                        + ' the calibrator(s). SN#3 and CL#6 created.\n')
+                        + ' the calibrator(s).\nSN#3 and CL#6 created.\n')
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t9-t8))
     print('\nInstrumental phase correction applied using the calibrator(s).'\
-          + ' SN#3 and CL#6 created.\n')
+          + '\nSN#3 and CL#6 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t9-t8))
 
 
@@ -693,9 +694,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     t10 = time.time()
 
     for pipeline_log in log_list:
-        pipeline_log.write('\nBandpass correction applied! BP#1 created.\n')
+        pipeline_log.write('\nBandpass correction applied!\nBP#1 created.\n')
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t10-t9))
-    print('\nBandpass correction applied! BP#1 created.\n')
+    print('\nBandpass correction applied!\nBP#1 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t10-t9))
 
 
@@ -707,10 +708,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     t11 = time.time()
 
     for pipeline_log in log_list:
-        pipeline_log.write('\nAutocorrelations have been normalized! SN#4 and CL#7'\
+        pipeline_log.write('\nAutocorrelations have been normalized!\nSN#4 and CL#7'\
                         + ' created.\n')
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
-    print('\nAutocorrelations have been normalized! SN#4 and CL#7 created.\n')
+    print('\nAutocorrelations have been normalized!\nSN#4 and CL#7 created.\n')
     print('Execution time: {:.2f} s. \n'.format(t11-t10))
 
 
@@ -721,10 +722,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ampc.amp_cal(uvdata)
     t12 = time.time()
     for pipeline_log in log_list:
-        pipeline_log.write('\nAmplitude calibration applied! SN#5 and CL#8'\
+        pipeline_log.write('\nAmplitude calibration applied!\nSN#5 and CL#8'\
                         + ' created.\n')
         pipeline_log.write('\nExecution time: {:.2f} s.\n'.format(t12-t11))
-    print('\nAmplitude calibration applied! SN#5 and CL#8 created.\n')
+    print('\nAmplitude calibration applied!\nSN#5 and CL#8 created.\n')
     print('Execution time: {:.2f} s.\n'.format(t12-t11))
 
     ## Fringe fit of the calibrator ##  
@@ -932,11 +933,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
                     frng.fringe_clcal(uvdata, target, version = 9+i)
 
-            log_list[i].write('\nFringe fit corrections applied to the target! '\
+            log_list[i].write('\nFringe fit corrections applied to the target!\n'\
                 + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
                 + ' created.\n')
 
-            print('\nFringe fit corrections applied to ' + target + '! SN#' \
+            print('\nFringe fit corrections applied to ' + target + '!\nSN#' \
                 + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
 
         if phase_ref[i] != 'NONE':
@@ -1061,11 +1062,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
                     frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
 
-            log_list[i].write('\nFringe fit corrections applied to the target! '\
+            log_list[i].write('\nFringe fit corrections applied to the target!\n'\
                 + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
                 + ' created.\n')
 
-            print('\nFringe fit corrections applied to ' + target + '! SN#' \
+            print('\nFringe fit corrections applied to ' + target + '!\nSN#' \
                 + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
 
     t14 = time.time()
@@ -1186,6 +1187,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
 
     ######################## TEST FOR THE GUI ########################
+    disp.print_box("Generating interactive plots")
+    
     interactive = True
     if interactive ==  True:
         plot.generate_pickle_plots(uvdata, target_list)

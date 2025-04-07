@@ -325,6 +325,10 @@ def generate_pickle_plots(data, target_list):
     for i, target in enumerate(target_list):
         max_cl = data.table_highver('CL')
         for n in range(max_cl):
+            # Remove the plot file if it already exists
+            if AIPSUVData(target, 'PLOTS', data.disk, n+1).exists() == True:
+                AIPSUVData(target, 'PLOTS', data.disk, n+1).zap()
+
             pickle_split = AIPSTask('split')
             pickle_split = AIPSTask('split')
             pickle_split.inname = data.name
@@ -353,12 +357,15 @@ def generate_pickle_plots(data, target_list):
             pickle_possm(wuvdata, './tmp/')
 
         # Generate amp&phas vs time
+        wuvdata = wizard.AIPSUVData(target, 'PLOTS', data.disk, max_cl)
         pickle_vplot(wuvdata, './tmp/')
 
         # Generate amp&phas vs uvdist
+        wuvdata = wizard.AIPSUVData(target, 'PLOTS', data.disk, max_cl)
         pickle_radplot(wuvdata, './tmp/')
 
         # Generate uvplot
+        wuvdata = wizard.AIPSUVData(target, 'PLOTS', data.disk, max_cl)
         pickle_uvplt(wuvdata, './tmp/')
 
         # Delete the AIPS entries
@@ -383,14 +390,14 @@ def pickle_uvplt(wuvdata, path):
                     v.append(-vis.uvw[1]/(1e6) * (1 + if_freq[i]/central_freq))
         umax, vmax = max(u), max(v)
         m = 1.05* max(umax, vmax)
-        uvplt_fig = plt.figure()
-        plt.scatter(u, v, marker = '.', s = 3, c = 'k') 
-        plt.xlim(+m, -m)
-        plt.ylim(-m, +m)
+        uvplt_fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        ax.scatter(u, v, marker = '.', s = 2, c = 'lime') 
+        ax.set_xlim(+m, -m)
+        ax.set_ylim(-m, +m)
         plt.gca().set_aspect('equal')
-        plt.title('U-V coverage')
-        plt.xlabel('U (M$\lambda$)')
-        plt.ylabel('V (M$\lambda$)')
+        ax.set_title('U-V coverage')
+        ax.set_xlabel('U (M$\lambda$)')
+        ax.set_ylabel('V (M$\lambda$)')
         #plt.show()
         with open(f'{path}{wuvdata.name}.uvplt.pickle', 'wb') as f:
             pickle.dump(uvplt_fig, f)
@@ -423,12 +430,12 @@ def pickle_radplot(wuvdata, path):
 
     # First subplot - Amplitudes vs. UV distances
     axes[0].scatter(uvdists, amps, label='Amplitude', marker = '.',
-                    s = 3, c = 'k')
+                    s = 2, c = 'lime')
     axes[0].set_ylabel('Amplitude (JY)')
 
     # Second subplot - Phases vs. UV distances
     axes[1].scatter(uvdists, phases, label='Phase', marker = '.',
-                    s = 3, c = 'k')
+                    s = 2, c = 'lime')
     axes[1].set_xlabel(r'UV Radius (M$\lambda$)')
     axes[1].set_ylabel('Phase (degrees)')
 
@@ -440,7 +447,9 @@ def pickle_radplot(wuvdata, path):
 def pickle_vplot(wuvdata, path):
     blines = [x.baseline for x in wuvdata]
     blines_unique =  list(set(tuple(x) for x in blines))
+    vplot_dict = {}
     for bl in blines_unique:
+        vplot_dict[bl] = []
         vis = [copy.deepcopy(x.visibility) for x in wuvdata if tuple(x.baseline) == bl]
         times = [copy.deepcopy(x.time) for x in wuvdata if tuple(x.baseline) == bl]
         amps = []
@@ -450,24 +459,30 @@ def pickle_vplot(wuvdata, path):
             imag = np.average(vis[i][:,:,:,1].flatten(), weights = vis[i][:,:,:,2].flatten())
             amps.append(np.sqrt(real**2 + imag**2))
             phases.append(np.arctan2(imag, real) * 360/np.pi)
+
+        vplot_dict[bl].append(times)
+        vplot_dict[bl].append(amps)
+        vplot_dict[bl].append(phases)
         
-        fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True) 
-        fig.suptitle('Amp&Phase - UV Radius')
+        #fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True) 
+        #fig.suptitle('Amp&Phase - UV Radius')
 
         # First subplot - Amplitudes vs. UV distances
-        axes[0].scatter(times, amps, label='Amplitude', marker = '.',
-                        s = 3, c = 'k')
-        axes[0].set_ylabel('Amplitude (JY)')
-        axes[0].set_ylim(bottom = 0, top = 1.15* max(amps))
+        #axes[0].scatter(times, amps, label='Amplitude', marker = '.',
+        #                s = 3, c = 'k')
+        #axes[0].set_ylabel('Amplitude (JY)')
+        #axes[0].set_ylim(bottom = 0, top = 1.15* max(amps))
 
         # Second subplot - Phases vs. UV distances
-        axes[1].scatter(times, phases, label='Phase', marker = '.',
-                        s = 3, c = 'k')
-        axes[1].set_xlabel('Time')
-        axes[1].set_ylabel('Phase (degrees)')
-        with open(f'{path}{bl[0]}_{bl[1]}.vplt.pickle', 'wb') as f:
-            pickle.dump(fig, f)
-        plt.close(fig)
+        #axes[1].scatter(times, phases, label='Phase', marker = '.',
+        #                s = 3, c = 'k')
+        #axes[1].set_xlabel('Time')
+        #axes[1].set_ylabel('Phase (degrees)')
+        #with open(f'{path}{wuvdata.name}_{bl[0]}_{bl[1]}.vplt.pickle', 'wb') as f:
+        #    pickle.dump(fig, f)
+        with open(f'{path}{wuvdata.name}.vplt.pickle', 'wb') as f:
+            pickle.dump(vplot_dict, f)
+        #plt.close(vplot_dict)
 
 def pickle_possm(wuvdata, path):
     blines = [x.baseline for x in wuvdata]
@@ -488,7 +503,7 @@ def pickle_possm(wuvdata, path):
                 POSSM[tuple(v.baseline)][m].append(vis)
 
     POSSM['if_freq'] = wuvdata.table('FQ', 0)[0]['if_freq']
-    POSSM['total_bandwith'] = wuvdata.table('FQ', 0)[0]['total_bandwidth']
+    POSSM['total_bandwidth'] = wuvdata.table('FQ', 0)[0]['total_bandwidth']
     POSSM['ch_width'] = wuvdata.table('FQ', 0)[0]['ch_width']
     POSSM['central_freq'] = wuvdata.header['crval'][2]
             

@@ -38,6 +38,13 @@ class Ui_run_window(object):
         self.text_output = QTextEdit(run_window)
         self.text_output.setObjectName(u"text_output")
 
+        font = QFont("Courier New")
+        
+        font.setStyleHint(QFont.Monospace)
+        font.setPointSize(13)
+        self.text_output.setFont(font)
+        self.text_output.setFontFamily("Courier New")
+
         self.gridLayout.addWidget(self.text_output, 0, 0, 1, 2)
 
 

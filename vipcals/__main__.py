@@ -130,6 +130,7 @@ for i, entry in enumerate(entry_list):
         exit()
 
     print(input_dict['paths'])
+    print('\n')
 
     # Load all has to be True/False
     if type(input_dict['load_all']) != bool:

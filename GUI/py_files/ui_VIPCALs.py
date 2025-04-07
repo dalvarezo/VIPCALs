@@ -22,9 +22,19 @@ class Ui_VIPCALs(object):
     def setupUi(self, VIPCALs):
         if not VIPCALs.objectName():
             VIPCALs.setObjectName(u"VIPCALs")
-        VIPCALs.resize(800, 600)
+
+        # Set initial window size with 1:3 aspect ratio (height:width)
+        initial_width = 900
+        initial_height = int(initial_width / 3.33)
+        VIPCALs.resize(initial_width, initial_height)
+        
         self.centralwidget = QWidget(VIPCALs)
         self.centralwidget.setObjectName(u"centralwidget")
+
+        # Allow expansion
+        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.centralwidget.setSizePolicy(sizePolicy)
+        
         self.gridLayout = QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName(u"gridLayout")
         VIPCALs.setCentralWidget(self.centralwidget)
