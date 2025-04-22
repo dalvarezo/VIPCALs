@@ -404,43 +404,54 @@ def pickle_uvplt(wuvdata, path):
         plt.close()
 
 def pickle_radplot(wuvdata, path):
-    visibilities = []
-    for v in wuvdata:
-        x = copy.copy(v)
-        x.__class__ = Datum
-        x.central_freq = wuvdata.header['crval'][2]
-        x.set_attributes(wuvdata.table('FQ', 0)[0]['if_freq'])
-        visibilities.append(x)
-    reals = []
-    imags = []
+    central_freq = wuvdata.header['crval'][2]
+    if_freq = wuvdata.table('FQ', 0)[0]['if_freq']
+    reals_list = []
+    imags_list = []
     amps = []
     phases = []
     uvdists = []
-    for v in visibilities:
-        indx = np.nonzero(v.if_avg_vis[:,0,0,2])[0].tolist()
-        reals += [x for x in v.if_avg_vis[:,0,0,0][indx]]
-        imags += [x for x in v.if_avg_vis[:,0,0,1][indx]]
-        uvdists += (np.array(v.uvdist)[indx]/1e6).tolist()
-    for i in range(len(reals)):
-        amps.append(np.sqrt(reals[i]**2 + imags[i]**2))
-        phases.append(np.arctan2(imags[i], reals[i]) * 360/(2*np.pi))
-
+    for v in wuvdata:
+        central_uv_dist = np.sqrt(v.uvw[0]**2 + v.uvw[1]**2)
+        uvdist = [central_uv_dist * (1+x/central_freq) for x in if_freq]
+        visshape = v.visibility.shape
+        if_avg_vis = np.zeros([visshape[0], 1, visshape[2], 
+                                   visshape[3]], dtype = float)
+        for IF in range(visshape[0]):
+            for pol in range(visshape[2]):
+                reals = v.visibility[IF, :, pol, 0]
+                imags = v.visibility[IF, :, pol, 1]
+                weights = v.visibility[IF, :, pol, 2]
+                if np.sum(weights) == 0:
+                    if_avg_vis[IF, 0, pol, 0] = 0
+                    if_avg_vis[IF, 0, pol, 1] = 0
+                    if_avg_vis[IF, 0, pol, 2] = 0
+                else:
+                    if_avg_vis[IF, 0, pol, :] = np.average(reals, weights= weights), \
+                                                np.average(imags, weights= weights), \
+                                                sum(weights)
+            indx = np.nonzero(if_avg_vis[:,0,0,2])[0].tolist()
+            reals_list.append(if_avg_vis[:, 0, 0, 0][indx])
+            imags_list.append(if_avg_vis[:, 0, 0, 1][indx])
+            #imags_list = np.concatenate([imags_list, if_avg_vis[:, 0, 0, 1][indx]])
+            uvdists += (np.array(uvdist)[indx]/1e6).tolist()
+    reals_array = np.concatenate(reals_list)
+    imags_array = np.concatenate(imags_list)
+    amps = np.sqrt(reals_array**2 + imags_array**2).tolist()
+    phases = (np.arctan2(imags_array, reals_array) * 360 / (2 * np.pi)).tolist()
+    #return(amps,phases,uvdists)
     radplot_fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True) 
     radplot_fig.suptitle('Amp&Phase - UV Radius')
-
     # First subplot - Amplitudes vs. UV distances
     axes[0].scatter(uvdists, amps, label='Amplitude', marker = '.',
                     s = 2, c = 'lime')
     axes[0].set_ylabel('Amplitude (JY)')
-
     # Second subplot - Phases vs. UV distances
     axes[1].scatter(uvdists, phases, label='Phase', marker = '.',
                     s = 2, c = 'lime')
     axes[1].set_xlabel(r'UV Radius (M$\lambda$)')
     axes[1].set_ylabel('Phase (degrees)')
-
     plt.subplots_adjust(hspace=0)
-
     with open(f'{path}{wuvdata.name}.radplot.pickle', 'wb') as f:
         pickle.dump(radplot_fig, f)
 
