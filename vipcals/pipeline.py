@@ -1186,6 +1186,22 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('Execution time: {:.2f} s.\n'.format(t15-t14))
 
 
+    ######################## TEST COUNT VIS ########################
+    disp.print_box("Counting visibilities")
+    
+    expo.data_split(uvdata, target_list, cl_table=1)
+    cl1 = AIPSUVData(target_list[0], 'PLOTS', 1, 1)
+    vis_cl1 = expo.vis_count(cl1)
+    print(f"CL1 visibilities: {vis_cl1}\n")
+
+    expo.data_split(uvdata, target_list, cl_table=9, bpass = True)
+    cl9 = AIPSUVData(target_list[0], 'PLOTS', 1, 9)
+    vis_cl9 = expo.vis_count(cl9)
+    print(f"CL9 visibilities: {vis_cl9}\n")
+
+    ######################## TEST COUNT VIS ########################
+
+
     ######################## TEST FOR THE GUI ########################
     disp.print_box("Generating interactive plots")
     

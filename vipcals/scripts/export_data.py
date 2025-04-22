@@ -6,6 +6,8 @@ from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 from AIPSData import AIPSUVData
 
+import Wizardry.AIPSData as wizard
+
 import functools
 print = functools.partial(print, flush=True)
 
@@ -215,3 +217,68 @@ def table_export(path_list, data, target_list, filename_list):
 
     # Remove the DUMMY AIPS entry
     AIPSUVData(data.name, 'DUMMY', data.disk, 1).zap()
+
+
+def data_split(data, target_list, cl_table = 1, bpass = False):
+    """Split source data applying different CL tables and/or the BP table.
+
+    The class of the splitted catalogue entries is "PLOTS", since this entries 
+    can be later used for the interactive plots of the GUI.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target_list: list of sources to split
+    :type target_list: list of str  
+    :param cl_table: CL table number to apply; defaults to 1
+    :type cl_table: int, optional
+    :param bpass: apply the bandpass table; defaults to False
+    :type bpass: bool, optional
+    """
+
+    for i, target in enumerate(target_list):
+        # Remove the split file if it already exists
+        if AIPSUVData(target, 'PLOTS', data.disk, cl_table).exists() == True:
+            AIPSUVData(target, 'PLOTS', data.disk, cl_table).zap()
+
+        data_split = AIPSTask('split')
+        data_split.inname = data.name
+        data_split.inclass = data.klass
+        data_split.indisk = data.disk
+        data_split.inseq = data.seq
+
+        data_split.outdisk = data.disk
+        data_split.outclass = 'PLOTS'
+        data_split.outseq = cl_table
+
+        data_split.sources = AIPSList([target])
+
+        data_split.docal = 1
+        data_split.gainuse = cl_table
+        if bpass == True:
+            data_split.doband = 1
+        data_split.aparm[1] = 1  #Don't average frequency in IFs, multi-channel out
+        # TEST        
+        data_split.aparm[5] = 1  # Pass xc and ac
+        data_split.go()
+
+def vis_count(data):
+    """Count how many visibilities are unflagged in a catalogue entry.
+    
+    :param data: visibility data
+    :type data: AIPSUVData    
+    """
+
+    n_vis_final = 0
+
+    wfinal_data = wizard.AIPSUVData(data.name, data.klass, data.disk, data.seq)
+
+    for x in wfinal_data:
+        for IF in x.visibility:
+            for chan in IF:
+                for pol in chan:
+                    if pol[2] != 0:
+                        n_vis_final += 1 
+                        #for antennas in list(set(x.baseline)):
+                        #    final_dict[antennas] += 1
+
+    return(n_vis_final)
