@@ -466,7 +466,7 @@ class VplotWindow(qtw.QMainWindow):
         self.target = target
 
         # Load the VPLOT data
-        self.loaded_vplot_data = pickle.load(open(f'./tmp/{self.target}.vplt.pickle', 'rb'))
+        self.loaded_vplot_data = pickle.load(open(f'../tmp/{self.target}.vplt.pickle', 'rb'))
         self.plot_keys = sorted([key for key in self.loaded_vplot_data.keys() if isinstance(key, tuple)])
         self.current_index = 0
         self.selected_baseline = self.plot_keys[0] if self.plot_keys else None
@@ -553,6 +553,8 @@ class PossmWindow(qtw.QMainWindow):
         self.current_plot_index = 0  # Track the current plot index
         self.selected_baseline = None
 
+        self.possm_data = {}
+
 
         # Create a central widget and main layout
         central_widget = qtw.QWidget()
@@ -567,13 +569,13 @@ class PossmWindow(qtw.QMainWindow):
         self.cl_selector = qtw.QComboBox()
 
         # Dynamically find all CL options from filenames
-        pattern = re.compile(rf"{re.escape(self.target)}_(CL\d+)\.possm\.pickle$")
+        pattern = re.compile(rf"{re.escape(self.target)}_(CL\d+).*\.possm\.npz$")
         cl_options = []
 
-        for file in glob.glob(f"./tmp/{self.target}_CL*.possm.pickle"):
-            match = pattern.search(file.split("/")[-1])
+        for file in glob.glob(f"../tmp/{self.target}_*.possm.npz"):
+            match = pattern.search(file.split("/")[-1])  # Match CLx without considering "_BP"
             if match:
-                cl_options.append(match.group(1))
+                cl_options.append(match.group(1))  # Append the matched "CLx" (e.g., "CL1")
 
         # Sort CL options numerically (e.g., CL1, CL2, CL10)
         cl_options = sorted(set(cl_options), key=lambda x: int(x[2:]))
@@ -658,10 +660,40 @@ class PossmWindow(qtw.QMainWindow):
             self.plot_data()
 
     def load_possm_data(self):
-        filename = f'./tmp/{self.target}_{self.selected_cl}.possm.pickle'
+        # Extract the number after "CL" from self.selected_cl, e.g., "CL4" -> 4
+        cl_number = re.search(r'CL(\d+)', self.selected_cl).group(1)
+
+        # Find the matching files in the directory
+        filenames = []
+        for file in os.listdir('../tmp'):
+            if file.endswith('.possm.npz') and f'CL{cl_number}' in file:
+                filenames.append(file)
+        
+        if not filenames:
+            qtw.QMessageBox.warning(self, "File not found", f"No files found for CL{cl_number}")
+            self.possm_data = {}
+            self.plot_keys = []
+            self.bl_selector.clear()
+            self.selected_baseline = None
+            return
+
+        # Try to load the first matching file (you can modify this if you need to load a specific one)
+        filename = f'../tmp/{filenames[0]}'
         try:
-            with open(filename, 'rb') as file:
-                self.possm_data = pickle.load(file)
+            #with open(filename, 'rb') as file:
+            #    self.possm_data = pickle.load(file)
+
+            loaded_dict =  np.load(filename, allow_pickle = True)
+
+            for key in loaded_dict:
+                # Try to convert back to tuple if it's a string representation of a tuple
+                try:
+                    original_key = eval(key)  # This converts string '("A", "B")' back to the tuple ('A', 'B')
+                except:
+                    original_key = key  # If it's not a tuple, just use the string as is
+                self.possm_data[original_key] = loaded_dict[key]
+
+            # self.possm_data = {k: loaded_dict[k] for k in loaded_dict}
 
             self.plot_keys = [key for key in self.possm_data.keys() if isinstance(key, tuple)]
             self.plot_keys.sort()  # Ensure consistent ordering
@@ -740,7 +772,7 @@ class RadplotWindow(qtw.QMainWindow):
 
     def plot_data(self):
         # Load the pickled figure
-        loaded_figure = pickle.load(open(f'./tmp/{self.target}.radplot.pickle', 'rb'))
+        loaded_figure = pickle.load(open(f'../tmp/{self.target}.radplot.pickle', 'rb'))
         original_axes = loaded_figure.get_axes()
 
         # Create new figure and canvas
@@ -816,7 +848,7 @@ class UvplotWindow(qtw.QMainWindow):
 
     def plot_data(self):
         # Load the pickled figure
-        loaded_figure = pickle.load(open(f'./tmp/{self.target}.uvplt.pickle', 'rb'))
+        loaded_figure = pickle.load(open(f'../tmp/{self.target}.uvplt.pickle', 'rb'))
         original_axes = loaded_figure.get_axes()
 
         # Create new figure and canvas

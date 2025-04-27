@@ -528,13 +528,15 @@ def pickle_possm(wuvdata, path, bp = False):
 
     if bp == False:
         #with open(f'{path}{wuvdata.name}_CL{wuvdata.seq}.possm.pickle', 'wb') as f:
-                np.savez_compressed(f'{path}{wuvdata.name}_CL{wuvdata.seq}.possm.npz', POSSM)
+                POSSM_str =  {str(key): value for key, value in POSSM.items()}
+                np.savez_compressed(f'{path}{wuvdata.name}_CL{wuvdata.seq}.possm.npz', **POSSM_str)
             
 
     if bp == True:
         #with open(f'{path}{wuvdata.name}_CL{wuvdata.seq}_BP.possm.pickle', 'wb') as f:
                 #pickle.dump(POSSM, f)
-                np.savez_compressed(f'{path}{wuvdata.name}_CL{wuvdata.seq}_BP.possm.npz', POSSM)
+                POSSM_str =  {str(key): value for key, value in POSSM.items()}
+                np.savez_compressed(f'{path}{wuvdata.name}_CL{wuvdata.seq}_BP.possm.npz', **POSSM_str)
 
 def interactive_possm(POSSM, bline, scan):
             
