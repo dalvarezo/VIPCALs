@@ -43,6 +43,8 @@ def tacop(data, ext, invers, outvers):
 def old_tecor(data):
     """Ionospheric delay calibration.
 
+    I NEED TO ADD THE RETURNS!!!!!
+
     Derives corrections for ionospheric Faraday rotation and \
     dispersive delay from maps of total electron content in IONEX \
     format. 
@@ -71,6 +73,8 @@ def old_tecor(data):
     #    scan_times.append(int(np.floor(scans['time'])))
     days = [*range(int(np.floor(cl1_table[-1]['time']))+1)]
 
+    files = []
+
     for elements in days:
         YY = data.header.date_obs[2:4]
         new_DDD = str(DDD + elements)
@@ -88,6 +92,8 @@ def old_tecor(data):
                             + 'i.Z > /tmp/' + 'jplg' + new_DDD +'0.' \
                             + YY +'i.Z'
             os.system(curl_command)
+
+            files.append(curl_command.split(' ')[9])
             
             zcat_command = 'zcat /tmp/jplg'+ new_DDD +'0.'+ YY \
                             + 'i.Z >> /tmp/jplg'+ new_DDD +'0.'+ YY +'i'
@@ -113,8 +119,12 @@ def old_tecor(data):
 
     tecor.go()
 
+    return(files)
+
 def new_tecor(data):
     """Ionospheric delay calibration.
+
+    I NEED TO ADD THE RETURNS!!!!!
 
     Derives corrections for ionospheric Faraday rotation and \
     dispersive delay from maps of total electron content in IONEX \
@@ -144,6 +154,8 @@ def new_tecor(data):
     #    scan_times.append(int(np.floor(scans['time'])))
     days = [*range(int(np.floor(cl1_table[-1]['time']))+1)]
 
+    files = []
+
     for elements in days:
         YY = data.header.date_obs[2:4]
         new_DDD = str(DDD + elements)
@@ -163,6 +175,8 @@ def new_tecor(data):
                             + '> /tmp/' + 'jplg' + new_DDD +'0.' \
                             + YY +'i.gz'
             os.system(curl_command)
+
+            files.append(curl_command.split(' ')[9])
             
             zcat_command = 'zcat /tmp/jplg'+ new_DDD +'0.'+ YY \
                             + 'i.gz >> /tmp/jplg'+ new_DDD +'0.'+ YY +'i'
@@ -187,8 +201,13 @@ def new_tecor(data):
     # tecor.msgkill = -4
 
     tecor.go()
+
+    return(files)
+
 def ionos_correct(data):
     """Ionospheric delay calibration.
+
+    I NEED TO ADD THE RETURNS!!!
 
     Calls :func:`~vipcals.scripts.ionos_corr.new_tecor` or \
     :func:`~vipcals.scripts.ionos_corr.old_tecor` depending on the observation date \
@@ -204,6 +223,8 @@ def ionos_correct(data):
 
     date_obs = datetime(YYYY, MM, DD)
     if date_obs > date_lim:
-        new_tecor(data)
+        files = new_tecor(data)
     else:
-        old_tecor(data)
+        files = old_tecor(data)
+
+    return(files)

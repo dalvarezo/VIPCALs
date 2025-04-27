@@ -321,18 +321,6 @@ def find_calibrators(full_source_list, choose = 'BYNAME'):
             except:
                 full_source_list[idx].band_flux = np.NaN
 
-        # for elements in full_source_list:
-        #     elements.band_flux = np.NaN
-        #     src_coord = SkyCoord(elements.ra, elements.dec, unit = 'deg')
-        #     for i, row in calib_list.iterrows():
-        #         calib_coord = SkyCoord(row['RA'], row['DEC'])
-        #         if calib_coord.separation(src_coord).arcsecond <= 100:
-        #             try:
-        #                 elements.band_flux = float(row[elements.band + '_short'])
-        #             except:
-        #                 elements.band_flux = np.NaN
-        #             break
-
     if choose == "BYNAME":
         for elements in full_source_list:
             row = calib_list.loc[calib_list.isin([elements.name]).any(axis=1)]
@@ -501,7 +489,7 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     os.system('rm ' + symlink_path + '/aux_*')
 
 
-def write_info(data, filepath_list, log_list, sources):
+def write_info(data, filepath_list, log_list, sources, stats_df = 'None'):
     """Write some basic information about the loaded file to the logs
 
     :param data: visibility data
@@ -512,6 +500,8 @@ def write_info(data, filepath_list, log_list, sources):
     :type log_list: list of file
     :param sources: list of sources loaded
     :type sources: list of str
+    :param stats_df: if given, Pandas DataFrame where to keep track of the different statistics
+    :type stats_df: pandas.DataFrame object, optional
     """    
     for log in log_list:
         for path in filepath_list:
@@ -533,6 +523,11 @@ def write_info(data, filepath_list, log_list, sources):
             log.write('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
 
         log.write('\nLoaded sources: ' + str(list(set(sources))) + '\n')
+
+        if type(stats_df) == pd.core.frame.DataFrame:
+            stats_df['project'] = data.header['observer']
+            stats_df['obs_date'] = data.header['date_obs']
+            stats_df['frequency'] = np.round(freq/1e9,6)
 
 
 def print_info(data, filepath_list, sources):

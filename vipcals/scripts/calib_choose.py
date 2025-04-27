@@ -11,6 +11,7 @@ class SNRScan():
     def __init__(self):
         self.name = None
         self.id = None
+        self.scanid = None
         self.snr = []
         self.time = None
         self.time_interval = None
@@ -137,12 +138,19 @@ def snr_scan_list_v2(data, version = 1):
                        if scan.time == entry['time'])
         element.id = entry['source_id']
         element.antennas.append(entry['antenna_no'])
-        try:
-            element.snr.append(entry['weight_1'][0])
-        except TypeError: # Single IF datasets
-            element.snr.append(entry['weight_1'])
+        if entry['weight_1'] == list:
+            if entry.antenna_no != entry.refant_1[0]:
+                element.snr.append(entry['weight_1'][0])
+            else:
+                element.snr.append(np.nan)
+        else: # Single IF datasets
+            if entry.antenna_no != entry.refant_1:
+                element.snr.append(entry['weight_1'])
+            else:
+                element.snr.append(np.nan)
+
     # Order them by SNR
-    scan_list.sort(key=lambda x: np.median(x.snr),\
+    scan_list.sort(key=lambda x: np.nanmedian(x.snr),\
                    reverse=True)
     
     # If there are no scans, tell the main worflow to print an error message
@@ -244,7 +252,7 @@ def snr_scan_list(data, full_source_list, version = 1):
             element.snr.append(entry['weight_1'])
         
     # Order them by SNR
-    scan_list.sort(key=lambda x: np.median(x.snr),\
+    scan_list.sort(key=lambda x: np.nanmedian(x.snr),\
                    reverse=True)
     # Drop no detections (SNR less than five)
     # Causes problems later on, better keep them

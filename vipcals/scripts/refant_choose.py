@@ -25,6 +25,8 @@ class AntennaTY():
         self.dist = None
         self.times_obs = None
         self.scans_obs = []
+        self.median_SNR = 0
+        self.max_scans = 0
 
 
 class Scan():
@@ -74,6 +76,8 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
     :type search_central: bool, optional
     :return: reference antenna number
     :rtype: int
+    :return: sorted antenna dictionary
+    :rtype: dict
     """     
     # Load tables
     nx_table = data.table('NX', 1)
@@ -145,6 +149,7 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
         for scn in scan_list:
             if antennas_list[ant].id in scn.antennas:
                 antennas_list[ant].scans_obs.append(scn.number)
+        antennas_list[ant].max_scans = len(scan_list)
     # Maximum number of scans observed
     max_scan_no = np.max([len(antennas_list[x].scans_obs) for x in antennas_list])
     # Print a warning if no antennas was available in all scans
@@ -181,6 +186,7 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
             snr_dict[i] = {}
             for j in range(len(an_table)):
                 snr_dict[i][j+1] = []
+
     # If search_central == True, but none of the 5 central antennas was available, do it 
     # again with all antennas
     if search_central == True and len(snr_dict) == 0:
@@ -210,42 +216,49 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
     for ant in antennas_list:
         if ant in snr_dict.keys():
             median_snr_dict[ant] =  np.nanmedian(list(snr_dict[ant].values()))
+            antennas_list[ant].median_SNR = np.nanmedian(list(snr_dict[ant].values()))
     final_list = sorted(median_snr_dict, key = median_snr_dict.get, reverse = True)
 
     refant = final_list[0]
 
-    for pipeline_log in log_list:
-        pipeline_log.write('\n')
-        pipeline_log.write(antennas_list[refant].name + ' has been selected as the ' \
-                          + 'reference antenna. It is available in ' + str(max_scan_no) \
-                          + ' out of ' + str(len(scan_list)) + ' scans.\nMedian SNR ' \
-                          + 'value for the target on each baseline are:\n')
-        for ant in snr_dict[refant].keys():
-            if refant != ant:
-                if refant < ant:
-                    pipeline_log.write(str(refant) + '-' + str(ant) + ': ' \
-                                    + '{:.2f}\n'.format(snr_dict[refant][ant]))
-                if refant > ant:
-                    pipeline_log.write(str(ant) + '-' + str(refant) + ': ' \
-                                    + '{:.2f}\n'.format(snr_dict[refant][ant]))
-        pipeline_log.write('MEDIAN SNR: {:.2f}\n'.format(median_snr_dict[refant]))
+    #for pipeline_log in log_list:
+    #    pipeline_log.write('\n')
+    #    pipeline_log.write(antennas_list[refant].name + ' has been selected as the ' \
+    #                      + 'reference antenna. It is available in ' + str(max_scan_no) \
+    #                      + ' out of ' + str(len(scan_list)) + ' scans.\nMedian SNR ' \
+    #                      + 'value for the target on each baseline are:\n')
+    #    for ant in snr_dict[refant].keys():
+    #        if refant != ant:
+    #            if refant < ant:
+    #                pipeline_log.write(str(refant) + '-' + str(ant) + ': ' \
+    #                                + '{:.2f}\n'.format(snr_dict[refant][ant]))
+    #            if refant > ant:
+    #                pipeline_log.write(str(ant) + '-' + str(refant) + ': ' \
+    #                                + '{:.2f}\n'.format(snr_dict[refant][ant]))
+    #    pipeline_log.write('MEDIAN SNR: {:.2f}\n'.format(median_snr_dict[refant]))
                 
-    print(antennas_list[refant].name + ' has been selected as the reference ' \
-                        + 'antenna. It is available in ' + str(max_scan_no) + ' out ' \
-                        + 'of ' + str(len(scan_list)) + ' scans.\nMedian SNR value ' \
-                        + 'for the target on each baseline are:\n')
-    for ant in snr_dict[refant].keys():
-        if refant != ant:
-            if refant < ant:
-                print(str(refant) + '-' + str(ant) + ': ' \
-                                    + '{:.2f}\n'.format(snr_dict[refant][ant]))
-            if refant > ant:
-                print(str(ant) + '-' + str(refant) + ': ' \
-                                    + '{:.2f}\n'.format(snr_dict[refant][ant]))
+    #print(antennas_list[refant].name + ' has been selected as the reference ' \
+    #                    + 'antenna. It is available in ' + str(max_scan_no) + ' out ' \
+    #                    + 'of ' + str(len(scan_list)) + ' scans.\nMedian SNR value ' \
+    #                    + 'for the target on each baseline are:\n')
+    #for ant in snr_dict[refant].keys():
+    #    if refant != ant:
+    #        if refant < ant:
+    #            print(str(refant) + '-' + str(ant) + ': ' \
+    #                                + '{:.2f}\n'.format(snr_dict[refant][ant]))
+    #        if refant > ant:
+    #            print(str(ant) + '-' + str(refant) + ': ' \
+    #                                + '{:.2f}\n'.format(snr_dict[refant][ant]))
                 
-    print('MEDIAN SNR: {:.2f}\n'.format(median_snr_dict[refant]))
+    ### TEST ###
+    #for ant in dict(sorted(antennas_list.items(), key=lambda x: x[1].median_SNR, reverse=True)):
+    #    print(antennas_list[ant].name, round(antennas_list[ant].median_SNR, 2),\
+    #          len(antennas_list[ant].scans_obs), antennas_list[ant].total_scans)
 
-    return(refant)
+                
+    # print('MEDIAN SNR: {:.2f}\n'.format(median_snr_dict[refant]))
+
+    return(refant, dict(sorted(antennas_list.items(), key=lambda x: x[1].median_SNR, reverse=True)))
 
 def refant_choose_tsys(data, sources, full_source_list, log_list):
     """Choose a suitable reference antenna using system temperatures

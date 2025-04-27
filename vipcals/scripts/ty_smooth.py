@@ -135,6 +135,10 @@ def ty_assess(data):
     """    
     ty1 = data.table('TY', 1)
     ty2 = data.table('TY', 2)
+    ant_ids = [x.nosta for x in data.table('AN', 1)]
+    ant_dict = {}
+    for id in ant_ids:
+        ant_dict[id] = [0,0]
     
     # Count valid tsys measurements
     total_points_1 = 0
@@ -143,9 +147,11 @@ def ty_assess(data):
             for tsys_if in tsys['tsys_1']:
                 if tsys_if != tsys['tant_1'][0]:
                     total_points_1 += 1
+                    ant_dict[tsys['antenna_no']][1] += 1
         except TypeError: # Single IF datasets
             if tsys['tsys_1'] != tsys['tant_1']:
                     total_points_1 +=1
+                    ant_dict[tsys['antenna_no']][1] += 1
                     
     total_points_2 = 0
     for tsys in ty2:
@@ -153,11 +159,18 @@ def ty_assess(data):
             for tsys_if in tsys['tsys_1']:
                 if tsys_if != tsys['tant_1'][0]:
                     total_points_2 += 1
+                    ant_dict[tsys['antenna_no']][0] += 1
         except TypeError: # Single IF datasets
             if tsys['tsys_1'] != tsys['tant_1']:
                     total_points_2 +=1
+                    ant_dict[tsys['antenna_no']][0] += 1
                     
     original_points = total_points_1
     flagged_points = total_points_1 - total_points_2
+
+    tsys_dict= {}
+    for key in ant_dict:
+        name = [x.anname for x in data.table('AN', 1) if x.nosta == key][0]
+        tsys_dict[key] = (name, ant_dict[key][0], ant_dict[key][1])
     
-    return(original_points, flagged_points)
+    return(original_points, flagged_points, tsys_dict)

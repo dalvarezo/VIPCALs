@@ -184,6 +184,10 @@ def fringe_clcal(data, target_name, version=9):
     
     clcal.opcode = 'calp'
     clcal.interpol = 'self'
+    # TEST #
+    # clcal.cutoff = 10
+    # clcal.doblank = -1
+    # TEST #
     clcal.snver = version-3
     clcal.gainver = 8
     clcal.gainuse = version
@@ -247,8 +251,11 @@ def assess_fringe_fit(data, log, version = 6):
     antennas = list(set(antennas))
     
     fring_dict = {}
+    ratios_dict = {}
     for a in antennas:
         fring_dict[a] = []
+        ratios_dict[a] = [0,0]
+
             
     # Single polarization:
     try:
@@ -275,6 +282,9 @@ def assess_fringe_fit(data, log, version = 6):
             log.write('    ' + antenna_dict[a] + ' failed in ' \
                       + str(counter) + ' out of ' + str(len(fring_dict[a])) \
                       + ' solutions.\n')
+            
+            ratios_dict[a][0] = len(fring_dict[a]) - counter
+            ratios_dict[a][1] = len(fring_dict[a])
                
         print('Fringe fit failed in ' + str(global_counter) + ' out of '\
               + str(total_length) + ' solutions.\n')
@@ -282,7 +292,7 @@ def assess_fringe_fit(data, log, version = 6):
               + str(total_length) + ' solutions.\n')   
         
         ratio = 1 - global_counter/total_length
-        return ratio
+        return global_counter, total_length, ratios_dict
         
     # Dual polarization
     for s in sn_table:
@@ -306,10 +316,13 @@ def assess_fringe_fit(data, log, version = 6):
               ' out of ' + str(len(fring_dict[a])) + ' solutions.\n')
         log.write(antenna_dict[a] + ' failed in ' + str(counter) + \
                   ' out of ' + str(len(fring_dict[a])) + ' solutions.\n')
+        
+        ratios_dict[a][0] = len(fring_dict[a]) - counter
+        ratios_dict[a][1] = len(fring_dict[a])
                
     print('Fringe fit failed in ' + str(global_counter) + ' out of '\
           + str(total_length) + ' solutions.\n')
     log.write('Fringe fit failed in ' + str(global_counter) + ' out of '\
               + str(total_length) + ' solutions.\n') 
     ratio = 1 - global_counter/total_length
-    return ratio
+    return global_counter, total_length, ratios_dict

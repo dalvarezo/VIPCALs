@@ -219,7 +219,8 @@ def table_export(path_list, data, target_list, filename_list):
     AIPSUVData(data.name, 'DUMMY', data.disk, 1).zap()
 
 
-def data_split(data, target_list, cl_table = 1, bpass = False):
+def data_split(data, target_list, cl_table = 1, bpass = False, flagver = 0, \
+               keep = False):
     """Split source data applying different CL tables and/or the BP table.
 
     The class of the splitted catalogue entries is "PLOTS", since this entries 
@@ -233,12 +234,20 @@ def data_split(data, target_list, cl_table = 1, bpass = False):
     :type cl_table: int, optional
     :param bpass: apply the bandpass table; defaults to False
     :type bpass: bool, optional
+    :param flagver: flag table version to apply, 0 => max; defaults to 0
+    :type flagver: int, optional
+    :param keep: delete previous entries for the same table; defaults to 0
+    :type keep: bool, optional
     """
 
     for i, target in enumerate(target_list):
         # Remove the split file if it already exists
-        if AIPSUVData(target, 'PLOTS', data.disk, cl_table).exists() == True:
-            AIPSUVData(target, 'PLOTS', data.disk, cl_table).zap()
+        if keep == False:
+            if AIPSUVData(target, 'PLOT', data.disk, cl_table).exists() == True:
+                AIPSUVData(target, 'PLOT', data.disk, cl_table).zap()
+            
+            if AIPSUVData(target, 'PLOTBP', data.disk, cl_table).exists() == True:
+                AIPSUVData(target, 'PLOTBP', data.disk, cl_table).zap()
 
         data_split = AIPSTask('split')
         data_split.inname = data.name
@@ -247,18 +256,25 @@ def data_split(data, target_list, cl_table = 1, bpass = False):
         data_split.inseq = data.seq
 
         data_split.outdisk = data.disk
-        data_split.outclass = 'PLOTS'
+        if bpass == True:
+            data_split.outclass = 'PLOTBP'
+        else:
+            data_split.outclass = 'PLOT'
         data_split.outseq = cl_table
 
         data_split.sources = AIPSList([target])
 
         data_split.docal = 1
         data_split.gainuse = cl_table
+        data_split.flagver = flagver
         if bpass == True:
             data_split.doband = 1
-        data_split.aparm[1] = 1  #Don't average frequency in IFs, multi-channel out
+        data_split.aparm[1] = 0  #Don't average frequency in IFs, multi-channel out
         # TEST        
-        data_split.aparm[5] = 1  # Pass xc and ac
+        # data_split.douvcomp = 1
+        #data_split.aparm[3] = 1  # Calibrate weights (?)
+        data_split.aparm[5] = 0  # Pass ONLY xc
+        # Test
         data_split.go()
 
 def vis_count(data):

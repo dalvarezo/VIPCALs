@@ -200,8 +200,8 @@ def optimize_solint_cm(data, target, target_optimal_scans, refant):
             
             for antennas in snr_table:
                 if antennas['antenna_no'] == refant:
-                    pass
-                    #snr_dict[antennas['antenna_no']].append(6.5)
+                    # pass
+                    snr_dict[antennas['antenna_no']].append(np.nan)
                 else:
                     try:
                         snr_dict[antennas['antenna_no']].append\
@@ -216,9 +216,9 @@ def optimize_solint_cm(data, target, target_optimal_scans, refant):
         snr_values = []
         # Compute the median per antenna
         for key in snr_dict.keys():
-            snr_values.append(np.median(snr_dict[key]))
+            snr_values.append(np.nanmedian(snr_dict[key]))
 	    # Add median SNR of all antennas to dict
-        solint_dict[solint] = np.median(snr_values)
+        solint_dict[solint] = np.nanmedian(snr_values)
     solint = list(dict(sorted(solint_dict.items(), key=lambda item: item[1], \
                               reverse = True)).keys())[0]
     return(solint)
@@ -234,7 +234,7 @@ def optimize_solint_mm(data, target, target_optimal_scans, refant):
     Runs a fringe fit in a selected number of scans of the target for five different \
     solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal \
     solution interval is the smallest time required for all baselines to reach an SNR \
-    of 5.5. 
+    of 5. 
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -251,10 +251,12 @@ def optimize_solint_mm(data, target, target_optimal_scans, refant):
     ### NOT THE OPTIMAL SCANS ANYMORE! IF IT WORKS I NEED TO CHANGE THE DOCSTRING
     ###
     # Get scan length (assuming them equal) in minutes
+    solint_dict = {}
     scan_length = target_optimal_scans[0].time_interval*24*60
     for solint in np.round([scan_length/5.1, scan_length/4.1, \
                             scan_length/3.1, scan_length/2.1, scan_length],1):
         snr_dict = {}
+        solint_dict[solint] = {}
         # Initialize dictionary
         for a in target_optimal_scans[0].antennas:
             snr_dict[a] = []
@@ -282,7 +284,7 @@ def optimize_solint_mm(data, target, target_optimal_scans, refant):
             
             for antennas in snr_table:
                 if antennas['antenna_no'] == refant:
-                    snr_dict[antennas['antenna_no']].append(6.5)
+                    snr_dict[antennas['antenna_no']].append(np.nan)
                 else:
                     try:
                         snr_dict[antennas['antenna_no']].append\
@@ -297,11 +299,9 @@ def optimize_solint_mm(data, target, target_optimal_scans, refant):
         snr_values = []
         # Compute the median per antenna
         for key in snr_dict.keys():
-            snr_values.append(np.median(snr_dict[key]))
-	    #Check if they are all over 5.5
-        if all([x > 5.5 for x in snr_values]) == True:
+            snr_values.append(np.nanmedian(snr_dict[key]))
+            solint_dict[solint][key] = np.nanmedian(snr_dict[key])
+	    #Check if they are all over 5
+        if all([x > 5 for x in snr_values]) == True:
             break
-    return(solint)
-
-    # I should modify this function in such a way that can produce plots with
-    # the SNR as a function of the solution interval for each baseline
+    return(solint, solint_dict)
