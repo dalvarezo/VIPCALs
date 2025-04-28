@@ -1,4 +1,4 @@
-import os
+import warnings
 import copy
 import pickle
 import numpy as np
@@ -307,7 +307,7 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     # Clean all plots
     data.zap_table('PL', -1)
 
-def generate_pickle_plots(data, target_list):
+def generate_pickle_plots(data, target_list, path_list):
     """Generate multiple plots and serialize them in pickle format.
 
     The function applies all the different calibration tables to the data and 
@@ -323,65 +323,40 @@ def generate_pickle_plots(data, target_list):
     :type data: AIPSUVData
     :param target_list: list of sources to split
     :type target_list: list of str  
+    :param path_list: list of paths of the visibilities
+    :type path_list: list of str
     """
     # Apply all calibrations tables to each target
     max_cl = data.table_highver('CL')
     for i, target in enumerate(target_list):
-    #    max_cl = data.table_highver('CL')
-    #    for n in range(max_cl):
-    #        # Remove the plot file if it already exists
-    #        if AIPSUVData(target, 'PLOTS', data.disk, n+1).exists() == True:
-    #            AIPSUVData(target, 'PLOTS', data.disk, n+1).zap()
-    #
-    #        pickle_split = AIPSTask('split')
-    #        pickle_split = AIPSTask('split')
-    #        pickle_split.inname = data.name
-    #        pickle_split.inclass = data.klass
-    #        pickle_split.indisk = data.disk
-    #        pickle_split.inseq = data.seq
-    #        pickle_split.outdisk = data.disk
-    #        pickle_split.outclass = 'PLOTS'
-    #        pickle_split.outseq = n+1
-    #        pickle_split.sources = AIPSList([target])
-    #        pickle_split.docal = 1
-    #        pickle_split.gainuse = n+1
-    #        if n >= 7:
-    #            pickle_split.doband = 1
-    #        pickle_split.aparm[1] = 1  #Don't average frequency in IFs, multi-channel out
-    #        # NO FLAGGING FOR NOW
-    #        # if it fails, then that's the maximum table that can be produced
-    #        try:
-    #            pickle_split.go()
-    #        except RuntimeError:
-    #            max_cl = n
-    #            break
+        name =  path_list[i].split('/')[-1]
         # Generate amp&phas vs freq
         for n in range(max_cl):
             if (n+1) < 7:
                 wuvdata = wizard.AIPSUVData(target, 'PLOT', data.disk, n+1)
-                pickle_possm(wuvdata, '../tmp/')
+                pickle_possm(wuvdata, '../tmp/', name)
             else:
                 wuvdata = wizard.AIPSUVData(target, 'PLOTBP', data.disk, n+1)
-                pickle_possm(wuvdata, '../tmp/', bp=True)
+                pickle_possm(wuvdata, '../tmp/', name ,bp=True)
 
         # Generate amp&phas vs time
         wuvdata = wizard.AIPSUVData(target, 'PLOTBP', data.disk, max_cl)
-        pickle_vplot(wuvdata, '../tmp/')
+        pickle_vplot(wuvdata, '../tmp/', name)
 
         # Generate amp&phas vs uvdist
         wuvdata = wizard.AIPSUVData(target, 'PLOTBP', data.disk, max_cl)
-        pickle_radplot(wuvdata, '../tmp/')
+        pickle_radplot(wuvdata, '../tmp/', name)
 
         # Generate uvplot
         wuvdata = wizard.AIPSUVData(target, 'PLOTBP', data.disk, max_cl)
-        pickle_uvplt(wuvdata, '../tmp/')
+        pickle_uvplt(wuvdata, '../tmp/', name)
 
         # Delete the AIPS entries
         #for n in range(max_cl):
         #    pickle_data = AIPSUVData(target, 'PLOTS', data.disk, n+1)
         #    pickle_data.zap()
 
-def pickle_uvplt(wuvdata, path):
+def pickle_uvplt(wuvdata, path, name):
         u = []
         v = []
         fq_table = wuvdata.table('FQ', 0)
@@ -407,11 +382,11 @@ def pickle_uvplt(wuvdata, path):
         ax.set_xlabel('U (M$\lambda$)')
         ax.set_ylabel('V (M$\lambda$)')
         #plt.show()
-        with open(f'{path}{wuvdata.name}.uvplt.pickle', 'wb') as f:
+        with open(f'{path}{name}.uvplt.pickle', 'wb') as f:
             pickle.dump(uvplt_fig, f)
         plt.close()
 
-def pickle_radplot(wuvdata, path):
+def pickle_radplot(wuvdata, path, name):
     central_freq = wuvdata.header['crval'][2]
     if_freq = wuvdata.table('FQ', 0)[0]['if_freq']
     reals_list = []
@@ -460,10 +435,10 @@ def pickle_radplot(wuvdata, path):
     axes[1].set_xlabel(r'UV Radius (M$\lambda$)')
     axes[1].set_ylabel('Phase (degrees)')
     plt.subplots_adjust(hspace=0)
-    with open(f'{path}{wuvdata.name}.radplot.pickle', 'wb') as f:
+    with open(f'{path}{name}.radplot.pickle', 'wb') as f:
         pickle.dump(radplot_fig, f)
 
-def pickle_vplot(wuvdata, path):
+def pickle_vplot(wuvdata, path, name):
     blines = [x.baseline for x in wuvdata]
     blines_unique =  list(set(tuple(x) for x in blines))
     vplot_dict = {}
@@ -499,11 +474,11 @@ def pickle_vplot(wuvdata, path):
         #axes[1].set_ylabel('Phase (degrees)')
         #with open(f'{path}{wuvdata.name}_{bl[0]}_{bl[1]}.vplt.pickle', 'wb') as f:
         #    pickle.dump(fig, f)
-        with open(f'{path}{wuvdata.name}.vplt.pickle', 'wb') as f:
+        with open(f'{path}{name}.vplt.pickle', 'wb') as f:
             pickle.dump(vplot_dict, f)
         #plt.close(vplot_dict)
 
-def pickle_possm(wuvdata, path, bp = False):
+def pickle_possm(wuvdata, path, name, bp = False):
     blines = [x.baseline for x in wuvdata]
     blines_unique =  list(set(tuple(x) for x in blines))
     POSSM = {}
@@ -527,16 +502,17 @@ def pickle_possm(wuvdata, path, bp = False):
     POSSM['central_freq'] = wuvdata.header['crval'][2]
 
     if bp == False:
-        #with open(f'{path}{wuvdata.name}_CL{wuvdata.seq}.possm.pickle', 'wb') as f:
-                POSSM_str =  {str(key): value for key, value in POSSM.items()}
-                np.savez_compressed(f'{path}{wuvdata.name}_CL{wuvdata.seq}.possm.npz', **POSSM_str)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
+            POSSM_str =  {str(key): value for key, value in POSSM.items()}
+            np.savez_compressed(f'{path}{name}_CL{wuvdata.seq}.possm.npz', **POSSM_str)
             
 
     if bp == True:
-        #with open(f'{path}{wuvdata.name}_CL{wuvdata.seq}_BP.possm.pickle', 'wb') as f:
-                #pickle.dump(POSSM, f)
-                POSSM_str =  {str(key): value for key, value in POSSM.items()}
-                np.savez_compressed(f'{path}{wuvdata.name}_CL{wuvdata.seq}_BP.possm.npz', **POSSM_str)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
+            POSSM_str =  {str(key): value for key, value in POSSM.items()}
+            np.savez_compressed(f'{path}{name}_CL{wuvdata.seq}_BP.possm.npz', **POSSM_str)
 
 def interactive_possm(POSSM, bline, scan):
             

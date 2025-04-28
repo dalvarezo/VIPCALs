@@ -1132,7 +1132,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                                      + 'one will be kept.\n')
                     ratio_single = 0
 
-                
+
                 # If both ratios are 0, end the pipeline
                 if (ratio + ratio_single) == 0:
 
@@ -1140,12 +1140,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
                     log_list[i].write('\nThe pipeline was not able to find any good ' \
                                     + 'solutions.\n')
-                    
-                    ## Total execution time ##
-                    tf = time.time()
-                    log_list[i].write('\nScript run time: '\
-                                        + '{:.2f} s. \n'.format(tf-t_i))
-                    # log_list[i].close()
+
                     ## Remove target from the workflow
                     ignore_list.append(target_list[i])
                     # target_list[i] = 'IGNORE'
@@ -1155,7 +1150,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 # If the new ratio is smaller or equal than the previous, 
                 # then keep the previous
 
-                if ratio_single <= ratio:
+                elif ratio_single <= ratio:
                     print("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     print("The multi-IF fringe fit will be applied.\n")
@@ -1170,7 +1165,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
                 # If new ratio is better than the previous, then replace the SN table and 
                 # apply the solutions
-                if ratio_single > ratio:
+                elif ratio_single > ratio:
                     print("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     print("The averaged IF fringe fit will be applied.\n ")
@@ -1182,12 +1177,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
                     frng.fringe_clcal(uvdata, target, version = 9+i)
 
-            log_list[i].write('\nFringe fit corrections applied to the target!\n'\
-                + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
-                + ' created.\n')
+            if target_list[i] not in ignore_list:
 
-            print('\nFringe fit corrections applied to ' + target + '!\nSN#' \
-                + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
+                log_list[i].write('\nFringe fit corrections applied to the target!\n'\
+                    + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
+                    + ' created.\n')
+
+                print('\nFringe fit corrections applied to ' + target + '!\nSN#' \
+                    + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
 
         if phase_ref[i] != 'NONE':
             stats_df.at[i,'phaseref_ff'] = True
@@ -1273,11 +1270,6 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     log_list[i].write('\nThe pipeline was not able to find any good ' \
                                     + 'solutions.\n')
                     
-                    ## Total execution time ##
-                    tf = time.time()
-                    log_list[i].write('\nScript run time: '\
-                                        + '{:.2f} s. \n'.format(tf-t_i))
-                    # log_list[i].close()
                     ## Remove target from the workflow
                     ignore_list.append(target_list[i])
                     # target_list[i] = 'IGNORE'
@@ -1287,7 +1279,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 # If the new ratio is smaller or equal than the previous, 
                 # then keep the previous
 
-                if ratio_single <= ratio:
+                elif ratio_single <= ratio:
                     print("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     print("The multi-IF fringe fit will be applied.\n ")
@@ -1302,7 +1294,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
                 # If new ratio is better than the previous, then replace the SN table and 
                 # apply the solutions
-                if ratio_single > ratio:
+                elif ratio_single > ratio:
                     print("New ratio of good/total solutions "\
                         + "is : {:.2f}.\n".format(ratio_single))
                     print("The averaged IF fringe fit will be applied.\n ")
@@ -1314,14 +1306,24 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
                     frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
 
-            log_list[i].write('\nFringe fit corrections applied to the target!\n'\
-                + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
-                + ' created.\n')
+            if target_list[i] not in ignore_list:
 
-            print('\nFringe fit corrections applied to ' + target + '!\nSN#' \
-                + str(6+i) + ' and CL#' + str(9+i) + ' created.\n')
+                log_list[i].write('\nFringe fit corrections applied to the target!\n'\
+                    + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
+                    + ' created.\n')
+
+                print('\nFringe fit corrections applied to ' + target + '!\nSN#' \
+                    + str(6+i) + ' and CL#' + str(9+i) + ' created.\n')
             
-        if ratio < 0.99: 
+        if (ratio + ratio_single) == 0:
+            stats_df.at[i, 'good_sols'] = False
+            stats_df.at[i, 'total_sols'] = False
+            stats_df.at[i, 'ratios_dict'] = False
+            stats_df.at[i, 'good_sols_single'] = False
+            stats_df.at[i, 'total_sols_single'] = False
+            stats_df.at[i, 'ratios_dict_single'] = False
+        
+        elif ratio < 0.99: 
             stats_df.at[i, 'good_sols'] = totalsols - badsols
             stats_df.at[i, 'total_sols'] = totalsols
             stats_df.at[i, 'ratios_dict'] = json.dumps(ratios_dict)
@@ -1329,7 +1331,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             stats_df.at[i, 'total_sols_single'] = totalsols_s
             stats_df.at[i, 'ratios_dict_single'] = json.dumps(ratios_dict_s)
 
-        if ratio >= 0.99: 
+        elif ratio >= 0.99: 
             stats_df.at[i, 'good_sols'] = totalsols - badsols
             stats_df.at[i, 'total_sols'] = totalsols
             stats_df.at[i, 'ratios_dict'] = json.dumps(ratios_dict)
@@ -1338,12 +1340,17 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             stats_df.at[i, 'ratios_dict_single'] = False
 
     # Counting visibilities
-    expo.data_split(uvdata, target_list, cl_table=9, flagver=2, bpass = True)
+    expo.data_split(uvdata, [t for t in target_list if t not in ignore_list], \
+                    cl_table=9, flagver=2, bpass = True)
+    
     for i, target in enumerate(target_list):
-        cl9_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 9)
-        vis_cl9_bp1 = expo.vis_count(cl9_bp1)
-        stats_df.at[i, 'CL9_BP1_vis'] = int(vis_cl9_bp1)
-        print(f"CL9 + BP1 visibilities of {target}: {vis_cl9_bp1}\n")
+        if target not in ignore_list:
+            cl9_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 9)
+            vis_cl9_bp1 = expo.vis_count(cl9_bp1)
+            stats_df.at[i, 'CL9_BP1_vis'] = int(vis_cl9_bp1)
+            print(f"CL9 + BP1 visibilities of {target}: {vis_cl9_bp1}\n")
+        else:
+            stats_df.at[i, 'CL9_BP1_vis'] = 0
 
 
     t14 = time.time()
@@ -1358,8 +1365,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.write_box(log_list, 'Exporting visibility data')
     disp.print_box('Exporting visibility data')
 
-    no_baseline = expo.data_export(path_list, uvdata, target_list, filename_list, \
-                                  flag_frac = flag_edge)
+    no_baseline = expo.data_export(path_list, uvdata, target_list, \
+                                   filename_list, ignore_list,\
+                                   flag_frac = flag_edge)
 
 
     for i, target in enumerate(target_list): 
@@ -1397,11 +1405,22 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## PLOTS ##
 
     ######################## TEST FOR THE GUI ########################
+    t_interactive = time.time()
     disp.print_box("Generating interactive plots")
     #
     interactive = True
     if interactive ==  True:
-        plot.generate_pickle_plots(uvdata, target_list)
+        plot.generate_pickle_plots(uvdata, target_list, path_list)
+
+    for i, path in enumerate(path_list):
+        target_name = path.split('/')[-1]
+        plot_size = sum(
+            f.stat().st_size for f in Path('../tmp/').rglob('*')
+            if f.is_file() and target_name in f.name)
+        
+        stats_df.at[i, 'plot_size_mb'] = plot_size / 1024**2
+
+    stats_df['time_19'] = time.time() - t_interactive
 
     ######################## TEST FOR THE GUI ########################
 
@@ -1481,26 +1500,28 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 
     ## Plot visibilities as a function of uv distance of target ##
     for i, target in enumerate(target_list):
-        fig = pickle.load(open(f'../tmp/{target}.radplot.pickle', 'rb'))
-        # Keep the color scheme in black and white, for consistency with other plots
-        for ax in fig.get_axes():
-            for line in ax.get_lines():
-                line.set_color('black')
-            for text in ax.texts:
-                text.set_color('black')
-            for spine in ax.spines.values():
-                spine.set_color('black')
-            ax.title.set_color('black')
-            ax.xaxis.label.set_color('black')
-            ax.yaxis.label.set_color('black')
-            ax.tick_params(colors='black')
-            for collection in ax.collections:
-                collection.set_edgecolor('black')
-                collection.set_facecolor('black')
+        if target not in ignore_list:
+            target_name = path_list[i].split('/')[-1]
+            fig = pickle.load(open(f'../tmp/{target_name}.radplot.pickle', 'rb'))
+            # Keep the color scheme in black and white, for consistency with other plots
+            for ax in fig.get_axes():
+                for line in ax.get_lines():
+                    line.set_color('black')
+                for text in ax.texts:
+                    text.set_color('black')
+                for spine in ax.spines.values():
+                    spine.set_color('black')
+                ax.title.set_color('black')
+                ax.xaxis.label.set_color('black')
+                ax.yaxis.label.set_color('black')
+                ax.tick_params(colors='black')
+                for collection in ax.collections:
+                    collection.set_edgecolor('black')
+                    collection.set_facecolor('black')
 
-        fig.tight_layout()
-        fig.savefig(f'{path_list[i]}/PLOTS/{filename_list[i]}_RADPLOT.pdf', bbox_inches='tight')
-                
+            fig.tight_layout()
+            fig.savefig(f'{path_list[i]}/PLOTS/{filename_list[i]}_RADPLOT.pdf', bbox_inches='tight')
+                    
         
     for i, target in enumerate(target_list):
         plot_size = sum(f.stat().st_size for f in Path(path_list[i] + '/PLOTS/').rglob('*') if f.is_file())
@@ -1511,7 +1532,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         pipeline_log.write('\nExecution time: {:.2f} s.\n'.format(t15-t14))
     print('Execution time: {:.2f} s.\n'.format(t15-t14))
 
-    stats_df['time_19'] = t15 - t_plots
+    stats_df['time_20'] = t15 - t_plots
 
     ## Total execution time ##
     tf = time.time()
@@ -1551,6 +1572,9 @@ def pipeline(input_dict):
     output_directory = input_dict['output_directory'] 
     flag_edge = input_dict['flag_edge']
     phase_ref = input_dict['phase_ref']
+
+    ## Clean tmp directory ##
+    os.system('rm ../tmp/*')
 
     ## Check for multiband datasets ##
     # If multiple files, done only on the first, since all need to have the same 

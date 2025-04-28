@@ -2,7 +2,7 @@ from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
 import numpy as np
-import os
+import warnings
 
 from random import sample 
 
@@ -215,10 +215,12 @@ def optimize_solint_cm(data, target, target_optimal_scans, refant):
         # Check if the median SNR across scans reaches the threshold
         snr_values = []
         # Compute the median per antenna
-        for key in snr_dict.keys():
-            snr_values.append(np.nanmedian(snr_dict[key]))
-	    # Add median SNR of all antennas to dict
-        solint_dict[solint] = np.nanmedian(snr_values)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=RuntimeWarning, message='All-NaN slice encountered')
+            for key in snr_dict.keys():
+                snr_values.append(np.nanmedian(snr_dict[key]))
+            # Add median SNR of all antennas to dict
+            solint_dict[solint] = np.nanmedian(snr_values)
     solint = list(dict(sorted(solint_dict.items(), key=lambda item: item[1], \
                               reverse = True)).keys())[0]
     return(solint)
@@ -298,9 +300,11 @@ def optimize_solint_mm(data, target, target_optimal_scans, refant):
         # Check if the median SNR across scans reaches the threshold
         snr_values = []
         # Compute the median per antenna
-        for key in snr_dict.keys():
-            snr_values.append(np.nanmedian(snr_dict[key]))
-            solint_dict[solint][key] = np.nanmedian(snr_dict[key])
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=RuntimeWarning, message='All-NaN slice encountered')
+            for key in snr_dict.keys():
+                snr_values.append(np.nanmedian(snr_dict[key]))
+                solint_dict[solint][key] = np.nanmedian(snr_dict[key])
 	    #Check if they are all over 5
         if all([x > 5 for x in snr_values]) == True:
             break

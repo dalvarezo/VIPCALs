@@ -73,6 +73,7 @@ def create_default_dict():
     default_dict['output_directory'] = 'NONE'
     default_dict['flag_edge'] = 0
     default_dict['phase_ref'] = ['NONE']
+    default_dict['subarrays'] = False
 
     return default_dict
 
@@ -135,6 +136,11 @@ for i, entry in enumerate(entry_list):
     # Load all has to be True/False
     if type(input_dict['load_all']) != bool:
         print('load_all option has to be True/False.\n')
+        exit()
+
+    # subarrays has to be True/False
+    if type(input_dict['subarrays']) != bool:
+        print('subarrays option has to be True/False.\n')
         exit()
 
     # Phase reference #

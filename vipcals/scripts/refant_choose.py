@@ -158,8 +158,11 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
             pipeline_log.write('\nWARNING: No antenna was available for all scans\n')
         print('\nWARNING: No antenna was available for all scans\n')
 
-    # Drop antennas if not available on the targets scans, --- or not available in the max
-    # number of scans --- omitted this second part for now
+    # DEBUGGING
+    # return(scan_list, antennas_list)
+    # DEBUGGING
+
+    # Drop antennas if not available on the targets scans
     target_ids = [x.id for x in full_source_list if x.name in target_list]
     target_scans = [x for x in scan_list if x.source_id in target_ids]
     bad_antennas = []
@@ -173,6 +176,10 @@ def refant_choose_snr(data, sources, search_sources, target_list, full_source_li
         
     for element in list(set(bad_antennas)):
         del antennas_list[element]
+
+    # If at this stage there are no antennas
+    if len(antennas_list) == 0:
+        raise ValueError("No antennas are available on all target sources scans.")
 
     # Run a fringe fit with the remaining antennas
     snr_dict = {}

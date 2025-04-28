@@ -63,8 +63,8 @@ def are_there_baselines(data, table_number, source_name):
     return(False)
 
 
-def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
-                flag_frac = 0.1):
+def data_export(path_list, data, target_list, filename_list, \
+                ignore_list, flag_edge = True, flag_frac = 0.1):
     """Split multi-source uv data to single source and export it to uvfits format.
 
     By default, it averages visibilities in frequency, producing one single channel 
@@ -80,6 +80,8 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
     :type target_list: list of str
     :param filename_list: list containing the subdirectories of each target
     :type filename_list: list of str
+    :param ignore_list: list of targets to ignore because the fringe fit failed
+    :type ignore_list: list of str
     :param flag_edge: flag edge channels; defaults to True
     :type flag_edge: bool, optional
     :param flag_frac: number of edge channels to flag, either a percentage (if < 1) \
@@ -95,14 +97,14 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
 
     # The 'IGNORE' part has to be changed, it's not needed anymore!
     for name in target_list:
-        if name == 'IGNORE':
+        if name in ignore_list:
             continue
         split_data = AIPSUVData(name, data.klass ,data.disk, data.seq)
         if split_data.exists():
             split_data.zap()
 
     for i, target in enumerate(target_list):
-        if target == 'IGNORE':
+        if target in ignore_list:
             continue
         split = AIPSTask('split')
         split.inname = data.name
@@ -155,7 +157,7 @@ def data_export(path_list, data, target_list, filename_list, flag_edge = True, \
 
 
     for i, target in enumerate(target_list):
-        if target == 'IGNORE':
+        if target in ignore_list:
             continue
         if target not in no_baseline:
             fittp = AIPSTask('fittp')
