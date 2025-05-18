@@ -95,7 +95,7 @@ class PipelineWorker(QThread):
         """Runs mock_pipeline.py in a subprocess and streams output."""
         process = subprocess.Popen(
             [#"conda", "run", "--no-capture-output" ,"-n", "pyside62", 
-             "ParselTongue", "../vipcals/__main__.py",
+             "ParselTongue", "../vipcals/__main__docker.py",
              "../tmp/temp.json"],
             #["conda", "run", "--no-capture-output" ,"-n", "vipcals", 
             # "ParselTongue", "mock_pipeline.py"],
@@ -180,11 +180,11 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.should_reset_fields = False  # <- Flag for reset control
 
         self.fields = {
-            "disk": self.disk_line,
+            #"disk": self.disk_line,
             "paths": self.filepath_line,
             "output_directory": self.output_line,
             "targets": self.target_line,
-            "userno": self.userno_line,
+            #"userno": self.userno_line,
             "calib": self.calsour_line,
             "flag_edge": self.edgeflag_line,
             "phase_ref": self.phasref_line,

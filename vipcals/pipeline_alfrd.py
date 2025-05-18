@@ -1898,8 +1898,8 @@ def pipeline(input_dict):
     output_directory = input_dict['output_directory'] 
     flag_edge = input_dict['flag_edge']
     phase_ref = input_dict['phase_ref']
-    interactive = input_dict['interactive']
-
+    #interactive = input_dict['interactive']
+    interactive = False # I don't want this version of the pipeline to make those plots
 
     ## Clean tmp directory ##
     os.system('rm ../tmp/*')

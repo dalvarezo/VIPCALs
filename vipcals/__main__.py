@@ -74,7 +74,7 @@ def create_default_dict():
     default_dict['flag_edge'] = 0
     default_dict['phase_ref'] = ['NONE']
     default_dict['subarrays'] = False
-    default_dict['interactive'] = False
+    default_dict['interactive'] = True
 
     return default_dict
 
