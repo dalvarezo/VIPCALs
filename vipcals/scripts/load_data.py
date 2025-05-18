@@ -4,141 +4,36 @@ import math
 import pandas as pd
 import pkg_resources
 
+import functools
+print = functools.partial(print, flush=True)
+
 from astropy.io import fits
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import search_around_sky
 from astropy import units as u
 
-from AIPS import AIPS
+from scripts.helper import Source
+
 from AIPSData import AIPSUVData
 from AIPSTask import AIPSTask, AIPSList
-
-import functools
-print = functools.partial(print, flush=True)
-
 AIPSTask.msgkill = -8
-
-class MultiFile:
-    def __init__(self, *file_paths, mode='r'):
-        """
-        Initialize the MultiFile object with multiple file paths.
-        
-        :param file_paths: The paths of the files to be opened.
-        :param mode: The mode in which the files should be opened.
-        """
-        self.files = [open(file_path, mode) for file_path in file_paths]
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
-
-    def read(self):
-        """
-        Reads from all files and returns their content concatenated.
-        """
-        return ''.join(file.read() for file in self.files)
-
-    def write(self, data):
-        """
-        Writes the given data to all files.
-        
-        :param data: The data to be written to the files.
-        """
-        for file in self.files:
-            file.write(data)
-
-    def close(self):
-        """
-        Closes all opened files.
-        """
-        for file in self.files:
-            file.close()
-
-    def readlines(self):
-        """
-        Reads lines from all files and returns a list of lists, each 
-        containing lines from one file.
-        """
-        return [file.readlines() for file in self.files]
-
-    def writelines(self, lines):
-        """
-        Writes a list of lines to all files.
-        
-        :param lines: The list of lines to write to the files.
-        """
-        for file in self.files:
-            file.writelines(lines)
-
-    def seek(self, offset, whence=0):
-        """
-        Moves the file pointer to a new position in all files.
-        
-        :param offset: The offset to move the pointer to.
-        :param whence: The reference point (0: start, 1: current position, 2: end).
-        """
-        for file in self.files:
-            file.seek(offset, whence)
-
-    def tell(self):
-        """
-        Returns the current position of the file pointer from the first file.
-        (Note: Assumes all files are at the same position.)
-        """
-        return self.files[0].tell()
-
-    def flush(self):
-        """
-        Flushes the write buffer of all files.
-        """
-        for file in self.files:
-            file.flush()
-
-    def __iter__(self):
-        """
-        Iterates over the lines of the first file. (This can be adjusted to 
-        iterate over all files if needed).
-        """
-        return iter(self.files[0])
-
-    def __repr__(self):
-        return f"MultiFile({[file.name for file in self.files]}, \
-            mode={self.files[0].mode})"
-
-
-class Source():
-    """Sources within a fits file."""
-    def __init__(self):
-        self.name = None
-        self.id = None
-        self.inlist = None
-        self.restfreq = None
-        self.band = None
-        self.band_flux = np.NaN
-        self.coord = None
-        self.ra = None
-        self.dec = None
-        
-    def set_band(self):
-        """Set band name depending on rest frequency."""
-        if self.restfreq < 3e9:
-            self.band = 'S'
-        elif self.restfreq < 7e9:
-            self.band = 'C'
-        elif self.restfreq < 1e10:
-            self.band = 'X'
-        elif self.restfreq < 1.8e10:
-            self.band = 'U'
-        elif self.restfreq < 2.6e10:
-            self.band = 'K'
-        else:
-            self.band = 'Ka'
 
 
 def set_name(path, source, klass):
+    """Set the name that will be used for the all the ouputs.
+
+    Name format is SOURCENAME_PROJECT_BAND_DATE
+
+    :param path: path to the uvfits/idifits file
+    :type path: str
+    :param source: name of the science target
+    :type source: str
+    :param klass: klass name in AIPS, contains the band information
+    :type klass: str
+    :return: name to be used in the outputs
+    :rtype: str
+    """    
     hdul = fits.open(path)
     obs = hdul[0].header['OBSERVER']
     if '/' in hdul[0].header['DATE-OBS']:
@@ -149,8 +44,13 @@ def set_name(path, source, klass):
             date_obs = '20' + date[2] + '-' + date[1] + '-' + date[0]
     if '-' in hdul[0].header['DATE-OBS']:
         date_obs = hdul[0].header['DATE-OBS']
+    hdul.close()
     freq = int(klass.strip('G'))
-    if freq < 3:
+    if freq < 1:
+        band = 'P'
+    elif freq < 2:
+        band = 'L'
+    elif freq < 3:
         band = 'S'
     elif freq < 7:
         band = 'C'
@@ -160,42 +60,13 @@ def set_name(path, source, klass):
         band = 'U'
     elif freq < 26:
         band = 'K'
-    else:
+    elif freq < 50: 
         band = 'Ka'
+    else:
+        band = 'W'
 
     name = source + '_' + obs + '_' + band + '_' + date_obs
     return(name)
-
-
-
-def open_log(path_list, filename_list):
-    """Create a log.txt to store AIPS outputs.
-
-    :param path_list: list of filepaths for each source
-    :type path_list: list of str
-    :param filename_list: list of file names
-    :type filename_list: list of str
-    """
-    log_paths = []
-    for i, path in enumerate(path_list):
-        log_paths.append(path + '/' + filename_list[i] + '_AIPSlog.txt')
-
-    AIPS.log = MultiFile(*log_paths, mode = 'w')
-
-def copy_log(path_list, filename_list):
-    """Copy AIPS log to all folders when multiple targets are selected
-
-    :param path_list: list of filepaths for each source
-    :type path_list: list of str
-    :param filename_list: list of file names
-    :type filename_list: list of str
-    """ 
-    log_name = path_list[0] + '/' + filename_list[0] + '_AIPS_log.txt'
-    for i, name in enumerate(filename_list[1:]):
-        os.system('cp ' + log_name\
-                  + ' ' + path_list[i+1] + '/' + name + '_AIPS_log.txt')
-
-
 
 def get_source_list(file_path_list, freq = 0):
     """Get a source list from a uvfits/idifits file.
@@ -205,7 +76,7 @@ def get_source_list(file_path_list, freq = 0):
     :param freq: if there are multiple frequency ids, which one to choose; defaults to 0
     :type freq: int, optional
     :return: list of sources contained in the file
-    :rtype: list of Source objects
+    :rtype: list of :class:`~vipcals.scripts.helper.Source` objects
     """    
     full_source_list = []
     for file_path in file_path_list:
@@ -238,13 +109,14 @@ def get_source_list(file_path_list, freq = 0):
             if a.name not in [s.name for s in full_source_list]:
                 full_source_list.append(a)
                 
-            a = None        
+            a = None  
+        hdul.close()      
         
     # Make sure that source names are ASCII characters
     for s in full_source_list:
         name_string = s.name
-        s.name = ''.join(char for char in name_string \
-                         if ord(char) < 128).rstrip('\x00')
+        s.name = name_string.split('\x00', 1)[0]
+
         
     return(full_source_list)
 
@@ -257,7 +129,7 @@ def redo_source_list(uvdata):
     :param data: visibility data
     :type data: AIPSUVData
     :return: list of sources contained in the observations
-    :rtype: list of Source objects
+    :rtype: list of :class:`~vipcals.scripts.helper.Source` objects
     """    
     su_table = uvdata.table('SU', 1)
     full_source_list = []
@@ -267,10 +139,6 @@ def redo_source_list(uvdata):
         b.id = source['id__no']
         freq_indx = uvdata.header['ctype'].index('FREQ')
         b.restfreq = uvdata.header['crval'][freq_indx]
-        #try:
-        #    b.restfreq = source['restfreq'][0]
-        #except (IndexError, TypeError): # Single IF datasets
-        #    b.restfreq = source['restfreq']  
 
         b.set_band()
 
@@ -279,20 +147,20 @@ def redo_source_list(uvdata):
 
     return full_source_list
 
-def find_calibrators(full_source_list, choose = 'BYNAME'):
+def find_calibrators(full_source_list, choose = 'BYCOORD'):
     """Choose possible calibrators from a source list.
 
     It loads information of ~ 9000 sources from an external file.
     Then, checks if there is available flux information for the
-    sources in the source list generated by the get_source_list() 
-    function. If there are more than 3 observed sources, the names 
-    of the brightest 3 are given in return. If not, only the 
-    brighthest source is returned.
+    sources in the source list generated by the 
+    :func:`~vipcals.scripts.load_data.get_source_list` function. If there are more 
+    than 3 observed sources, the names of the brightest 3 are given in return. If not, 
+    all sources are returned.
 
     :param full_source_list: list of sources contained in the file
-    :type full_source_list: list of Source objects
-    :param choose: cross-match the sources using names ("BYNAME") or coordinates \
-    ("BYCOORD"); default "BYNAME"
+    :type full_source_list: list of :class:`~vipcals.scripts.helper.Source` objects
+    :param choose: cross-match the sources using names ("BYNAME") or coordinates 
+    ("BYCOORD"); default "BYCOORD"
     :type choose: str 
     :return: names of possible calibrators available in the file
     :rtype: list of str
@@ -309,6 +177,7 @@ def find_calibrators(full_source_list, choose = 'BYNAME'):
     calib_list = pd.read_fwf(catalogue_path, skiprows = 16,\
                              names = col_names)
 
+    # Crossmatch using coordinates (fast, needs astropy)
     if choose == "BYCOORD":
         source_coords = SkyCoord([x.ra for x in full_source_list], \
                              [y.dec for y in full_source_list], unit = 'deg')
@@ -321,6 +190,7 @@ def find_calibrators(full_source_list, choose = 'BYNAME'):
             except:
                 full_source_list[idx].band_flux = np.NaN
 
+    # Crossmatch using names (slow, might fail)
     if choose == "BYNAME":
         for elements in full_source_list:
             row = calib_list.loc[calib_list.isin([elements.name]).any(axis=1)]
@@ -334,7 +204,7 @@ def find_calibrators(full_source_list, choose = 'BYNAME'):
     
     # If none of the sources is on the calibrator list, load all
     if np.isnan(full_source_list[0].band_flux) == True:
-        return(999)
+        raise ValueError("None of the sources was found on the VLBA calibrator list.")
 
     if len(full_source_list) > 3:
         return [str(full_source_list[0].name),str(full_source_list[1].name),\
@@ -347,29 +217,86 @@ def find_calibrators(full_source_list, choose = 'BYNAME'):
             calibs.append(src.name)
         return(calibs)
     
-def is_it_multifreq_id(file_path):
-    """Check if the file contains multiple bands splitted in IDs.
+def is_it_multifreq_id(file_path_list):
+    """Check if the files contains multiple bands splitted in IDs.
+
+    If more than one file is given, check how many files have common frequencies, and 
+    return a dictionary specifying which frequency corresponds to which files.
 
     :param file_path: path of the uvfits/idifts file
     :type file_path: str
-    :return: True if the dataset has multiple bands, False if not; number of ids; \
-             frequency of each id
-    :rtype: tuple with (boolean, int, list of float)
+    :return: whether the dataset has multiple bands, list of frequencies, dictionary 
+        with each file and which frequencies it covers
+    :rtype: boolean, int, list of float
     """    
     multifreq = False
-    hdul = fits.open(file_path)
-    howmanyids = len(hdul['FREQUENCY'].data['FREQID'])
-    bands = []
-    if howmanyids > 1:
-        for i in range(howmanyids):
-            freq = np.floor(hdul['SOURCE'].data['RESTFREQ'][0] \
-                            + hdul['FREQUENCY'].data['BANDFREQ'][i])
-            if freq[0] > 1e10:
-                bands.append(freq[0])
+    file_dict = {}
+    id_list = []
+    for file in file_path_list:
+        with fits.open(file) as hdul:
+            if len(hdul['FREQUENCY'].data['FREQID']) > 1:
+                multifreq = True
+            file_dict[file] = []
+            for i in range(len(hdul['FREQUENCY'].data['FREQID'])):
+                id = hdul['FREQUENCY'].data['FREQID']
+                freq = np.floor(hdul['SOURCE'].data['RESTFREQ'][0] \
+                                + hdul['FREQUENCY'].data['BANDFREQ'][i])
+                if type(freq) == np.float64: # Single IF
+                    file_dict[file].append((freq))
+                    id_list.append((freq))
+                else:
+                    file_dict[file].append((tuple(freq)))
+                    id_list.append((tuple(freq)))
+                    
+    id_list = list(set(id_list))
+
+    return(multifreq, id_list, file_dict)
+
+def group_ids(id):
+    """Look for multiple frequencies within one frequency ID.
+    
+    Reads an id from :func:`~vipcals.scripts.load_data.is_it_multifreq_id` and 
+    returns groups with parameters useful for the main workflow to deal with different 
+    frequencies. 
+
+    Args:
+    :param id: _description_
+
+    :return: minimum frequency of the id, minimum frequency of the group, minimum and 
+        maximum IFs containing the group
+    :rtype: float, float, list of int
+    """    
+    if not isinstance(id, np.float64):
+        # Sort values
+        # NOT SURE OF THE SORTING STEP, STILL TESTING
+        sorted_values = sorted(id)
+        #sorted_values = id
+        # Group based on jumps > 1e9 using positions in the sorted list
+        groups = []
+        current_group = [0]
+
+        for i in range(1, len(sorted_values)):
+            if sorted_values[i] - sorted_values[i - 1] > 1e9:
+                groups.append(current_group)
+                current_group = [i]
             else:
-                bands.append(freq[0])
-        multifreq = True
-    return (multifreq, howmanyids, bands)
+                current_group.append(i)
+        groups.append(current_group)
+
+        # Get overall minimum
+        overall_min = min(id)
+
+        # Create the output list
+        result = []
+        for group in groups:
+            group_min = min(sorted_values[i] for i in group)
+            result.append((group_min, overall_min, [min(group), max(group)]))
+
+        return result
+    
+    else:
+        return( [(id, id, [0,0] )])
+
 
 def is_it_multifreq_if(file_path):
     """Check if the file contains multiple bands splitted in IFs.
@@ -385,7 +312,7 @@ def is_it_multifreq_if(file_path):
              band 2; value of the last IF of band 2; first digit of the frequency of \
              band 1; first digit of the frequency of band 2; frequency of band 1 ;\
              frequency of band 2
-    :rtype: tuple with (boolean, int, int, int, int, str, str, float, float)
+    :rtype: boolean, int, int, int, int, str, str, float, float
     """    
     multifreq = False
     hdul = fits.open(file_path)
@@ -417,12 +344,16 @@ def is_it_multifreq_if(file_path):
     else:
         klass_2 = str(freq_2)[0]
 
+    hdul.close()
+
     return(multifreq, 1, IF, IF+1, len(if_freq[0]), klass_1,\
            klass_2, freq_1, freq_2)
         
 
 def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = '', \
-              seq = 1, bif = 0, eif = 0, l_a = False, symlink_path = '.'):
+              seq = 1, bif = 0, eif = 0, l_a = False, 
+              symlink_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                                          "../../tmp"))):
     """Load data from a uvfits/idifits file.
 
     :param file_path_list: list of paths of the uvfits/idifts files
@@ -447,13 +378,14 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     :type eif: int, optional
     :param l_a: load all sources; default False
     :type l_a: bool, optional
-    :param symlink_path: path where to create the symbolic links needed to load the data
-    :type symlink_path: str
+    :param symlink_path: path where to create the symbolic links needed to load the data;
+        default is the /vipcals/tmp folder
+    :type symlink_path: str, optional
     """      
     fitld = AIPSTask('fitld')
     # Create symbolic links for each of the files
     # This is necessary when multiple files need to be concatenated
-    # Delete if it already exists
+    # Delete any if they already exist
     if os.path.exists(symlink_path + '/aux_1'):
         os.system('rm ' + symlink_path + '/aux_*')
     for n, filepath in enumerate(file_path_list):
@@ -478,9 +410,10 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     fitld.bif = bif
     fitld.eif = eif
     fitld.clint = 0.1
-    #fitld.msgkill = -4
+
     if multi_id == True:
         fitld.selfreq = float(selfreq)  
+        fitld.fqtol = 2000
 
     fitld.datain = symlink_path + '/aux_'
 
@@ -488,83 +421,83 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     # Remove the symbolic links
     os.system('rm ' + symlink_path + '/aux_*')
 
-
-def write_info(data, filepath_list, log_list, sources, stats_df = 'None'):
-    """Write some basic information about the loaded file to the logs
-
-    :param data: visibility data
-    :type data: AIPSUVData
-    :param filepath_list: list of paths to the original uvfits/idifits files
-    :type filepath_list: list of str
-    :param log_list: list of the pipeline logs
-    :type log_list: list of file
-    :param sources: list of sources loaded
-    :type sources: list of str
-    :param stats_df: if given, Pandas DataFrame where to keep track of the different statistics
-    :type stats_df: pandas.DataFrame object, optional
-    """    
-    for log in log_list:
-        for path in filepath_list:
-            log.write('\nLoaded file: ' + os.path.basename(path) + '\n')
-            size = os.path.getsize(path)
-            if size >= 1024**3:
-                log.write('Size: ' + '{:.2f} GB \n'.format(os.path.getsize(path)/1024**3))
-            if size < 1024**3:
-                log.write('Size: ' + '{:.2f} MB \n'.format(os.path.getsize(path)/1024**2))
-
-        log.write('\nProject: ' + data.header['observer'])
-        log.write('\nObservation date: ' + data.header['date_obs'])
-
-        freq_indx = data.header['ctype'].index('FREQ')
-        freq = data.header['crval'][freq_indx]
-        if freq >= 1e9:
-            log.write('\nFrequency: ' + str(np.round(freq/1e9,2)) + ' GHz')
-        if freq < 1e9:
-            log.write('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
-
-        log.write('\nLoaded sources: ' + str(list(set(sources))) + '\n')
-
-        if type(stats_df) == pd.core.frame.DataFrame:
-            stats_df['project'] = data.header['observer']
-            stats_df['obs_date'] = data.header['date_obs']
-            stats_df['frequency'] = np.round(freq/1e9,6)
+    # If multiple files, merge redundant information in tables
+    if len(file_path_list) > 1:
+        merge_red_tables(AIPSUVData(name, klass, disk, seq)) 
 
 
-def print_info(data, filepath_list, sources):
-    """Print some basic information about the loaded file to the logs
+def merge_red_tables(data, timetol = 0.1):
+    """Merge redundant information on GC, TY, and PC tables.
+
+    Uses the TAMRG task in AIPS to merge tables when loading multiple files.
+    Inputs for the task are copied from the MERGECAL procedure
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param filepath_list: list of paths to the original uvfits/idifits files
-    :type filepath_list: list of str
-    :param sources: list of sources loaded
-    :type sources: list of str
+    :param timetol: tolerance for comparing times in seconds; defaults to 0.1
+    :type timetol: float, optional
     """    
-    for path in filepath_list:
-        print('\nLoaded file: ' + os.path.basename(path) + '\n')
-        size = os.path.getsize(path)
-        if size >= 1024**3:
-            print('Size: ' + '{:.2f} GB \n'.format(os.path.getsize(path)/1024**3))
-        if size < 1024**3:
-            print('Size: ' + '{:.2f} MB \n'.format(os.path.getsize(path)/1024**2))
 
-    print('\nProject: ' + data.header['observer'])
-    print('\nObservation date: ' + data.header['date_obs'])
 
-    freq_indx = data.header['ctype'].index('FREQ')
-    freq = data.header['crval'][freq_indx]
-    if freq >= 1e9:
-        print('\nFrequency: ' + str(np.round(freq/1e9,2)) + ' GHz')
-    if freq < 1e9:
-        print('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
+    # If multiple files, merge redundant data in tables
+    # Inputs are copied from RUN MERGECAL procedure
+    if 'GC' in data.tables:
+        # Process GC tables
+        tamrg = AIPSTask('tamrg')
+        tamrg.inname = data.name
+        tamrg.inseq = data.seq
+        tamrg.inclass = data.klass
+        tamrg.indisk = data.disk
 
-    print('\nLoaded sources: ' + str(list(set(sources))) + '\n')
+        tamrg.inext = 'GC'
+        tamrg.aparm = AIPSList([1,1,2,1,3,1])
+        tamrg.bparm = AIPSList([1,2,3])
 
+        tamrg.invers = 1
+        tamrg.outvers = 1
+
+        tamrg.go()
+
+    if 'TY' in data.tables:
+        # Process TY tables
+        tamrg = AIPSTask('tamrg')
+        tamrg.inname = data.name
+        tamrg.inseq = data.seq
+        tamrg.inclass = data.klass
+        tamrg.indisk = data.disk
+
+        tamrg.inext = 'TY'
+        tamrg.aparm = AIPSList([1,1,4,1,5,1,6,1])
+        tamrg.bparm = AIPSList([1,3,4,5,6])
+        tamrg.cparm = AIPSList([timetol / (24.0 * 60.0 * 60.0), 0])
+
+        tamrg.invers = 1
+        tamrg.outvers = 1
+
+        tamrg.go()
+
+    if 'PC' in data.tables:
+        # Process PC tables
+        tamrg = AIPSTask('tamrg')
+        tamrg.inname = data.name
+        tamrg.inseq = data.seq
+        tamrg.inclass = data.klass
+        tamrg.indisk = data.disk
+
+        tamrg.inext = 'PC'
+        tamrg.aparm = AIPSList([1,1,4,1,5,1,6,1])
+        tamrg.bparm = AIPSList([1,3,4,5,6])
+        tamrg.cparm = AIPSList([timetol / (24.0 * 60.0 * 60.0), 0])
+
+        tamrg.invers = 1
+        tamrg.outvers = 1
+
+        tamrg.go()
 
 def print_listr(data, path_list, filename_list):
     """Print scan information in an external file.
 
-    Runs the FITLD task and prints the output in scansum.txt
+    Runs the FITLD task in AIPS and prints the output in _scansum.txt
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -584,6 +517,107 @@ def print_listr(data, path_list, filename_list):
     listr.docrt = -2
     for i, name in enumerate(filename_list):
         listr.outprint = path_list[i] + '/' + name + '_scansum.txt'
-        #listr.msgkill = -4
         
         listr.go()
+
+def time_aver(data, oldtime, newtime):
+    """Average visibility data in time
+
+    Creates a new entry in AIPS adding '_AT' to the name
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param oldtime: previous time resolution in seconds
+    :type oldtime: float
+    :param newtime: new time resolution in seconds
+    :type newtime: float
+    """    
+    uvavg = AIPSTask('uvavg')
+    uvavg.inname = data.name
+    uvavg.inclass = data.klass
+    uvavg.indisk = data.disk
+    uvavg.inseq = data.seq
+
+    uvavg.doacor = 1
+    uvavg.yinc = newtime
+    uvavg.zinc = oldtime
+    uvavg.opcode = 'TIME'
+    
+    uvavg.outname = data.name[:9] + '_AT'
+    uvavg.outclass = data.klass
+    uvavg.outdisk = data.disk
+    uvavg.outseq = data.seq
+    
+    uvavg.go()
+    
+def freq_aver(data, ratio):
+    """Average visibility data in frequency
+
+    Creates a new entry in AIPS adding '_AF' or '_ATF' to the name if it has 
+    already been averaged in time.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param ratio: ratio between the old number of frequency channels and the new one, \
+    e.g. when going from 64 channels to 16, this number is 4 
+    :type ratio: float
+    """    
+    avspc = AIPSTask('avspc')
+    avspc.inname = data.name
+    avspc.inclass = data.klass
+    avspc.indisk = data.disk
+    avspc.inseq = data.seq
+
+    avspc.doacor = 1
+    avspc.channel = ratio
+    avspc.avoption = 'SUBS'
+
+    if data.name[-3:] == '_AT':
+        avspc.outname = data.name[:-3] + '_ATF'
+    else:
+        avspc.outname = data.name[:9] + '_AF'
+    avspc.outclass = data.klass
+    avspc.outdisk = data.disk
+    avspc.outseq = data.seq
+
+    avspc.go()
+
+def run_indxr(data):
+    """Creates an index (NX) table and indexes the uv data file.
+
+    Also creates CL#1 with entries every 0.1 minutes.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    """    
+    indxr = AIPSTask('indxr')
+    indxr.inname = data.name
+    indxr.inclass = data.klass
+    indxr.indisk = data.disk
+    indxr.inseq = data.seq
+    
+    indxr.cparm[3] = 0.1  # Create CL#1
+    indxr.cparm[4] = 1    # Recalculate CL entry group delays using IM table
+    
+    indxr.go()
+
+def tborder(data, log):
+    """Sort data in Time - Baseline order (TB)
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    """    
+    
+    uvsrt = AIPSTask('uvsrt')
+    uvsrt.inname = data.name
+    uvsrt.inclass = data.klass
+    uvsrt.indisk = data.disk
+    uvsrt.inseq = data.seq
+    uvsrt.outname = data.name
+    uvsrt.outclass = data.klass
+    uvsrt.outdisk = data.disk
+    uvsrt.outseq = data.seq
+    
+    uvsrt.sort = 'TB'
+            
+    uvsrt.go()
