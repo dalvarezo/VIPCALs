@@ -1,26 +1,26 @@
-import numpy as np
 import os
 
-from AIPS import AIPS
-from AIPSTask import AIPSTask, AIPSList
+from AIPSTask import AIPSTask
 
 AIPSTask.msgkill = -8
 
 def eop_correct(data):
     """Earth orientation parameters correction.
     
-    Correction of UT1-UTC and Earth's pole position.
-    Downloads a file and applies CLCOR
-     
+    Correction of UT1-UTC and Earth's pole position. Downloads a file and 
+    applies the CLCOR task in AIPS.
     Create CL#3
 
     :param data: visibility data
     :type data: AIPSUVData
     """    
-    if os.path.exists('/tmp/usno_finals_bis.erp') == False:
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+
+    if os.path.exists('../../tmp/usno_finals_bis.erp') == False:
         curl_command = 'curl -u anonymous:daip@nrao.edu --ftp-ssl ' \
         + 'ftp://gdc.cddis.eosdis.nasa.gov/vlbi/gsfc/ancillary/' \
-        + 'solve_apriori/usno_finals.erp > /tmp/usno_finals_bis.erp'
+        + 'solve_apriori/usno_finals.erp > ' + tmp + '/usno_finals_bis.erp'
         os.system(curl_command)
     
     clcor = AIPSTask('clcor')
@@ -29,9 +29,8 @@ def eop_correct(data):
     clcor.indisk = data.disk
     clcor.inseq = data.seq
     clcor.opcode = 'EOPS'
-    clcor.infile = '/tmp/usno_finals_bis.erp'
+    clcor.infile = f'{tmp}/usno_finals_bis.erp'
     clcor.gainver = 2
     clcor.gainuse = 3
-    #clcor.msgkill = -4
 
     clcor.go()

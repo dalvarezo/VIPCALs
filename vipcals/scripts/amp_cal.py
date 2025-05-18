@@ -1,32 +1,30 @@
 import numpy as np
-import os
 
-from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
-
 
 AIPSTask.msgkill = -8
 
-def amp_cal(data, solint = -3, average = 0, ref_if = 0):
-    """Apply a-priori amplitude corrections
+def amp_cal(data, solint = -3, average = False, ref_if = 0):
+    """Apply a-priori amplitude corrections - APCAL
     
-    This task takes as input a system temperature (TY) table and a 
+    Use the APCAL task in AIPS to generate an amplitude calibration table.    
+    Takes as input the system temperature (TY) table and the 
     gain curve (GC) table and generates a solution (SN) table containing 
     amplitude gain calibration information.
-
     Creates SN#5 and CL#8.
 
     :param data: visibility data
     :type data: AIPSUVData
     :param solint: solution interval (min). If > 0, does not pay attention to 
-        scan boundaries, defaults to -3
+        scan boundaries; defaults to -3
     :type solint: int, optional
-    :param average: if > 0 => normalize Tsys by average Tsys, defaults to 0
-    :type average: int, optional
-    :param ref_if: if average > 0, ref_if is used as as the IF to define the
-        correct Tsys rather than the average over all IFs.
-        if average > 0 and ref_if < 1, the mean value is used.
-        if average = 0, this parameter does nothing , defaults to 0
+    :param average: normalize Tsys by average Tsys; defaults to False
+    :type average: bool, optional
+    :param ref_if:
+        if average = True and ref_if > 1:  ref_if is used as as the IF 
+        to define the correct Tsys rather than the average over all IFs.
+        if average = True and ref_if < 1: the mean value is used.
+        if average = False, this parameter does nothing; defaults to 0
     :type ref_if: int, optional
     """    
     # Check which antennas have GC, only calibrate those
@@ -41,11 +39,13 @@ def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     apcal.solint = solint
 
     apcal.antennas = AIPSList(antenna_list)
-    #  apcal.sources = AIPSList(sources)
-    apcal.aparm[6] = average
+
+    if average == True:
+        apcal.aparm[6] = 1
+    else:
+        apcal.aparm[6] = 0
     apcal.aparm[7] = ref_if
-    #apcal.msgkill = -4
-    
+
     apcal.go()
     
     clcal = AIPSTask('clcal')
@@ -58,6 +58,5 @@ def amp_cal(data, solint = -3, average = 0, ref_if = 0):
     clcal.snver = 5
     clcal.gainver = 7
     clcal.gainuse = 8
-    #clcal.msgkill = -4
 
     clcal.go()

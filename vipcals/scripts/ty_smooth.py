@@ -1,70 +1,35 @@
-import numpy as np
-import os
+from scripts.helper import tacop
 
-from AIPS import AIPS
 from AIPSTask import AIPSTask, AIPSList
 
 AIPSTask.msgkill = -8
-
-def tacop(data, ext, invers, outvers):
-    """Copy one calibration table to another.
-
-    Copies one AIPS calibration table from one version to another one.
-
-    :param data: visibility data
-    :type data: AIPSUVData
-    :param ext: table extension
-    :type ext: str
-    :param invers: input version
-    :type invers: int
-    :param outvers: output version
-    :type outvers: int
-    """    
-    tacop = AIPSTask('tacop')
-    tacop.inname = data.name
-    tacop.inclass = data.klass 
-    tacop.indisk = data.disk
-    tacop.inseq = data.seq
-    
-    tacop.outname = data.name
-    tacop.outclass = data.klass 
-    tacop.outdisk = data.disk
-    tacop.outseq = data.seq
-    
-    tacop.inext = ext
-    tacop.invers = invers
-    tacop.outvers = outvers
-    # tacop.msgkill = -4
-    
-    tacop.go()
   
 def ty_smooth(data, tmin = 0, tmax = 1000, time_interv = 15, max_dev = 250):
     """Smooth/filter system temperature tables.
     
-    Flag TSys values below tmin and above tmax. Also values that
-    deviate more than (max_dev) K from a mean value. This is done on a 
+    Flag TSys values below tmin and above tmax using the TYSMO task in AIPS. Also 
+    flag values that deviate more than (max_dev) K from a mean value. This is done on a 
     per-source basis. 
 
-    Flag also antennas with no TY or GC table entries.
+    Flag also antennas with no TY or GC table entries using the UVFLG task.
     
     Creates TY#2
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param tmin: minimum TSys value allowed in K, defaults to 0
+    :param tmin: minimum TSys value allowed in K; defaults to 0
     :type tmin: float, optional
-    :param tmax: maximum TSys value allowed in K, defaults to 1000
+    :param tmax: maximum TSys value allowed in K; defaults to 1000
     :type tmax: float, optional
-    :param time_interv:  smoothing time interval in minutes, defaults to 15
+    :param time_interv:  smoothing time interval in minutes; defaults to 15
     :type time_interv: float, optional
-    :param max_dev: maximum TSys deviation allowed from the mean value of each \
+    :param max_dev: maximum TSys deviation allowed from the mean value of each 
         source in K; defaults to 250
     :type max_dev: float, optional
 
-    :return: list of ids of antennas with no system temperature information
-    :rtype: list of int
-    :return: list of ids of antennas with no gain curve information
-    :rtype: list of int
+    :return: list of ids of antennas with no system temperature information, 
+             list of ids of antennas with no gain curve information
+    :rtype: list of int, list of int
     """    
     tysmo = AIPSTask('tysmo')
     tysmo.inname = data.name
@@ -73,13 +38,14 @@ def ty_smooth(data, tmin = 0, tmax = 1000, time_interv = 15, max_dev = 250):
     tysmo.inseq = data.seq
     tysmo.invers = 1
     tysmo.outvers = 2
+    tysmo.flagver = -1   # Don't apply flags. Empty flag tables can make the task 
+                         # malfunction.
     tysmo.inext = 'TY'
-    tysmo.dobtween = 0    # <= 0 Smooth each source separately
+    tysmo.dobtween = 0    # 0 Smooth each source separately
     tysmo.aparm[1] = tmin
     tysmo.aparm[6] = tmax
     tysmo.cparm[1] = time_interv
     tysmo.cparm[6] = max_dev 
-    # tysmo.msgkill = -4
     
     tysmo.go()
 
@@ -115,23 +81,22 @@ def ty_smooth(data, tmin = 0, tmax = 1000, time_interv = 15, max_dev = 250):
 
         uvflg.antennas = AIPSList(bad_antennas)
         uvflg.outfgver = 2
-        uvflg.reason = 'NO TSYS'
-        # uvflg.msgkill = -4
+        uvflg.reason = 'NO TSYS/GC'
 
         uvflg.go()
 
     return(antennas_no_tsys, antennas_no_gc)
     
 def ty_assess(data):
-    """Evaluate how many TSys datapoints have been flagged in TY#2
+    """Evaluate how many TSys datapoints have been flagged in TY#2.
 
-    It computes the difference between the total number of tsys entries \
-    in TY#1 and TY#2.
+    It computes the difference between the total number of tsys entries in TY#1 and TY#2.
 
     :param data: visibility data
     :type data: AIPSUVData
-    :return: number of points in TY#1, number of flagged points in TY#2
-    :rtype: tuple of float
+    :return: number of points in TY#1, number of flagged points in TY#2, dictionary with 
+        these values per antenna
+    :rtype: float, float, dict
     """    
     ty1 = data.table('TY', 1)
     ty2 = data.table('TY', 2)

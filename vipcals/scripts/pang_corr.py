@@ -1,14 +1,11 @@
-import numpy as np
-import os
-
-from AIPS import AIPS
-from AIPSTask import AIPSTask, AIPSList
+from AIPSTask import AIPSTask
 
 AIPSTask.msgkill = -8
 
 def pang_corr(data):
     """Correct phases for parallactic angles.
     
+    Runs the CLCOR task in AIPS to the data.
     Creates CL#4
 
     :param data: visibility data
@@ -21,6 +18,5 @@ def pang_corr(data):
     clcor.inseq = data.seq
     clcor.opcode = 'PANG'
     clcor.clcorprm[1] = 1 # add corrections, remove them if < 0
-    # clcor.msgkill = -4
     
     clcor.go()
