@@ -1,125 +1,37 @@
-import numpy as np
 import os
-
-from datetime import datetime
-import requests #### NEED TO BE INSTALLED W SUDO PIP INSTALL REQUESTS ####
-from string import ascii_lowercase as alc # lowercase alphabet
-
-from astropy.io import fits
-from astropy.table import Table
-
-from AIPS import AIPS
-from AIPSTask import AIPSTask, AIPSList
-
+import re
+import glob
+import requests 
 import functools
 print = functools.partial(print, flush=True)
 
+from datetime import datetime
+from string import ascii_lowercase as alc 
+from astropy.io import fits
+from astropy.table import Table
+
+from scripts.helper import NoTablesError
+from scripts.helper import GC_entry
+
+from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
-
-class gc_entry():
-    """Entries from the master gain curve (vlba_gains.key)"""
-    def __init__(self):
-        self.initime = None
-        self.finaltime = None
-        self.band = None
-        self.antenna = None
-        self.entry = None
-
-
-def time_aver(data, oldtime, newtime):
-    """Average visibility data in time
-
-    Creates a new entry in AIPS adding '_AT' to the name
-
-    :param data: visibility data
-    :type data: AIPSUVData
-    :param oldtime: previous time resolution in seconds
-    :type oldtime: float
-    :param newtime: new time resolution in seconds
-    :type newtime: float
-    """    
-    uvavg = AIPSTask('uvavg')
-    uvavg.inname = data.name
-    uvavg.inclass = data.klass
-    uvavg.indisk = data.disk
-    uvavg.inseq = data.seq
-
-    uvavg.doacor = 1
-    uvavg.yinc = newtime
-    uvavg.zinc = oldtime
-    uvavg.opcode = 'TIME'
-    
-    uvavg.outname = data.name[:9] + '_AT'
-    uvavg.outclass = data.klass
-    uvavg.outdisk = data.disk
-    uvavg.outseq = data.seq
-    #uvavg.msgkill = -4
-    
-    uvavg.go()
-    
-def freq_aver(data, ratio):
-    """Average visibility data in frequency
-
-    Creates a new entry in AIPS adding '_AF' or '_ATF' to the name if it has 
-    already been averaged in time.
-
-    :param data: visibility data
-    :type data: AIPSUVData
-    :param ratio: ratio between the old number of frequency channels and the new one, \
-    e.g. when going from 64 channels to 16, this number is 4 
-    :type ratio: float # maybe int?
-    """    
-    avspc = AIPSTask('avspc')
-    avspc.inname = data.name
-    avspc.inclass = data.klass
-    avspc.indisk = data.disk
-    avspc.inseq = data.seq
-
-    avspc.doacor = 1
-    avspc.channel = ratio
-    avspc.avoption = 'SUBS'
-
-    if data.name[-3:] == '_AT':
-        avspc.outname = data.name[:-3] + '_ATF'
-    else:
-        avspc.outname = data.name[:9] + '_AF'
-    avspc.outclass = data.klass
-    avspc.outdisk = data.disk
-    avspc.outseq = data.seq
-    #avspc.msgkill = -4
-
-    avspc.go()
-
-def run_indxr(data):
-    """Creates an index (NX) table and indexes the uv data file.
-
-    Also creates CL#1 with entries every 0.1 minutes.
-
-    :param data: visibility data
-    :type data: AIPSUVData
-    """    
-    indxr = AIPSTask('indxr')
-    indxr.inname = data.name
-    indxr.inclass = data.klass
-    indxr.indisk = data.disk
-    indxr.inseq = data.seq
-    
-    indxr.cparm[3] = 0.1  # Create CL#1
-    indxr.cparm[4] = 1    # Recalculate CL entry group delays using IM table
-    #indxr.msgkill = -4
-    
-    indxr.go()
     
 def load_ty_tables(data, bif, eif):
     """Retrieve and load TY tables from an external server.
 
-    Download TY data from an external repository, edit it in a suitable format, and then \
-    load it into AIPS using ANTAB. Calibration files are produced by two softwares, \
-    tsm before Oct15 and rdbetsm after.
+    Download TY data from an external repository, edit them in a suitable format, and 
+    then load them into AIPS using the ANTAB task.
+     
+    The function can retrieve vlba.cal files produced by two different softwares: TSM 
+    before October 2015, and RDBETSM after. The files are retrieved from 
+    `http://www.vlba.nrao.edu/astro/VOBS/astronomy/ <VOBS>`_. The function uses 
+    brute-force to look for any possible name of vlba.cal files from the same 
+    project as the one in the data header. Then, the retrieved files are formatted 
+    automatically and saved into /TABLES/tsys.vlba on the output directory. The required 
+    IFs have to be given as an input, as usually they will come all together in the same 
+    calibration file.
 
-    Final system temperature table is stored as 'tsys.vlba'
-
-    A MORE EXTENSIVE DOCSTRING IS NEEDED.
+    .. _VOBS: http://www.vlba.nrao.edu/astro/VOBS/astronomy/
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -130,6 +42,9 @@ def load_ty_tables(data, bif, eif):
     :return: urls from which the calibration tables have been retrieved
     :rtype: list of str
     """    
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+
     # Obtain cal.vlba file
     YY = int(data.header.date_obs[2:4])
     MM = int(data.header.date_obs[5:7])
@@ -164,20 +79,21 @@ def load_ty_tables(data, bif, eif):
             good_url = url
             if '.Z' in url:
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba.Z')
-                os.system('zcat ./tables.vlba.Z > ./tables.vlba')
-            if '.gz' in url:
+                          + ' > ' + tmp + '/tables.vlba.Z')
+                os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables.vlba')
+            elif '.gz' in url:
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba.gz')
-                os.system('zcat ./tables.vlba.gz > ./tables.vlba')
+                          + ' > ' + tmp + '/tables.vlba.gz')
+                os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables.vlba')
             else:
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba')  
+                          + ' > ' + tmp + '/tables.vlba')  
             retrieved_urls.append(good_url)
+            break
     
     # try the old format... letter by letter
     
-    if os.path.exists('./tables.vlba') == False:
+    if not glob.glob(tmp + '/tables*.vlba'):
         for i in range(1):
             # no letter
             url = normal + 'cal.vlba'
@@ -185,7 +101,7 @@ def load_ty_tables(data, bif, eif):
             if r.status_code != 404:
                 good_url = url
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba')  
+                          + ' > ' + tmp + '/tables.vlba')  
                 retrieved_urls.append(good_url)
                 break
             url = normal + 'cal.vlba.Z'
@@ -193,8 +109,8 @@ def load_ty_tables(data, bif, eif):
             if r.status_code != 404:
                 good_url = url
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba.Z')  
-                os.system('zcat ./tables.vlba.Z > ./tables.vlba')
+                          + ' > ' + tmp + '/tables.vlba.Z')  
+                os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables.vlba')
                 retrieved_urls.append(good_url)
                 break
             url = normal + 'cal.vlba.gz'
@@ -202,19 +118,35 @@ def load_ty_tables(data, bif, eif):
             if r.status_code != 404:
                 good_url = url
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba.gz')  
-                os.system('zcat ./tables.vlba.gz > ./tables.vlba')
+                          + ' > ' + tmp + '/tables.vlba.gz')  
+                os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables.vlba')
                 retrieved_urls.append(good_url)
                 break
-                  
-            # try all letters
+
+            # Try all letters
             for s in alc:
                 url = normal + s +'cal.vlba'
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
                     os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                              + ' > ./tables' + s + '.vlba') 
+                              + ' > ' + tmp + '/tables' + s + '.vlba') 
+                    letters.append(s)
+                    retrieved_urls.append(good_url)
+            
+            # Break the loop if it already found some tables
+            if len(letters) != 0:
+                break
+                  
+            # try all letters
+            for s in alc:
+                url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
+                + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba'
+                r = requests.get(url)
+                if r.status_code != 404:
+                    good_url = url
+                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                              + ' > ' + tmp + '/tables' + s + '.vlba') 
                     letters.append(s)
                     retrieved_urls.append(good_url)
             
@@ -228,8 +160,24 @@ def load_ty_tables(data, bif, eif):
                 if r.status_code != 404:
                     good_url = url
                     os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                              + ' > ./tables.vlba.Z')  
-                    os.system('zcat ./tables.vlba.Z > ./tables' + s +'.vlba')
+                              + ' > ' + tmp + '/tables.vlba.Z')  
+                    os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables' + s +'.vlba')
+                    letters.append(s)
+                    retrieved_urls.append(good_url)
+                    
+            # Break the loop if it already found some tables
+            if len(letters) != 0:
+                break
+            
+            for s in alc:
+                url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
+                + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba.Z'
+                r = requests.get(url)
+                if r.status_code != 404:
+                    good_url = url
+                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                              + ' > ' + tmp + '/tables.vlba.Z')  
+                    os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
                     retrieved_urls.append(good_url)
                     
@@ -243,17 +191,37 @@ def load_ty_tables(data, bif, eif):
                 if r.status_code != 404:
                     good_url = url
                     os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                              + ' > ./tables.vlba.gz')  
-                    os.system('zcat ./tables.vlba.gz > ./tables' + s +'.vlba')
+                              + ' > ' + tmp + '/tables.vlba.gz')  
+                    os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
                     retrieved_urls.append(good_url)
-        
+
+            # Break the loop if it already found some tables
+            if len(letters) != 0:
+                break
+
+            for s in alc:
+                url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
+                    + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba.gz'
+                r = requests.get(url)
+                if r.status_code != 404:
+                    good_url = url
+                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                              + ' > ' + tmp + '/tables.vlba.gz')  
+                    os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables' + s +'.vlba')
+                    letters.append(s)
+                    retrieved_urls.append(good_url)
+         
+    # If the task did not succeed, raise an error and end the pipeline
+    if not glob.glob(tmp + '/tables*.vlba'):
+        raise NoTablesError("No vlba.cal tables were found online.")
+
     # Extract TSYS information from tables.vlba into tsys.vlba
 
     # If there are no letters:
     if len(letters) == 0:
 
-        input_file = open("tables.vlba", "r") 
+        input_file = open(f"{tmp}/tables.vlba", "r") 
         cal_table = input_file.read() 
         cal_list = cal_table.split("\n")
         
@@ -303,7 +271,7 @@ def load_ty_tables(data, bif, eif):
                         final_list.append(aux2)
                 
             
-            with open(r'./tsys.vlba', 'w') as fp:
+            with open(f'{tmp}/tsys.vlba', 'w') as fp:
                 for item in final_list:
                     
                     # Im not sure of this part here... it was needed from 
@@ -367,7 +335,7 @@ def load_ty_tables(data, bif, eif):
                         final_list.append(aux2)
                 
             
-            with open(r'./tsys.vlba', 'w') as fp:
+            with open(f'{tmp}/tsys.vlba', 'w') as fp:
                 for item in final_list:
                     
                     # Im not sure of this part here... it was needed from 
@@ -438,7 +406,7 @@ def load_ty_tables(data, bif, eif):
                             final_list.append(aux2)
                     
                 
-                with open(r'./tsys.vlba', 'a') as fp:
+                with open(f'{tmp}/tsys.vlba', 'a') as fp:
                     for item in final_list:
                         
                         # Im not sure of this part here... it was needed from 
@@ -502,7 +470,7 @@ def load_ty_tables(data, bif, eif):
                             final_list.append(aux2)
                     
                 
-                with open(r'./tsys.vlba', 'a') as fp:
+                with open(f'{tmp}/tsys.vlba', 'a') as fp:
                     for item in final_list:
                         
                         # Im not sure of this part here... it was needed from 
@@ -524,9 +492,7 @@ def load_ty_tables(data, bif, eif):
     antab.inclass = data.klass
     antab.indisk = data.disk
     antab.inseq = data.seq
-    antab.calin = './tsys.vlba'
-    # We might need to add SELBAND and SELFREQ here...
-    #antab.msgkill = -4
+    antab.calin = f'{tmp}/tsys.vlba'
     
     antab.go()
 
@@ -535,19 +501,26 @@ def load_ty_tables(data, bif, eif):
 def load_fg_tables(data):
     """Retrieve and load FG tables from an external server.
 
-    Download FG data from an external repository, edit it in a suitable format, and then \
-    load it into AIPS using UVFLG. Calibration files are produced by two softwares, \
-    tsm before Oct15 and rdbetsm after.
+    Download FG data from an external repository, edit them in a suitable format, and 
+    then load them into AIPS using the UVFLG task.
+     
+    The function can retrieve vlba.cal files produced by two different softwares: TSM 
+    before October 2015, and RDBETSM after. The files are retrieved from 
+    `http://www.vlba.nrao.edu/astro/VOBS/astronomy/ <VOBS>`_. The function uses 
+    brute-force to look for any possible name of vlba.cal files from the same 
+    project as the one in the data header. Then, the retrieved files are formatted 
+    automatically and saved into /TABLES/flags.vlba on the output directory.
 
-    Final flag table is stored as 'flags.vlba'
-
-    A MORE EXTENSIVE DOCSTRING IS NEEDED.
+    .. _VOBS: http://www.vlba.nrao.edu/astro/VOBS/astronomy/    
 
     :param data: visibility data
     :type data: AIPSUVData
     :return: urls from which the calibration tables have been retrieved
     :rtype: list of str
     """    
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+
     # Obtain cal.vlba file
     YY = int(data.header.date_obs[2:4])
     MM = int(data.header.date_obs[5:7])
@@ -582,19 +555,21 @@ def load_fg_tables(data):
             good_url = url
             if '.Z' in url:
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba.Z')
-                os.system('zcat ./tables.vlba.Z > ./tables.vlba')
-            if '.gz' in url:
+                          + ' > ' + tmp + '/tables.vlba.Z')
+                os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables.vlba')
+            elif '.gz' in url:
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba.gz')
-                os.system('zcat ./tables.vlba.gz > ./tables.vlba')
+                          + ' > ' + tmp + '/tables.vlba.gz')
+                os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables.vlba')
             else:
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba')             
+                          + ' > ' + tmp + '/tables.vlba')             
             retrieved_urls.append(good_url)
-        
-    if os.path.exists('./tables.vlba') == False:
-        # try the old format... letter by letter
+            break
+
+
+    # try the old format... letter by letter    
+    if not glob.glob(tmp + '/tables*.vlba'):
         for i in range(1):
             # no letter
             url = normal + 'cal.vlba'
@@ -602,7 +577,7 @@ def load_fg_tables(data):
             if r.status_code != 404:
                 good_url = url
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba')  
+                          + ' > ' + tmp + '/tables.vlba')  
                 retrieved_urls.append(good_url)
                 break
             url = normal + 'cal.vlba.Z'
@@ -610,8 +585,8 @@ def load_fg_tables(data):
             if r.status_code != 404:
                 good_url = url
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba.Z')  
-                os.system('zcat ./tables.vlba.Z > ./tables.vlba')
+                          + ' > ' + tmp + '/tables.vlba.Z')  
+                os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables.vlba')
                 retrieved_urls.append(good_url)
                 break
             url = normal + 'cal.vlba.gz'
@@ -619,19 +594,35 @@ def load_fg_tables(data):
             if r.status_code != 404:
                 good_url = url
                 os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                          + ' > ./tables.vlba.gz')  
-                os.system('zcat ./tables.vlba.gz > ./tables.vlba')
+                          + ' > ' + tmp + '/tables.vlba.gz')  
+                os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables.vlba')
                 retrieved_urls.append(good_url)
                 break
-                  
-            # try all letters
+
+            # Try all letters
             for s in alc:
                 url = normal + s +'cal.vlba'
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
                     os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                              + ' > ./tables' + s + '.vlba') 
+                              + ' > ' + tmp + '/tables' + s + '.vlba') 
+                    letters.append(s)
+                    retrieved_urls.append(good_url)
+            
+            # Break the loop if it already found some tables
+            if len(letters) != 0:
+                break
+                  
+            # try all letters
+            for s in alc:
+                url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
+                + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba'
+                r = requests.get(url)
+                if r.status_code != 404:
+                    good_url = url
+                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                              + ' > ' + tmp + '/tables' + s + '.vlba') 
                     letters.append(s)
                     retrieved_urls.append(good_url)
             
@@ -645,8 +636,24 @@ def load_fg_tables(data):
                 if r.status_code != 404:
                     good_url = url
                     os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                              + ' > ./tables.vlba.Z')  
-                    os.system('zcat ./tables.vlba.Z > ./tables' + s +'.vlba')
+                              + ' > ' + tmp + '/tables.vlba.Z')  
+                    os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables' + s +'.vlba')
+                    letters.append(s)
+                    retrieved_urls.append(good_url)
+                    
+            # Break the loop if it already found some tables
+            if len(letters) != 0:
+                break
+            
+            for s in alc:
+                url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
+                + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba.Z'
+                r = requests.get(url)
+                if r.status_code != 404:
+                    good_url = url
+                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                              + ' > ' + tmp + '/tables.vlba.Z')  
+                    os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
                     retrieved_urls.append(good_url)
                     
@@ -660,19 +667,37 @@ def load_fg_tables(data):
                 if r.status_code != 404:
                     good_url = url
                     os.system('curl -f --retry 5 --retry-delay 10 ' + url \
-                              + ' > ./tables.vlba.gz')  
-                    os.system('zcat ./tables.vlba.gz > ./tables' + s +'.vlba')
+                              + ' > ' + tmp + '/tables.vlba.gz')  
+                    os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables' + s +'.vlba')
+                    letters.append(s)
+                    retrieved_urls.append(good_url)
+
+            # Break the loop if it already found some tables
+            if len(letters) != 0:
+                break
+
+            for s in alc:
+                url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
+                    + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba.gz'
+                r = requests.get(url)
+                if r.status_code != 404:
+                    good_url = url
+                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                              + ' > ' + tmp + '/tables.vlba.gz')  
+                    os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
                     retrieved_urls.append(good_url)
         
+    # If the task did not succeed, raise an error and end the pipeline
+    if not glob.glob(tmp + '/tables*.vlba'):
+        raise NoTablesError("No vlba.cal tables were found online.")
             
     # Extract FG information from tables.vlba into flags.vlba
-    
     
     # If there are no letters:
     if len(letters) == 0:
         
-        input_file = open("tables.vlba", "r") 
+        input_file = open(f"{tmp}/tables.vlba", "r") 
         cal_table = input_file.read() 
         cal_list = cal_table.split("\n")
         
@@ -687,7 +712,7 @@ def load_fg_tables(data):
                     end = start+n-1
                     break
                 end = n
-            with open(r'./flags.vlba', 'w') as fp:
+            with open(f'{tmp}/flags.vlba', 'w') as fp:
                 for item in cal_list[start:end]:
                     # write each item on a new line
                     fp.write("%s\n" % item)
@@ -709,7 +734,7 @@ def load_fg_tables(data):
             clean_list = cal_list[start:end]
             clean_list = [ elem for elem in clean_list if '*' not in elem]
             
-            with open(r'./flags.vlba', 'w') as fp:
+            with open(f'{tmp}/flags.vlba', 'w') as fp:
                 for item in clean_list[start:end]:
                     # write each item on a new line
                     fp.write("%s\n" % item)
@@ -737,7 +762,7 @@ def load_fg_tables(data):
                         end = start+n-1
                         break
                     end = n
-                with open(r'./flags.vlba', 'a') as fp:
+                with open(f'{tmp}/flags.vlba', 'a') as fp:
                     for item in cal_list[start:end]:
                         # write each item on a new line
                         fp.write("%s\n" % item)
@@ -759,7 +784,7 @@ def load_fg_tables(data):
                 clean_list = cal_list[start:end]
                 clean_list = [ elem for elem in clean_list if '*' not in elem]
              
-                with open(r'./flags.vlba', 'a') as fp:
+                with open(f'{tmp}/flags.vlba', 'a') as fp:
                     for item in clean_list[start:end]:
                         # write each item on a new line
                         fp.write("%s\n" % item)
@@ -775,21 +800,20 @@ def load_fg_tables(data):
     uvflg.inclass = data.klass
     uvflg.indisk = data.disk
     uvflg.inseq = data.seq
-    uvflg.intext = './flags.vlba'
-    # We might need to add SELBAND and SELFREQ here...
-    #uvflg.msgkill = -4
+    uvflg.intext = f'{tmp}/flags.vlba'
     
     uvflg.go()
 
     return(retrieved_urls)
 
-def load_gc_tables(data): # , bk_antennas):
+def load_gc_tables(data, ant_list = ['all']):
     """Retrieve and load GC tables from an external file.
 
-    Look for relevant gain curves from an external file, edit them in a suitable format, \
-    and then load it into AIPS using ANTAB. 
+    Look for relevant gain curves from an external file, edit them in a suitable format, 
+    and then load them into AIPS using the ANTAB task. It gets the curves from a master 
+    file, and selects the ones corresponding to the time range of the observation.
 
-    Final gain curve table is stored as 'gaincurves.vlba'
+    Final gain curve table is saved as /TABLES/gaincurves.vlba on the output directory.
     
     A MORE EXTENSIVE DOCSTRING IS NEEDED.
 
@@ -818,7 +842,7 @@ def load_gc_tables(data): # , bk_antennas):
             + 'master gains file.' in block:
             block.remove('! Where no measurements are available, values '\
                          + 'are from the master gains file.')
-        a = gc_entry()
+        a = GC_entry()
         a.initime = block[1].split()[5]
         a.finaltime = block[1].split()[6]
         a.initime = datetime(int(a.initime[:4]),int(a.initime[5:7]),\
@@ -829,7 +853,6 @@ def load_gc_tables(data): # , bk_antennas):
         a.antenna = block[4].split()[0] 
         a.entry = block[4]
         gc_list.append(a)
-    # I NEED TO COMMENT THIS PART A BIT BETTER
     # Read information from our dataset
     YYYY = int(data.header.date_obs[:4])
     MM = int(data.header.date_obs[5:7])
@@ -837,9 +860,10 @@ def load_gc_tables(data): # , bk_antennas):
     date_obs = datetime(YYYY, MM, DD)
     
     #try:
-    antennas = data.antennas
-    # except SystemError:
-    #     antennas = AIPSList(bk_antennas)   
+    if ant_list == ["all"]:
+        antennas = data.antennas
+    else:
+        antennas = ant_list
     
     # Handmade... hope it is accurate
     restfreq = data.header['crval'][2]/1e6
@@ -880,7 +904,7 @@ def load_gc_tables(data): # , bk_antennas):
     if len(gain_curves) == 0:
         # It would be ideal if it could just take the gain curve from the 
         # closest date, or even interpolate between two dates.
-        return 404
+        raise NoTablesError('No gain curves available for the observation date.')
             
     with open(r'./gaincurves.vlba', 'w') as fp:
         for item in gain_curves:
@@ -894,39 +918,15 @@ def load_gc_tables(data): # , bk_antennas):
     antab.indisk = data.disk
     antab.inseq = data.seq
     antab.calin = './gaincurves.vlba'
-    # We might need to add SELBAND and SELFREQ here...
-    # antab.msgkill = -4
+    antab.gcver = 1
     
     antab.go()
-    return 0
-    
-def tborder(data, log):
-    """Sort data in Time - Baseline order (TB)
 
-    :param data: visibility data
-    :type data: AIPSUVData
-    """    
-    
-    uvsrt = AIPSTask('uvsrt')
-    uvsrt.inname = data.name
-    uvsrt.inclass = data.klass
-    uvsrt.indisk = data.disk
-    uvsrt.inseq = data.seq
-    uvsrt.outname = data.name
-    uvsrt.outclass = data.klass
-    uvsrt.outdisk = data.disk
-    uvsrt.outseq = data.seq
-    
-    uvsrt.sort = 'TB'
-    # uvsrt.msgkill = -4
-        
-    uvsrt.go()
-
-def remove_ascii_antname(data,filepath):
+def remove_ascii_antname(data, filepath):
     """Remove non-ASCII characters from antenna names.
 
     Recovers the antenna names from the uvifts/idifits files, then runs the TABED \
-    task to edit the AN table in AIPS
+    task to edit the AN table in AIPS.
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -938,8 +938,9 @@ def remove_ascii_antname(data,filepath):
     hdul = fits.open(filepath)
     non_ascii_antennas = list(Table(hdul['ANTENNA'].data)['ANNAME'])
     for ant in non_ascii_antennas:
-        ant = ant.encode()[:2].decode()
+        ant = re.sub(r'[^\x20-\x7E]', '', ant).strip()
         backup_names.append(ant)
+    hdul.close()
         
     for i in range(len(data.table('AN',1))):
         # Replace antenna names row by row
@@ -968,20 +969,30 @@ def remove_ascii_antname(data,filepath):
         
         tabed_antname.keystrng = AIPSList(backup_names[i]) # Antenna name
         
-        # tabed_antname.msgkill = -4
         tabed_antname.go()
     
-def remove_ascii_poltype(data, value = ''):
+def remove_ascii_poltype(data, filepath):
     """Remove non-ASCII characters from polarization types.
 
-    Uses TABED to modify the antenna table. WARNING: it effectively empties the \
-    polarization field, which might not always be desirable.
+    Recovers the polarization labels from the uvifts/idifits files, then runs the TABED 
+    task to edit the AN table in AIPS.
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param value: polarization type, defaults to ''
-    :type value: str, optional
-    """    """ """
+    :param filepath: path to the original uvfits/idifits file
+    :type filepath: str
+    """
+    # Recover polarization labels from fits file
+    backup_names = []
+    hdul = fits.open(filepath)
+    poltya = list(Table(hdul['ANTENNA'].data)['POLTYA'])
+    poltyb = list(Table(hdul['ANTENNA'].data)['POLTYB'])
+    for n, ant in enumerate(poltya):
+        pol = re.sub(r'[^\x20-\x7E]', '', poltya[n]).strip() \
+            + re.sub(r'[^\x20-\x7E]', '', poltyb[n]).strip()
+        backup_names.append(pol)
+    hdul.close()
+
     for i in range(len(data.table('AN',1))):
         # Replace polarization type row by row
         tabed_poltype = AIPSTask('TABED')
@@ -1007,7 +1018,6 @@ def remove_ascii_poltype(data, value = ''):
         tabed_poltype.bcount = i+1  # 1st row to modify
         tabed_poltype.ecount = i+1  # Last row to modify
         
-        tabed_poltype.keystrng = AIPSList(value)  # Replace value
-        
-        # tabed_poltype.msgkill = -4
+        tabed_poltype.keystrng = AIPSList(backup_names[i])  # Replace value
+
         tabed_poltype.go()
