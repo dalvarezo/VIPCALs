@@ -1,49 +1,43 @@
-import numpy as np
 import os
+import numpy as np
 
 from datetime import datetime
-from AIPS import AIPS
-from AIPSTask import AIPSTask, AIPSList
+
+from AIPSTask import AIPSTask
 
 AIPSTask.msgkill = -8
 
-def tacop(data, ext, invers, outvers):
-    """Copy one calibration table to another.
-
-    Copies one AIPS calibration table from one version to another one.
-
-    :param data: visibility data
-    :type data: AIPSUVData
-    :param ext: table extension
-    :type ext: str
-    :param invers: input version
-    :type invers: int
-    :param outvers: output version
-    :type outvers: int
-    """    
-    tacop = AIPSTask('tacop')
-    tacop.inname = data.name
-    tacop.inclass = data.klass 
-    tacop.indisk = data.disk
-    tacop.inseq = data.seq
-    
-    tacop.outname = data.name
-    tacop.outclass = data.klass 
-    tacop.outdisk = data.disk
-    tacop.outseq = data.seq
-    
-    tacop.inext = ext
-    tacop.invers = invers
-    tacop.outvers = outvers
-    # tacop.msgkill = -4
-    
-    tacop.go()
-
-
-def old_tecor(data):
+def ionos_correct(data):
     """Ionospheric delay calibration.
 
-    I NEED TO ADD THE RETURNS!!!!!
+    Calls :func:`~vipcals.scripts.ionos_corr.new_tecor` or \
+    :func:`~vipcals.scripts.ionos_corr.old_tecor` depending on the observation date \
+    of the dataset. Information on the different formats can be found `here <TE>`_.
+
+    .. _TE: https://cddis.nasa.gov/Data_and_Derived_Products/GNSS/atmospheric_products.html
+    
+    :param data: visibility data
+    :type data: AIPSUVData
+    :return: list of retrieved files
+    :rtype: list of str
+    """
+    # GPS Week 2238  -> 26/11/2022
+    
+    date_lim = datetime(2022,11,26)
+    YYYY = int(data.header.date_obs[:4])
+    MM = int(data.header.date_obs[5:7])
+    DD = int(data.header.date_obs[8:])
+
+    date_obs = datetime(YYYY, MM, DD)
+    if date_obs > date_lim:
+        files = new_tecor(data)
+    else:
+        files = old_tecor(data)
+
+    return(files)
+
+def old_tecor(data):
+    """Ionospheric delay calibration using TECOR.
 
     Derives corrections for ionospheric Faraday rotation and \
     dispersive delay from maps of total electron content in IONEX \
@@ -51,13 +45,19 @@ def old_tecor(data):
 
     Reads the date from the header and the different observed days \
     from each scan, then downloads the corresponding file(s) using the old format \
-    (older than 06/08/2023) and applies the TECOR task.
+    (older than 26/11/2022) and applies the TECOR task in AIPS. The downloaded files 
+    are of the CODG type (Center for Orbit Determination in Europe).
 
     Creates CL#2
 
     :param data: visibility data
     :type data: AIPSUVData
+    :return: list of retrieved files
+    :rtype: list of str
     """
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+
     YYYY = int(data.header.date_obs[:4])
     MM = int(data.header.date_obs[5:7])
     DD = int(data.header.date_obs[8:])
@@ -67,11 +67,12 @@ def old_tecor(data):
 
     cl1_table = data.table('CL',1)
 
-    #scan_times = []
-
-    #for scans in nx_table:
-    #    scan_times.append(int(np.floor(scans['time'])))
     days = [*range(int(np.floor(cl1_table[-1]['time']))+1)]
+
+    # If the file is older than 04/11/2002, download also the day after and 
+    # the day before. Explanation of this in the EXPLAIN file of the TECOR task in AIPS.
+    if date_obs < datetime(2002,11,4):
+        days = [(min(days)-1)] + days + [(max(days)+1)]
 
     files = []
 
@@ -83,20 +84,17 @@ def old_tecor(data):
         if len(new_DDD) == 1:
             new_DDD = '00' + new_DDD
         
-        if os.path.exists('/tmp/jplg' + new_DDD +'0.'+ YY +'i') == False:
-            curl_command = 'curl -f --retry 5 --retry-delay 10 -u '\
-                            + 'anonymous:daip@nrao.edu --ftp-ssl' \
-                            + ' ftp://gdc.cddis.eosdis.nasa.gov/gps' \
-                            + '/products/ionex/'+ str(YYYY) + '/' \
-                            + new_DDD + '/' + 'jplg'+ new_DDD +'0.'+ YY \
-                            + 'i.Z > /tmp/' + 'jplg' + new_DDD +'0.' \
-                            + YY +'i.Z'
+        if os.path.exists(tmp + '/codg' + new_DDD +'0.'+ YY +'i') == False:
+            curl_command = (
+    f"curl -f --retry 5 --retry-delay 10 -u 'anonymous:daip@nrao.edu' --ftp-ssl "
+    f"ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/{str(YYYY)}/{new_DDD}/"
+    f"codg{new_DDD}0.{YY}i.Z > {tmp}/codg{new_DDD}0.{YY}i.Z")
+
             os.system(curl_command)
 
             files.append(curl_command.split(' ')[9])
             
-            zcat_command = 'zcat /tmp/jplg'+ new_DDD +'0.'+ YY \
-                            + 'i.Z >> /tmp/jplg'+ new_DDD +'0.'+ YY +'i'
+            zcat_command = f"""zcat {tmp}/codg{new_DDD}0.{YY}i.Z >> {tmp}/codg{new_DDD}0.{YY}i"""
             os.system(zcat_command)
     
     infile = str(DDD + days[0])
@@ -110,21 +108,18 @@ def old_tecor(data):
     tecor.inclass = data.klass 
     tecor.indisk = data.disk
     tecor.inseq = data.seq
-    tecor.infile = '/tmp/jplg' + infile + '0.' + YY + 'i'
+    tecor.infile = f'{tmp}/codg{infile}0.{YY}i'
     tecor.nfiles = len(days)
     tecor.aparm[1] = 1   # Correct for dispersive delays
     tecor.gainver = 1
     tecor.gainuse = 2
-    # tecor.msgkill = -4
 
     tecor.go()
 
     return(files)
 
 def new_tecor(data):
-    """Ionospheric delay calibration.
-
-    I NEED TO ADD THE RETURNS!!!!!
+    """Ionospheric delay calibration using TECOR.
 
     Derives corrections for ionospheric Faraday rotation and \
     dispersive delay from maps of total electron content in IONEX \
@@ -132,13 +127,19 @@ def new_tecor(data):
 
     Reads the date from the header and the different observed days \
     from each scan, then downloads the corresponding file(s) using the new format \
-    (recent than 06/08/2023) and applies the TECOR task.
+    (recent than 26/11/2023) and applies the TECOR task in AIPS. The downloaded files 
+    are of the CODG type (Center for Orbit Determination in Europe).
 
     Creates CL#2
 
     :param data: visibility data
     :type data: AIPSUVData
+    :return: list of retrieved files
+    :rtype: list of str
     """
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+
     YYYY = int(data.header.date_obs[:4])
     MM = int(data.header.date_obs[5:7])
     DD = int(data.header.date_obs[8:])
@@ -148,10 +149,6 @@ def new_tecor(data):
 
     cl1_table = data.table('CL',1)
 
-    #scan_times = []
-
-    #for scans in nx_table:
-    #    scan_times.append(int(np.floor(scans['time'])))
     days = [*range(int(np.floor(cl1_table[-1]['time']))+1)]
 
     files = []
@@ -165,66 +162,37 @@ def new_tecor(data):
         if len(new_DDD) == 1:
             new_DDD = '00' + new_DDD
         
-        if os.path.exists('/tmp/jplg' + new_DDD +'0.'+ YY +'i') == False:
-            curl_command = 'curl -f --retry 5 --retry-delay 10 -u ' \
-                            + 'anonymous:daip@nrao.edu --ftp-ssl' \
-                            + ' ftp://gdc.cddis.eosdis.nasa.gov/gps' \
-                            + '/products/ionex/'+ str(YYYY) + '/' \
-                            + new_DDD + '/' + 'JPL0OPSFIN_' + str(YYYY)\
-                            + new_DDD + '0000_01D_02H_GIM.INX.gz '\
-                            + '> /tmp/' + 'jplg' + new_DDD +'0.' \
-                            + YY +'i.gz'
+        if os.path.exists(tmp + '/codg' + new_DDD +'0.'+ YY +'i') == False:
+            curl_command = (
+    f"curl -f --retry 5 --retry-delay 10 -u 'anonymous:daip@nrao.edu' --ftp-ssl "
+    f"ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/{YYYY}/{new_DDD}/"
+    f"COD0OPSFIN_{YYYY}{new_DDD}0000_01D_01H_GIM.INX.gz "
+    f"> {tmp}/codg{new_DDD}0.{YY}i.gz")
+
             os.system(curl_command)
 
             files.append(curl_command.split(' ')[9])
             
-            zcat_command = 'zcat /tmp/jplg'+ new_DDD +'0.'+ YY \
-                            + 'i.gz >> /tmp/jplg'+ new_DDD +'0.'+ YY +'i'
+            zcat_command = f'zcat {tmp}/codg{new_DDD}0.{YY}i.gz >> {tmp}/codg{new_DDD}0.{YY}i'
             os.system(zcat_command)
     
     infile = str(DDD + days[0])
     if len(infile) == 2:
         infile = '0' + infile
-    if len(new_DDD) == 1:
+    if len(infile) == 1:
         infile = '00' + infile
-    
+ 
     tecor = AIPSTask('tecor')
     tecor.inname = data.name
     tecor.inclass = data.klass 
     tecor.indisk = data.disk
     tecor.inseq = data.seq
-    tecor.infile = '/tmp/jplg' + infile + '0.' + YY + 'i'
+    tecor.infile = f'{tmp}/codg{infile}0.{YY}i'
     tecor.nfiles = len(days)
     tecor.aparm[1] = 1   # Correct for dispersive delays
     tecor.gainver = 1
     tecor.gainuse = 2
-    # tecor.msgkill = -4
 
     tecor.go()
-
-    return(files)
-
-def ionos_correct(data):
-    """Ionospheric delay calibration.
-
-    I NEED TO ADD THE RETURNS!!!
-
-    Calls :func:`~vipcals.scripts.ionos_corr.new_tecor` or \
-    :func:`~vipcals.scripts.ionos_corr.old_tecor` depending on the observation date \
-    of the dataset.
-    
-    :param data: visibility data
-    :type data: AIPSUVData
-    """
-    date_lim = datetime(2023,8,6)
-    YYYY = int(data.header.date_obs[:4])
-    MM = int(data.header.date_obs[5:7])
-    DD = int(data.header.date_obs[8:])
-
-    date_obs = datetime(YYYY, MM, DD)
-    if date_obs > date_lim:
-        files = new_tecor(data)
-    else:
-        files = old_tecor(data)
 
     return(files)
