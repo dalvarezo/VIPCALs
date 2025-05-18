@@ -1,53 +1,40 @@
-from AIPS import AIPS
-from AIPSTask import AIPSTask, AIPSList
-
-import numpy as np
+import random
 import warnings
 
-from random import sample 
+import numpy as np
+
+from scripts.helper import ddhhmmss
+
+from AIPSTask import AIPSTask, AIPSList
 
 AIPSTask.msgkill = -8
-
-def ddhhmmss(time):
-    """Convert decimal dates into AIPS dd hh mm ss format.
-
-    :param time: decimal date
-    :type time: float
-    :return: 1D array with day, hour, minute and second
-    :rtype: ndarray
-    """   
-    total_seconds = int(time * 24 * 60 * 60)
-    days, remainder = divmod(total_seconds, 24 * 60 * 60)
-    hours, remainder = divmod(remainder, 60 * 60)
-    minutes, seconds = divmod(remainder, 60)
-    return np.array([days,hours,minutes,seconds])
 
 def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
                       delay_w = 1000, rate_w = 200):
     """Short fringe fit (only FFT) to obtain an SNR value.
     
-    Fringe fit of all IF's together, solving for delays and rates.
-    The solution interval, the timerange, the source and theoutput SN version
-    need to be specified. 
+    Fringe fit of each IF, solving for delays and rates.
+    The solution interval, the timerange, the source and the output SN version
+    need to be specified.
 
-    Creates a SN table containing the SNR values
+    Creates a SN table containing the SNR values.
     
     :param data: visibility data
     :type data: AIPSUVData
     :param refant: reference antenna number
     :type refant: int
     :param solint: solution interval in minutes, if 0 => solint = 10 min, \
-                   if > scan  => solint = scan; defaults to 0
-    :type solint: int, optional
-    :param timeran: time range in which the search is performed
+                   if > scan/2  => solint = scan
+    :type solint: int
+    :param timeran: time range in AIPS format in which the search is performed
     :type timeran: AIPSList
     :param source: name of the source on which to perform the fringe fit
     :type source: str
     :param output_version: output version of the SN table
     :type output_version: int
-    :param delay_w: delay window in ns in which the search is performed, defaults to 1000
+    :param delay_w: delay window in ns in which the search is performed; defaults to 1000
     :type delay_w: int, optional
-    :param rate_w: rate window in hz in which the search is performed, defaults to 200
+    :param rate_w: rate window in hz in which the search is performed; defaults to 200
     :type rate_w: int, optional 
     """    
     optimiz_fring = AIPSTask('fring')
@@ -65,13 +52,11 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
     optimiz_fring.calsour = AIPSList([source])
     optimiz_fring.snver = output_version
     
-    optimiz_fring.aparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     optimiz_fring.aparm[1] = 2    # At least 2 antennas per solution
     optimiz_fring.aparm[5] = 0    # Solve IFs separately
     optimiz_fring.aparm[6] = 2    # Amount of information printed
     optimiz_fring.aparm[7] = 1    # NO SNR cutoff   
     
-    optimiz_fring.dparm[1:] = [0,0,0,0,0,0,0,0,0]    # Reset parameters
     optimiz_fring.dparm[1] = 1    # Number of baseline combinations searched
     optimiz_fring.dparm[2] = delay_w   # Delay window (ns) 0 => Full Nyquist 
                                        # range
@@ -79,109 +64,75 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
                                        # range
     optimiz_fring.dparm[5] = 1    # Stop at the FFT step  
     
-    # optimiz_fring.msgkill = -4
-    
     optimiz_fring.go()
 
-def get_scan_length(data, target):
-    """Get scan length in minutes for a certain target.
-
-    It assumes all scans of the same target have the same duration.
-
-    :param data: visibility data
-    :type data: AIPSUVData
-    :param target: source name
-    :type target: str
-    :return: scan length in minutes
-    :rtype: float
-    """    
-    nx_table = data.table('NX',1)
-    su_table = data.table('SU',1)
-    # Look for the code that identifies the source
-    for entry in su_table:
-        if entry['source'].replace(" ","") == target:
-            id = entry['id__no']
-            break
-    # Look for the scan length
-    for scan in nx_table:
-        if scan['source_id'] == id:
-            scan_length = np.round(scan['time_interval'] * 24 * 60, 1)
-
-    return(scan_length)
-
-
-def get_optimal_scans(target, optimal_scans, full_source_list):
-    """Get the optimal scans for an specific target
-
-    Get the scans where the target has been observed from the optimal scan list. Optimal \
-    means that the maximum number of antennas were observing the source. If there are not 
-    any scans in which all antennas were observed, returns an error code.
-
-    :param target: source name
-    :type target: str
-    :param optimal_scans: list of scans in which the maximum number of antennas were \
-                          observing
-    :type optimal_scans: list of Scan objects
-    :param full_source_list: list containing all sources in the dataset
-    :type full_source_list: list of Source objects
-    :return: optimal scans for the target
-    :rtype: list of Scan objects
-    """    
-    target_id = next(source for source in full_source_list \
-                     if source.name == target).id
-        
-    target_optimal_scans = list(filter(lambda x: x.id == target_id,\
-                                       optimal_scans))
-        
-    # Don't return more than 5
-    if len(target_optimal_scans) > 5:
-        target_optimal_scans = sample(target_optimal_scans, 5)
-    
-    if len(target_optimal_scans) > 0:
-        return(target_optimal_scans)
-    # Return error code if there are not optimal scans
-    if len(target_optimal_scans) == 0:
-        return 404
-
-def optimize_solint_cm(data, target, target_optimal_scans, refant):
+def optimize_solint_mm(data, target, target_scans, refant, min_solint = 1.0, 
+                       max_solint = 10.0):
     """Find the optimal solution interval in which to fringe fit a target.
 
-    Algorithm for cm-wavelengths
+    Algorithm for mm-wavelengths
 
     Runs a fringe fit in a selected number of scans of the target for five different \
     solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal \
-    solution interval is the one that produces the best SNR.
+    solution interval is the smallest time required for all baselines to reach an SNR \
+    of 5. It will only search for solution intervals that are larger than min_solint.
+    If there are more than 10 scans, the search will be done in 10 randomly selected 
+    scans. 
 
     :param data: visibility data
     :type data: AIPSUVData
     :param target: source name
     :type target: str
-    :param target_optimal_scans: optimal scans for the target
-    :type target_optimal_scans: list of Scans objects
+    :param target_scans: list of scans where to optimize the solution interval
+    :type target_scans: list of :class:`~vipcals.scripts.helper.Scan` objects
     :param refant: reference antenna number
     :type refant: int
-    :return: optimal solution interval in minutes
-    :rtype: float
+    :param min_solint: minimum solution interval in minutes; defaults to 1
+    :type min_solint: float, optional
+    :param max_solint: minimum solution interval in minutes; defaults to 10
+    :type max_solint: float, optional
+    :return: optimal solution interval in minutes, dictionary with the SNR per antenna 
+        for each solution interval
+    :rtype: float, dict
     """    
-    ###
-    ### NOT THE OPTIMAL SCANS ANYMORE! IF IT WORKS I NEED TO CHANGE THE DOCSTRING
-    ###
-    # Get scan length (assuming them equal) in minutes
-    scan_length = target_optimal_scans[0].time_interval*24*60
+    # If there are more than 10 scans, randomly select 10
+    if len(target_scans) > 10:
+        random.seed(42)
+        target_scans = random.sample(target_scans, 10)
+
+    # Get longest scan length in minutes
     solint_dict = {}
+    scan_length = max(target_scans, key=lambda x: x.time_interval).time_interval*24*60
     for solint in np.round([scan_length/5.1, scan_length/4.1, \
                             scan_length/3.1, scan_length/2.1, scan_length],1):
-        solint_dict[solint] = []
         snr_dict = {}
+        solint_dict[solint] = {}
+        # Skip if below the minimum solution interval
+        if solint < min_solint:
+            solint_dict[solint] = "TOO SHORT"
+            solint = min_solint
+            continue
+        # Skip if over the maximum solution interval
+        if solint > max_solint:
+            solint_dict[solint] = "TOO LONG"
+            solint = max_solint
+            continue
+        # Get all antennas:
+        all_ant = []
+        for s in target_scans:
+            all_ant += s.antennas
+        all_ant = list(set(all_ant))
         # Initialize dictionary
-        for a in target_optimal_scans[0].antennas:
+        for a in all_ant:
             snr_dict[a] = []
-        for i, scan in enumerate(target_optimal_scans):
+        for i, scan in enumerate(target_scans):
             # If there are any antennas not initialized in the dictionary, then do so
             # This  might happen when different scans have different available antennas
-            # I could avoid this but using only the ones with the max number of antennas
-            # available....
-            for a in target_optimal_scans[i].antennas:
+
+            # Skip scans of length 0. Not sure how they arise though.
+            if scan.time_interval == 0:
+                continue
+            for a in target_scans[i].antennas:
                 if a not in snr_dict.keys():
                     snr_dict[a] = []
             # Get the timerange of the scan
@@ -190,7 +141,7 @@ def optimize_solint_cm(data, target, target_optimal_scans, refant):
             init_time = ddhhmmss(scan_time - scan_time_interval/1.8)
             final_time = ddhhmmss(scan_time + scan_time_interval/1.8)
             timerang = [None] + init_time.tolist() + final_time.tolist()
-            # print(timerang)
+
             # Perform an SNR fringe fit
             snr_fring_optimiz(data, refant, float(solint), timerang, \
                               AIPSList(target), 7)
@@ -200,7 +151,97 @@ def optimize_solint_cm(data, target, target_optimal_scans, refant):
             
             for antennas in snr_table:
                 if antennas['antenna_no'] == refant:
-                    # pass
+                    snr_dict[antennas['antenna_no']].append(np.nan)
+                else:
+                    try:
+                        snr_dict[antennas['antenna_no']].append\
+                        (antennas['weight_1'][0])
+                    except TypeError:    # Single IF datasets
+                        snr_dict[antennas['antenna_no']].append\
+                        (antennas['weight_1'])
+                        
+            # Delete the solution table
+            data.zap_table('SN', 7)
+
+        # Check if the median SNR across scans reaches the threshold
+        snr_values = []
+        # Compute the median per antenna
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=RuntimeWarning, message='All-NaN slice encountered')
+            for key in snr_dict.keys():
+                snr_values.append(np.nanmedian(snr_dict[key]))
+                solint_dict[solint][key] = np.nanmedian(snr_dict[key])
+
+	    #Check if they are all over 5, if so, get that solution interval
+        if all([x > 5 for x in snr_values if np.isnan(x) == False]) == True:
+            break
+
+    return(solint, solint_dict)
+
+def optimize_solint_cm(data, target, target_scans, refant, min_solint = 1.0):
+    """Alternative algorithm to find the optimal solution interval for fringe fit.
+
+    Runs a fringe fit in a selected number of scans of the target for five different 
+    solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal 
+    solution interval is the one that produces the best SNR. It will only search for 
+    solution intervals that are larger than min_solint. If there are more than 10 scans, 
+    the search will be done in 10 randomly selected scans. 
+
+    THIS ALGORITHM IS NOT USED IN THE CURRENT VERSION
+    
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param target: source name
+    :type target: str
+    :param target_scans: list of scans where to optimize the solution interval
+    :type target_scans: list of :class:`~vipcals.scripts.helper.Scan` objects
+    :param refant: reference antenna number
+    :type refant: int
+    :param min_solint: minimum solution interval in minutes; defaults to 1
+    :type min_solint: float, optional
+    :return: optimal solution interval in minutes, dictionary with the median SNR for 
+        each solution interval
+    :rtype: float, dict
+    """
+
+    # If there are more than 10 scans, randomly select 10
+    if len(target_scans) > 10:
+        random.seed(42)
+        target_scans = random.sample(target_scans, 10)
+
+    # Get longest scan length in minutes
+    solint_dict = {}
+    scan_length = max(target_scans, key=lambda x: x.time_interval).time_interval*24*60
+    for solint in np.round([scan_length/5.1, scan_length/4.1, \
+                            scan_length/3.1, scan_length/2.1, scan_length],1):
+        solint_dict[solint] = []
+        snr_dict = {}
+        # Initialize dictionary
+        for a in target_scans[0].antennas:
+            snr_dict[a] = []
+        for i, scan in enumerate(target_scans):
+            # If there are any antennas not initialized in the dictionary, then do so
+            # This  might happen when different scans have different available antennas
+
+            for a in target_scans[i].antennas:
+                if a not in snr_dict.keys():
+                    snr_dict[a] = []
+            # Get the timerange of the scan
+            scan_time = scan.time
+            scan_time_interval = scan.time_interval
+            init_time = ddhhmmss(scan_time - scan_time_interval/1.8)
+            final_time = ddhhmmss(scan_time + scan_time_interval/1.8)
+            timerang = [None] + init_time.tolist() + final_time.tolist()
+
+            # Perform an SNR fringe fit
+            snr_fring_optimiz(data, refant, int(solint), timerang, \
+                              AIPSList(target), 7)
+                
+            snr_table = data.table('SN', 7)
+            # Save the SNR of the scan
+            
+            for antennas in snr_table:
+                if antennas['antenna_no'] == refant:
                     snr_dict[antennas['antenna_no']].append(np.nan)
                 else:
                     try:
@@ -212,6 +253,7 @@ def optimize_solint_cm(data, target, target_optimal_scans, refant):
                         
             # Delete the solution table
             data.zap_table('SN', 7)
+
         # Check if the median SNR across scans reaches the threshold
         snr_values = []
         # Compute the median per antenna
@@ -221,91 +263,8 @@ def optimize_solint_cm(data, target, target_optimal_scans, refant):
                 snr_values.append(np.nanmedian(snr_dict[key]))
             # Add median SNR of all antennas to dict
             solint_dict[solint] = np.nanmedian(snr_values)
+
     solint = list(dict(sorted(solint_dict.items(), key=lambda item: item[1], \
                               reverse = True)).keys())[0]
-    return(solint)
-
-    # I should modify this function in such a way that can produce plots with
-    # the SNR as a function of the solution interval for each baseline
-
-def optimize_solint_mm(data, target, target_optimal_scans, refant):
-    """Find the optimal solution interval in which to fringe fit a target.
-
-    Algorithm for mm-wavelengths
-
-    Runs a fringe fit in a selected number of scans of the target for five different \
-    solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal \
-    solution interval is the smallest time required for all baselines to reach an SNR \
-    of 5. 
-
-    :param data: visibility data
-    :type data: AIPSUVData
-    :param target: source name
-    :type target: str
-    :param target_optimal_scans: optimal scans for the target
-    :type target_optimal_scans: list of Scans objects
-    :param refant: reference antenna number
-    :type refant: int
-    :return: optimal solution interval in minutes
-    :rtype: float
-    """    
-    ###
-    ### NOT THE OPTIMAL SCANS ANYMORE! IF IT WORKS I NEED TO CHANGE THE DOCSTRING
-    ###
-    # Get scan length (assuming them equal) in minutes
-    solint_dict = {}
-    scan_length = target_optimal_scans[0].time_interval*24*60
-    for solint in np.round([scan_length/5.1, scan_length/4.1, \
-                            scan_length/3.1, scan_length/2.1, scan_length],1):
-        snr_dict = {}
-        solint_dict[solint] = {}
-        # Initialize dictionary
-        for a in target_optimal_scans[0].antennas:
-            snr_dict[a] = []
-        for i, scan in enumerate(target_optimal_scans):
-            # If there are any antennas not initialized in the dictionary, then do so
-            # This  might happen when different scans have different available antennas
-            # I could avoid this but using only the ones with the max number of antennas
-            # available....
-            for a in target_optimal_scans[i].antennas:
-                if a not in snr_dict.keys():
-                    snr_dict[a] = []
-            # Get the timerange of the scan
-            scan_time = scan.time
-            scan_time_interval = scan.time_interval
-            init_time = ddhhmmss(scan_time - scan_time_interval/1.8)
-            final_time = ddhhmmss(scan_time + scan_time_interval/1.8)
-            timerang = [None] + init_time.tolist() + final_time.tolist()
-            # print(timerang)
-            # Perform an SNR fringe fit
-            snr_fring_optimiz(data, refant, float(solint), timerang, \
-                              AIPSList(target), 7)
-                
-            snr_table = data.table('SN', 7)
-            # Save the SNR of the scan
-            
-            for antennas in snr_table:
-                if antennas['antenna_no'] == refant:
-                    snr_dict[antennas['antenna_no']].append(np.nan)
-                else:
-                    try:
-                        snr_dict[antennas['antenna_no']].append\
-                        (antennas['weight_1'][0])
-                    except TypeError:
-                        snr_dict[antennas['antenna_no']].append\
-                        (antennas['weight_1'])
-                        
-            # Delete the solution table
-            data.zap_table('SN', 7)
-        # Check if the median SNR across scans reaches the threshold
-        snr_values = []
-        # Compute the median per antenna
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=RuntimeWarning, message='All-NaN slice encountered')
-            for key in snr_dict.keys():
-                snr_values.append(np.nanmedian(snr_dict[key]))
-                solint_dict[solint][key] = np.nanmedian(snr_dict[key])
-	    #Check if they are all over 5
-        if all([x > 5 for x in snr_values]) == True:
-            break
+    
     return(solint, solint_dict)
