@@ -26,12 +26,13 @@ import scripts.calib_choose as cali
 import scripts.instr_calib as inst
 import scripts.plotter as plot
 import scripts.bandpass as bpas
+import scripts.helper as help
 import scripts.fringe_fit as frng
 import scripts.optimize_solint as opti
 import scripts.export_data as expo
 import scripts.phase_shift as shft
 
-from AIPSData import AIPSUVData
+from AIPSData import AIPSUVData, AIPSCat
 
 import functools
 print = functools.partial(print, flush=True)
@@ -41,7 +42,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
              disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
              multi_id = False, selfreq = 0, default_refant = 'NONE', \
              input_calibrator = 'NONE', load_all = False, shift_coords = 'None',
-             flag_edge = 0, phase_ref = ['NONE'], stats_df = None):
+             flag_edge = 0, phase_ref = ['NONE'], interactive = False, stats_df = None):
     """Main workflow of the pipeline 
 
     :param filepath_list: list of paths to the original uvfits/idifits files
@@ -89,6 +90,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     :param phase_ref: list of phase calibrator names for phase referencing; \
                       defaults to ['NONE']
     :type phase_ref: list of str, optional
+    :param interactive: produce interactive plots; default = False
+    :type interactive: bool, optional
     :param stats_df: Pandas DataFrame where to keep track of the different statistics
     :type stats_df: pandas.DataFrame object
     """    
@@ -98,7 +101,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     t_i = time.time()
 
     # AIPS log is registered simultaneously for all science targets
-    load.open_log(path_list, filename_list)
+    help.open_log(path_list, filename_list)
         
     ## Check if the test file already exists and delete it ##
     
@@ -117,16 +120,17 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     t0 = time.time()
     load.load_data(filepath_list, aips_name, sources, disk_number, multi_id,\
     selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
-    load.write_info(uvdata, filepath_list, log_list, sources, stats_df=stats_df)
+    disp.write_info(uvdata, filepath_list, log_list, sources, stats_df=stats_df)
     t1 = time.time() 
     for pipeline_log in log_list:
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t1-t0))
-    load.print_info(uvdata, filepath_list, sources)
+    disp.print_info(uvdata, filepath_list, sources)
     print('Execution time: {:.2f} s. \n'.format(t1-t0))
     stats_df['time_1'] = t1-t0
 
     ## Check data integrity
     print('\nChecking data integrity...\n')
+
     ## Modify the AN table in case there are non ASCII characters   
     try:
         uvdata.antennas
@@ -137,33 +141,33 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Check for order
     if uvdata.header['sortord'] != 'TB':
-        tabl.tborder(uvdata, pipeline_log)
+        load.tborder(uvdata, pipeline_log)
         for pipeline_log in log_list:
             pipeline_log.write('\nData was not in TB order. It has been reordered using '\
                                + 'the UVSRT task\n')
         print('\nData was not in TB order. It has been reordered using ' \
               + 'the UVSRT task\n')
         
-        stats_df['need_uvsrt'] = 'Yes'
+        stats_df['need_uvsrt'] = True
     else:
-        stats_df['need_uvsrt'] = 'No'
+        stats_df['need_uvsrt'] = False
     
     ## Check for CL/NX tables
     if [1, 'AIPS CL'] not in uvdata.tables or [1, 'AIPS NX'] not in \
         uvdata.tables:
-        tabl.run_indxr(uvdata)
+        load.run_indxr(uvdata)
         print('\nINDXR was run, NX#1 and CL#1 were created.\n')
             
-        stats_df['need_indxr'] = 'Yes'
+        stats_df['need_indxr'] = True
     else:
-        stats_df['need_indxr'] = 'No'
+        stats_df['need_indxr'] = False
 
     ## Check for TY/GC/FG tables
     missing_tables = False
-    stats_df['need_ty'] = 'No'
-    stats_df['need_fg'] = 'No'
-    stats_df['need_gc'] = 'No'
-    stats_df['vlbacal_files'] = 'None'
+    stats_df['need_ty'] = False
+    stats_df['need_fg'] = False
+    stats_df['need_gc'] = False
+    stats_df['vlbacal_files'] = False
 
     if ([1, 'AIPS TY'] not in uvdata.tables or [1, 'AIPS GC'] \
     not in uvdata.tables or [1, 'AIPS FG'] not in uvdata.tables):
@@ -173,7 +177,16 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         t_i_table = time.time()
 
     if [1, 'AIPS TY'] not in uvdata.tables:
-        retrieved_urls = tabl.load_ty_tables(uvdata, bif, eif)
+        try:
+            retrieved_urls = tabl.load_ty_tables(uvdata, bif, eif)
+        except help.NoTablesError:
+            # If the pipeline finds no tables, stops here
+            print("No vlba.cal tables were found online. The pipeline will stop here.\n")
+            for pipeline_log in log_list:
+                pipeline_log.write("\nNo vlba.cal tables were found online. The pipeline will stop here.\n")     
+            
+            return(1)
+
         for pipeline_log in log_list:
             for good_url in retrieved_urls:
                 pipeline_log.write('\nSystem temperatures were not available in the ' \
@@ -183,29 +196,25 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         # Move the temperature file to the target folders
         for path in path_list:
-            os.system('cp ./tsys.vlba ' + path + '/TABLES/tsys.vlba')
-    
-        # And delete the files from the current directory
-        os.system('rm ./tables*')
-        os.system('rm ./tsys.vlba')
+            os.system('cp ../tmp/tsys.vlba ' + path + '/TABLES/tsys.vlba')
    
         print('\nSystem temperatures were not available in the ' \
                                   + 'file, they have been retrieved from \n' \
                                   + good_url + '\n')
         print('TY#1 created.\n')
-        stats_df['need_ty'] = 'Yes'
-        stats_df['vlbacal_files'] = retrieved_urls
+        stats_df['need_ty'] = True
+        stats_df['vlbacal_files'] = str(retrieved_urls)
         
     if [1, 'AIPS GC'] not in uvdata.tables:
-        load_gc_tables_code = tabl.load_gc_tables(uvdata)
         good_url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/vlba_gains.key'
-
-        if load_gc_tables_code == 404:  # If no GC was found
+        try:
+            tabl.load_gc_tables(uvdata)
+        except help.NoTablesError:
             for pipeline_log in log_list:
                 pipeline_log.write('WARNING: No gain curves were found at the '\
                                     + 'observed date. No GC table will be created.\n') 
             print('WARNING: No gain curves were found at the observed date. No ' \
-              + 'GC table will be created.\n')
+              + 'GC table will be created.\nThe pipeline will stop here.\n')
             
             return  # END THE PIPELINE!
         
@@ -223,11 +232,19 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
         print('\nGain curve information was not available in the file, it has '\
           + 'been retrieved from\n' + good_url + '\nGC#1 created.\n')
-        stats_df['need_gc'] = 'Yes'
+        stats_df['need_gc'] = True
         
-        
+    
     if [1, 'AIPS FG'] not in uvdata.tables:
-        retrieved_urls = tabl.load_fg_tables(uvdata)
+        try:
+            retrieved_urls = tabl.load_fg_tables(uvdata)
+        except help.NoTablesError:
+            # If the pipeline finds no tables, stops here
+            print("No vlba.cal tables were found online. The pipeline will stop here.\n")
+            for pipeline_log in log_list:
+                pipeline_log.write("\nNo vlba.cal tables were found online. The pipeline will stop here.\n")
+            return(1)
+        
         for pipeline_log in log_list:
             for good_url in retrieved_urls:
                 pipeline_log.write('Flag information was not available in the file, ' \
@@ -236,17 +253,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         # Move the flag file to the target folders
         for path in path_list:
-            os.system('cp ./flags.vlba ' + path + '/TABLES/flags.vlba')
-    
-        # And delete the files from the main directory
-        os.system('rm ./tables*')
-        os.system('rm ./flags.vlba')
+            os.system('cp ../tmp/flags.vlba ' + path + '/TABLES/flags.vlba')
 
         print('Flag information was not available in the file, ' \
                         + 'it has been retrieved from\n' + good_url + '\n')
         print('FG#1 created.\n')
-        stats_df['need_fg'] = 'Yes'
-        stats_df['vlbacal_files'] = retrieved_urls
+        stats_df['need_fg'] = True
+        stats_df['vlbacal_files'] = str(retrieved_urls)
 
     if missing_tables == True:
         t1 = time.time()
@@ -255,10 +268,24 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     stats_df['time_2'] = time.time()-t1
 
+    ## If multi-id, check if the source is in this id
+    if multi_id == True:
+        obs_source_ids = [x.source_id for x in uvdata.table('NX', 1)]
+        obs_source_names = set([y.source.strip() for y in uvdata.table('SU', 1) 
+                            if y.id__no in obs_source_ids])
+        if len(set(target_list).intersection(obs_source_names)) != len(set(target_list)): 
+            miss_sources = [x for x in target_list if x not in obs_source_names]
+            print("\nNot all targets were observed at this frequency, the pipeline will stop here.\n")
+            print(f"\nMissing sources: {miss_sources}\n")
+            for pipeline_log in log_list:
+                pipeline_log.write("\nNot all targets were observed at this frequency, the pipeline will stop here.\n")
+                pipeline_log.write(f"\nMissing sources: {miss_sources}\n")
+            return()
+
+
     ## Shift phase center if necessary ##
     # No shift will be done if the new coordinates are 0h0m0s +0d0m0s, in that case the
     # source will not be altered
-
     
     if shift_coords != 'NONE':
         t_shift = time.time()
@@ -266,14 +293,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         disp.print_box('Shifting phase center')
         for i, target in enumerate(target_list):
             if shift_coords[i] == SkyCoord(0, 0, unit = 'deg'):
-                stats_df.at[i, 'uvshift'] = 'No'
+                stats_df.at[i, 'uvshift'] = False
                 stats_df.at[i, 'time_3'] = 0
                 old_coord = shft.get_coord(uvdata, target)
                 stats_df.at[i, 'old_coords'] = old_coord.to_string(style = 'hmsdms')
                 stats_df.at[i, 'new_coords'] = old_coord.to_string(style = 'hmsdms')
                 continue
                 
-            stats_df.at[i, 'uvshift'] = 'Yes'
+            stats_df.at[i, 'uvshift'] = True
             old_seq = uvdata.seq    
             # Delete the data if it already existed
             if AIPSUVData(uvdata.name, uvdata.klass, \
@@ -285,12 +312,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
          
             uvdata = AIPSUVData(uvdata.name, uvdata.klass, \
                                 uvdata.disk, old_seq + 1)
-            
-            ## Reorder data
-            #tabl.tborder(uvdata, pipeline_log)
-            ## Run indxr
-            #uvdata.zap_table('CL', 1)
-            #tabl.run_indxr(uvdata)
+
             # Remove previous dataset
             AIPSUVData(uvdata.name, uvdata.klass, \
                                 uvdata.disk, uvdata.seq - 1).zap()
@@ -308,7 +330,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     else:
         stats_df['time_3'] = 0
-        stats_df['uvshift'] = 'No'
+        stats_df['uvshift'] = False
         for i, target in enumerate(target_list):
             old_coord = shft.get_coord(uvdata, target)
             stats_df.at[i, 'old_coords'] = old_coord.to_string(style = 'hmsdms')
@@ -328,12 +350,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         avgdata = AIPSUVData(aips_name[:9] + '_AT', uvdata.klass, disk_number, seq)
         if avgdata.exists() == True:
             avgdata.zap()
-        tabl.time_aver(uvdata, time_resol, 2)
+        load.time_aver(uvdata, time_resol, 2)
         uvdata = AIPSUVData(aips_name[:9] + '_AT', uvdata.klass, disk_number, seq)
 
         # Index the data again
         uvdata.zap_table('CL', 1)
-        tabl.run_indxr(uvdata)
+        load.run_indxr(uvdata)
 
         disp.write_box(log_list, 'Data averaging')
         disp.print_box('Data averaging')
@@ -344,12 +366,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         print('\nThe time resolution was {:.2f}'.format(time_resol) \
             + 's. It has been averaged to 2s.\n')
         is_data_avg = True
-        stats_df['time_avg'] = 'Yes'
+        stats_df['time_avg'] = True
         stats_df['old_timesamp'] = time_resol
         stats_df['new_timesamp'] = 2
     else:
         is_data_avg = False
-        stats_df['time_avg'] = 'No'
+        stats_df['time_avg'] = False
         stats_df['old_timesamp'] = time_resol
         stats_df['new_timesamp'] = time_resol
         
@@ -375,7 +397,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 disp.write_box(log_list, 'Data averaging')
                 disp.print_box('Data averaging')
             
-            tabl.freq_aver(uvdata,f_ratio)
+            load.freq_aver(uvdata,f_ratio)
             uvdata = AIPSUVData(aips_name[:9] + '_AF', uvdata.klass, \
                                  disk_number, seq)
 
@@ -386,13 +408,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 avgdata.zap()
             f_ratio = 500000/ch_width    # NEED TO ADD A CHECK IN CASE THIS FAILS
             
-            tabl.freq_aver(uvdata,f_ratio)
+            load.freq_aver(uvdata,f_ratio)
             uvdata = AIPSUVData(aips_name[:9] + '_ATF', uvdata.klass, \
                                  disk_number, seq)
 
         # Index the data again
         uvdata.zap_table('CL', 1)
-        tabl.run_indxr(uvdata)
+        load.run_indxr(uvdata)
 
         try:
             no_chan_new = int(uvdata.table('FQ', 1)[0]['total_bandwidth'][0]/ \
@@ -413,21 +435,20 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
               + 'been averaged to ' + str(no_chan_new) + ' channels of ' \
               + '500 kHz.\n')
         
-        stats_df['freq_avg'] = 'Yes'
+        stats_df['freq_avg'] = True
         stats_df['old_ch_width'] = ch_width
         stats_df['old_ch_no'] = no_chan
         stats_df['new_ch_width'] = 500000
         stats_df['new_ch_no'] = no_chan_new
         
     else:
-        stats_df['freq_avg'] = 'No'
+        stats_df['freq_avg'] = False
         stats_df['old_ch_width'] = ch_width
         stats_df['old_ch_no'] = no_chan
         stats_df['new_ch_width'] = ch_width
         stats_df['new_ch_no'] = no_chan
         
     stats_df['time_4'] = time.time() - t_avg
-
 
     ## Print scan information ##    
     load.print_listr(uvdata, path_list, filename_list)
@@ -448,8 +469,6 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         stats_df.at[i, 'n_scans'] = s_count
         stats_df.at[i, 'scan_lengths'] = str(s_lengths)
 
-
-        
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=1, flagver=1)
     for i, target in enumerate(target_list):
@@ -457,9 +476,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         vis_cl1 = expo.vis_count(cl1)
         stats_df.at[i, 'CL1_vis'] = int(vis_cl1)
         print(f"CL1 visibilities of {target}: {vis_cl1}\n")
+        log_list[i].write(f"\nCL1 visibilities of {target}: {vis_cl1}\n")
     
-
-
     ## Smooth the TY table ##  
     ## Flag antennas with no TY or GC table entries ##  
     
@@ -496,8 +514,6 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 n_name[0] = n_name[0].replace(' ','') 
                 pipeline_log.write('\n' + str(n) + '-' + n_name[0] + ' has no gain ' \
                                    + 'curve available, it will be flagged.\n') 
-
-            
     
     original_tsys, flagged_tsys, tsys_dict = tysm.ty_assess(uvdata)
     
@@ -506,7 +522,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     for pipeline_log in log_list:
         pipeline_log.write("\nAntenna |  TY1  |  TY2 \n")
         pipeline_log.write("--------|-------|-------\n")
-        for _, (ant, ty1, ty2) in tsys_dict.items():
+        for _, (ant, ty2, ty1) in tsys_dict.items():
             if ty1 != 0:
                 pipeline_log.write(f"{ant.strip():<8}|  {ty1:<4} |  {ty2} \n")
 
@@ -517,7 +533,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
     print("\nAntenna |  TY1  |  TY2 \n")
     print("--------|-------|-------\n")
-    for _, (ant, ty1, ty2) in tsys_dict.items():
+    for _, (ant, ty2, ty1) in tsys_dict.items():
         if ty1 != 0:
             print(f"{ant.strip():<8}|  {ty1:<4} |  {ty2} \n")
      
@@ -526,8 +542,6 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
             + 'TY#2 created.\n') 
     
-    t2 = time.time()  
-
     stats_df['ty1_points'] = original_tsys
     stats_df['ty2_points'] = original_tsys - flagged_tsys
     stats_df['tsys_dict'] = json.dumps(tsys_dict)
@@ -541,13 +555,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     for i, target in enumerate(target_list):
         cl1_fg2 = AIPSUVData(target, 'PLOT', uvdata.disk, 1)
         vis_cl1_fg2 = expo.vis_count(cl1_fg2)
-        stats_df.at[i, 'CL1_vis_FG2'] = int(vis_cl1)
+        stats_df.at[i, 'CL1_vis_FG2'] = int(vis_cl1_fg2)
         print(f"CL1 visibilities of {target} after flagging: {vis_cl1_fg2}\n")
+        log_list[i].write(f"\nCL1 visibilities of {target} after flagging: {vis_cl1_fg2}\n")
+
+    t2 = time.time()
 
     stats_df['time_5'] = t2 - t_tsys
     
-    
-
     for pipeline_log in log_list:
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t2-t1))
     print('Execution time: {:.2f} s. \n'.format(t2-t1))
@@ -563,11 +578,15 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     if default_refant == 'NONE':
         for pipeline_log in log_list:
-            pipeline_log.write('\nCHOOSING REFANT WITH ALL SOURCES\n')
+            pipeline_log.write('\nChoosing reference antenna with all sources.\n')
 
-        refant, ant_dict = rant.refant_choose_snr(
-            uvdata, sources, sources, target_list, full_source_list, log_list, load_all
-        )
+        try:
+            refant, ant_dict = rant.refant_choose_snr(
+                uvdata, sources, target_list, full_source_list, log_list)
+        except ValueError:
+            print('\n\nNO ANTENNAS!\n\n')
+            return()
+
 
         refant_summary = (
             f"\n{ant_dict[refant].name} has been selected as the reference antenna "
@@ -628,18 +647,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     DD = int(uvdata.header.date_obs[8:])
     date_obs = datetime(YYYY, MM, DD)
     if date_obs > datetime(1998,6,1):
+        
         files = iono.ionos_correct(uvdata)
-        t4 = time.time()
+
         for pipeline_log in log_list:
             pipeline_log.write('\nIonospheric corrections applied!\nCL#2 created.'\
                             + '\n')
-            pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t4-t3))
         print('\nIonospheric corrections applied!\nCL#2 created.\n')
-        print('Execution time: {:.2f} s. \n'.format(t4-t3))
-        os.system('rm -rf /tmp/jplg*')
-
-        stats_df['iono_files'] = str(files)
-        stats_df['time_7'] = t4 - t3
 
         # Counting visibilities
         expo.data_split(uvdata, target_list, cl_table=2, flagver=2)
@@ -648,10 +662,22 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             vis_cl2 = expo.vis_count(cl2)
             stats_df.at[i, 'CL2_vis'] = int(vis_cl2)
             print(f"CL2 visibilities of {target}: {vis_cl2}\n")
+            log_list[i].write(f"\nCL2 visibilities of {target}: {vis_cl2}\n")
+
+        t4 = time.time()
+
+        for pipeline_log in log_list:
+            pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t4-t3))
+        print('Execution time: {:.2f} s. \n'.format(t4-t3))
+        os.system('rm -rf ../tmp/jplg*')
+
+        stats_df['iono_files'] = str(files)
+        stats_df['time_7'] = t4 - t3
+        
 
     else:
-        t4 = time.time()
-        iono.tacop(uvdata, 'CL', 1, 2)
+
+        help.tacop(uvdata, 'CL', 1, 2)
         for pipeline_log in log_list:
             pipeline_log.write('\nIonospheric corrections not applied! IONEX '\
                             + 'files are not available for observations '\
@@ -660,9 +686,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         print('\nIonospheric corrections not applied! IONEX files are not '\
               + 'available for observations older than June 1998.\nCL#2 '\
               + 'will be copied from CL#1.\n')
-        stats_df['iono_files'] = 'OLD'
-        stats_df['time_7'] = t4 - t3
-
+        
         # Counting visibilities
         expo.data_split(uvdata, target_list, cl_table=2, flagver=2)
         for i, target in enumerate(target_list):
@@ -670,21 +694,24 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             vis_cl2 = expo.vis_count(cl2)
             stats_df.at[i, 'CL2_vis'] = int(vis_cl2)
             print(f"CL2 visibilities of {target}: {vis_cl2}\n")
+            log_list[i].write(f"\nCL2 visibilities of {target}: {vis_cl2}\n")
+
+        t4 = time.time()
+
+        stats_df['iono_files'] = 'OLD'
+        stats_df['time_7'] = t4 - t3
         
     ## Earth orientation parameters correction ##
     disp.write_box(log_list, 'Earth orientation parameters corrections')
     disp.print_box('Earth orientation parameters corrections')
 
     eopc.eop_correct(uvdata)
-    t5 = time.time()
 
     for pipeline_log in log_list:
         pipeline_log.write('\nEarth orientation parameter corrections applied!\n'\
                         + 'CL#3 created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t5-t4))
     print('\nEarth orientation parameter corrections applied!\nCL#3 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t5-t4))
-    os.system('rm -rf /tmp/usno_finals.erp')
+    os.system('rm -rf ../tmp/usno*')
 
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=3, flagver=2)
@@ -693,6 +720,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         vis_cl3 = expo.vis_count(cl3)
         stats_df.at[i, 'CL3_vis'] = int(vis_cl3)
         print(f"CL3 visibilities of {target}: {vis_cl3}\n")
+        log_list[i].write(f"\nCL3 visibilities of {target}: {vis_cl3}\n")
+
+    t5 = time.time()
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t5-t4))
+    print('Execution time: {:.2f} s. \n'.format(t5-t4))
+    os.system('rm -rf ../tmp/usno_finals.erp')
 
     stats_df['time_8'] = t5 - t4
 
@@ -701,14 +736,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.print_box('Parallactic angle corrections')
     
     pang.pang_corr(uvdata)
-    t6 = time.time()
 
     for pipeline_log in log_list:
         pipeline_log.write('\nParallactic angle corrections applied!\nCL#4'\
                         + ' created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t6-t5))
     print('\nParallactic angle corrections applied!\nCL#4 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t6-t5))
 
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=4, flagver=2)
@@ -717,6 +749,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         vis_cl4 = expo.vis_count(cl4)
         stats_df.at[i, 'CL4_vis'] = int(vis_cl4)
         print(f"CL4 visibilities of {target}: {vis_cl4}\n")
+        log_list[i].write(f"\nCL4 visibilities of {target}: {vis_cl4}\n")
+
+    t6 = time.time()
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t6-t5))
+    print('Execution time: {:.2f} s. \n'.format(t6-t5))
 
     stats_df['time_9'] = t6 - t5
 
@@ -729,7 +768,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         disp.print_box('Calibrator search')
         
         #snr_fring(uvdata, refant)
-        cali.snr_fring_only_fft(uvdata, refant)
+        cali.snr_fring(uvdata, refant)
         
         ## Get a list of scans ordered by SNR ##
         
@@ -755,32 +794,53 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         for pipeline_log in log_list:
             if len(calibrator_scans) == 1:
+                scan_i = help.ddhhmmss(calibrator_scans[0].time - calibrator_scans[0].time_interval/2)
+                scan_f = help.ddhhmmss(calibrator_scans[0].time + calibrator_scans[0].time_interval/2)
+                init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
+                fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
+                
                 pipeline_log.write('\nThe chosen scan for calibration is:\n')
-                pipeline_log.write(str(calibrator_scans[0].name) + '\tSNR: ' \
-                                   + '{:.2f}.'.format(np.nanmedian(calibrator_scans[0].snr)))
-                pipeline_log.write('\nSN#1 created.\n')
+                pipeline_log.write(f'\t{calibrator_scans[0].source_name}\t\t{init_str} - {fin_str}' \
+                                   + '\t\tSNR: ' \
+                                   + '{:.2f}.\n'.format(np.nanmedian(calibrator_scans[0].snr)))
+                pipeline_log.write('SN#1 created.\n')
 
             else:
                 pipeline_log.write('\nThe chosen scans for calibration are:\n')
-                for scn in calibrator_scans:    
-                    pipeline_log.write(str(scn.name) + '\tSNR: ' \
-                                      + '{:.2f}.\n'.format(np.nanmedian(scn.snr)))
-                pipeline_log.write('\nSN#1 created.\n')
+                for scn in calibrator_scans:   
+                    scan_i = help.ddhhmmss(scn.time - scn.time_interval/2)
+                    scan_f = help.ddhhmmss(scn.time + scn.time_interval/2)
+                    init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
+                    fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}" 
+                    pipeline_log.write(f'\t{scn.source_name}\t\t{init_str} - {fin_str}' \
+                                    + '\t\tSNR: ' \
+                                    + '{:.2f}.\n'.format(np.nanmedian(scn.snr)))
+                pipeline_log.write('SN#1 created.\n')
 
             pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t7-t6))
 
    
         if len(calibrator_scans) == 1:
+            scan_i = help.ddhhmmss(calibrator_scans[0].time - calibrator_scans[0].time_interval/2)
+            scan_f = help.ddhhmmss(calibrator_scans[0].time + calibrator_scans[0].time_interval/2)
+            init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
+            fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
+            
             print('\nThe chosen scan for calibration is:\n')
-            print(str(calibrator_scans[0].name) + '\tSNR: ' \
-                            + '{:.2f}.'.format(np.nanmedian(calibrator_scans[0].snr)))
-            print('\nSN#1 created.\n')
+            print(f'\t{calibrator_scans[0].source_name}\t\t{init_str} - {fin_str}' \
+                  + '\t\tSNR: ' + '{:.2f}.\n'.format(np.nanmedian(calibrator_scans[0].snr)))
+            print('SN#1 created.\n')
 
         else:
             print('\nThe chosen scans for calibration are:\n')
             for scn in calibrator_scans:    
-                print(str(scn.name) + '\tSNR: {:.2f}.\n'.format(np.nanmedian(scn.snr)))
-            print('\nSN#1 created.\n')
+                scan_i = help.ddhhmmss(scn.time - scn.time_interval/2)
+                scan_f = help.ddhhmmss(scn.time + scn.time_interval/2)
+                init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
+                fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}" 
+                print(f'\t{scn.source_name}\t\t{init_str} - {fin_str}' \
+                     + '\t\tSNR: ' + '{:.2f}.\n'.format(np.nanmedian(scn.snr)))
+            print('SN#1 created.\n')
 
         print('Execution time: {:.2f} s. \n'.format(t7-t6))
 
@@ -792,9 +852,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             print('\nWARNING: The brightest scan has a low SNR.\n')
 
         scan_dict = \
-            {scan.time: (scan.name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.antennas) for scan in scan_list}
+            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.antennas) for scan in scan_list}
         calibscans_dict = \
-            {scan.time: (scan.name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.calib_antennas) for scan in calibrator_scans}
+            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.calib_antennas) for scan in calibrator_scans}
 
         stats_df['SNR_scan_list'] = json.dumps(scan_dict)
         stats_df['selected_scans'] = json.dumps(calibscans_dict)
@@ -809,15 +869,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         disp.print_box('Calibrator search')
         
         #snr_fring(uvdata, refant)
-        cali.snr_fring_only_fft(uvdata, refant)
-        
+        cali.snr_fring(uvdata, refant)
         
         ## Get a list of scans ordered by SNR ##
         
         scan_list = cali.snr_scan_list_v2(uvdata)
         
         ## Get the scans for the input calibrator ## 
-        calibrator_scans = [x for x in scan_list if x.name == input_calibrator]
+        calibrator_scans = [x for x in scan_list if x.source_name == input_calibrator]
         ## Order by SNR
         calibrator_scans.sort(key=lambda x: np.nanmedian(x.snr),\
                    reverse=True)
@@ -827,41 +886,37 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         for pipeline_log in log_list:
             pipeline_log.write('\nThe chosen scan for calibration is:\n')
-            pipeline_log.write(str(calibrator_scans[0].name) + '\tSNR: ' \
+            pipeline_log.write(str(calibrator_scans[0].source_name) + '\t\tSNR: ' \
                                 + '{:.2f}.'.format(np.nanmedian(calibrator_scans[0].snr)))
             pipeline_log.write('\nSN#1 created.\n')
             pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t7-t6))
 
         print('\nThe chosen scan for calibration is:\n')
-        print(str(calibrator_scans[0].name) + '\tSNR: ' \
+        print(str(calibrator_scans[0].source_name) + '\tSNR: ' \
                         + '{:.2f}.'.format(np.nanmedian(calibrator_scans[0].snr)))
         print('\nSN#1 created.\n')
         print('Execution time: {:.2f} s. \n'.format(t7-t6))
 
         scan_dict = \
-            {scan.time: (scan.name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.antennas) for scan in scan_list}
+            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.antennas) for scan in scan_list}
         calibscans_dict = \
-            {scan.time: (scan.name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.calib_antennas) for scan in calibrator_scans}
+            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.calib_antennas) for scan in calibrator_scans}
 
         stats_df['SNR_scan_list'] = json.dumps(scan_dict)
         stats_df['selected_scans'] = json.dumps(calibscans_dict)
         stats_df['calibrator_search'] = 'MANUAL'
         stats_df['time_10'] = t7 - t6
 
-
     ## Digital sampling correction ##
     disp.write_box(log_list, 'Digital sampling corrections')
     disp.print_box('Digital sampling corrections')
     
     accr.sampling_correct(uvdata)
-    t8 = time.time()
 
     for pipeline_log in log_list:
         pipeline_log.write('\nDigital sampling corrections applied!\nSN#2 and CL#5'\
                         + ' created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t8-t7))
     print('\nDigital sampling corrections applied!\nSN#2 and CL#5 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t8-t7))
 
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=5, flagver=2)
@@ -870,6 +925,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         vis_cl5 = expo.vis_count(cl5)
         stats_df.at[i, 'CL5_vis'] = int(vis_cl5)
         print(f"CL5 visibilities of {target}: {vis_cl5}\n")
+        log_list[i].write(f"\nCL5 visibilities of {target}: {vis_cl5}\n")
+
+    t8 = time.time()
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t8-t7))
+    print('Execution time: {:.2f} s. \n'.format(t8-t7))
 
     stats_df['time_11'] = t8 - t7
 
@@ -878,16 +940,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.print_box('Instrumental phase corrections')
     
     inst.manual_phasecal_multi(uvdata, refant, calibrator_scans)
-    t9 = time.time()
     
     for pipeline_log in log_list:
         pipeline_log.write('\nInstrumental phase correction applied using'\
                         + ' the calibrator(s).\nSN#3 and CL#6 created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t9-t8))
     print('\nInstrumental phase correction applied using the calibrator(s).'\
           + '\nSN#3 and CL#6 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t9-t8))
-
+    
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=6, flagver=2)
     for i, target in enumerate(target_list):
@@ -895,22 +954,28 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         vis_cl6 = expo.vis_count(cl6)
         stats_df.at[i, 'CL6_vis'] = int(vis_cl6)
         print(f"CL6 visibilities of {target}: {vis_cl6}\n")
+        log_list[i].write(f"\nCL6 visibilities of {target}: {vis_cl6}\n")
+
+    t9 = time.time()
+    
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t9-t8))
+    print('Execution time: {:.2f} s. \n'.format(t9-t8))
+
 
     stats_df['time_12'] = t9 - t8
-
 
     ## Bandpass correction ##
     disp.write_box(log_list, 'Bandpass correction')
     disp.print_box('Bandpass correction')
     
     bpas.bp_correction(uvdata, refant, calibrator_scans)
+
     t10 = time.time()
 
     for pipeline_log in log_list:
         pipeline_log.write('\nBandpass correction applied!\nBP#1 created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t10-t9))
     print('\nBandpass correction applied!\nBP#1 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t10-t9))
 
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=6, flagver=2, bpass = True, \
@@ -920,6 +985,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         vis_cl6_bp1 = expo.vis_count(cl6_bp1)
         stats_df.at[i, 'CL6_BP1_vis'] = int(vis_cl6_bp1)
         print(f"CL6 + BP1 visibilities of {target}: {vis_cl6_bp1}\n")
+        log_list[i].write(f"\nCL6 + BP1 visibilities of {target}: {vis_cl6_bp1}\n")
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t10-t9))
+    print('Execution time: {:.2f} s. \n'.format(t10-t9))
 
     stats_df['time_13'] = t10 - t9
 
@@ -928,15 +998,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.write_box(log_list, 'Correcting autocorrelations')
     disp.print_box('Correcting autocorrelations')
 
-    accr.correct_autocorr(uvdata)
-    t11 = time.time()
+    accr.autocorr_correct(uvdata)
+
 
     for pipeline_log in log_list:
         pipeline_log.write('\nAutocorrelations have been normalized!\nSN#4 and CL#7'\
                         + ' created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
     print('\nAutocorrelations have been normalized!\nSN#4 and CL#7 created.\n')
-    print('Execution time: {:.2f} s. \n'.format(t11-t10))
 
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=7, flagver=2, bpass = True)
@@ -945,6 +1013,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         vis_cl7_bp1 = expo.vis_count(cl7_bp1)
         stats_df.at[i, 'CL7_BP1_vis'] = int(vis_cl7_bp1)
         print(f"CL7 + BP1 visibilities of {target}: {vis_cl7_bp1}\n")
+        log_list[i].write(f"\nCL7 + BP1 visibilities of {target}: {vis_cl7_bp1}\n")
+
+    t11 = time.time()
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t11-t10))
+    print('Execution time: {:.2f} s. \n'.format(t11-t10))
 
     stats_df['time_14'] = t11 - t10
 
@@ -954,13 +1028,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.print_box('Amplitude calibration')
     
     ampc.amp_cal(uvdata)
-    t12 = time.time()
+
     for pipeline_log in log_list:
         pipeline_log.write('\nAmplitude calibration applied!\nSN#5 and CL#8'\
                         + ' created.\n')
-        pipeline_log.write('\nExecution time: {:.2f} s.\n'.format(t12-t11))
     print('\nAmplitude calibration applied!\nSN#5 and CL#8 created.\n')
-    print('Execution time: {:.2f} s.\n'.format(t12-t11))
 
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=8, flagver=2, bpass = True)
@@ -969,6 +1041,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         vis_cl8_bp1 = expo.vis_count(cl8_bp1)
         stats_df.at[i, 'CL8_BP1_vis'] = int(vis_cl8_bp1)
         print(f"CL8 + BP1 visibilities of {target}: {vis_cl8_bp1}\n")
+        log_list[i].write(f"\nCL8 + BP1 visibilities of {target}: {vis_cl8_bp1}\n")
+
+    t12 = time.time()
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s.\n'.format(t12-t11))
+    print('Execution time: {:.2f} s.\n'.format(t12-t11))
 
     stats_df['time_15'] = t12 - t11
     
@@ -983,28 +1062,13 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     solint_list = []
     for i, target in enumerate(target_list):
-        #target_optimal_scans = opti.get_optimal_scans(target, optimal_scan_list, \
-        #                                          full_source_list)
-        #if target_optimal_scans == 404:
-        #    solint_list.append(opti.get_scan_length(uvdata,target))
-        #    log_list[i].write('\nThere were no optimal scans for the target. The chosen '\
-        #                     + 'solution interval is the scan length, '\
-        #                     + str(solint_list[i]) + ' minutes. \n')
-        #    
-        #    print('\nThere were no optimal scans for ' + target + '. The chosen '\
-        #         + 'solution interval is the scan length, ' + str(solint_list[i]) \
-        #         + ' minutes. \n')
         if phase_ref[i] == 'NONE':
-            target_scans = [x for x in scan_list if x.name == target]
+            target_scans = [x for x in scan_list if x.source_name == target]
 
             solint, solint_dict = opti.optimize_solint_mm(uvdata, target, \
                                                        target_scans, refant)
 
             solint_list.append(solint)
-            # Don't allow for solution intervals shorter than 1 minute
-
-            if solint_list[i] < 1:
-                solint_list[i] = 1
 
             if solint_list[i] != 1:
                 log_list[i].write('\nThe optimal solution interval for the target is '\
@@ -1020,27 +1084,22 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             stats_df.at[i, 'solint'] = solint_list[i]
             stats_df.at[i, 'solint_dict'] = json.dumps(solint_dict)        
         else:
-            phase_ref_scans = [x for x in scan_list if x.name == phase_ref[i]]
+            phase_ref_scans = [x for x in scan_list if x.source_name == phase_ref[i]]
 
             solint, solint_dict = opti.optimize_solint_mm(uvdata, phase_ref[i], \
                                                     phase_ref_scans, refant)
 
             solint_list.append(solint)
-            
-            # Don't allow for solution intervals shorter than 1 minute
-
-            if solint_list[i] < 1:
-                solint_list[i] = 1
 
             if solint_list[i] != 1:
                 log_list[i].write('\nThe optimal solution interval for the phase ' \
-                                + 'calibrator is ' + str(solint_list[i]) + ' minutes. \n')
-                print('\nThe optimal solution interval for the phase calibrator is ' \
+                                + 'calibrator ' + phase_ref[i] + ' is ' + str(solint_list[i]) + ' minutes. \n')
+                print('\nThe optimal solution interval for the phase calibrator ' + phase_ref[i] + ' is ' \
                     + str(solint_list[i]) + ' minutes. \n')
             else:
                 log_list[i].write('\nThe optimal solution interval for the phase ' \
-                                + 'calibrator is ' + str(solint_list[i]) + ' minute. \n')
-                print('\nThe optimal solution interval for the phase calibrator is ' \
+                                + 'calibrator ' + phase_ref[i] + ' is ' + str(solint_list[i]) + ' minute. \n')
+                print('\nThe optimal solution interval for the phase calibrator ' + phase_ref[i] + ' is ' \
                     + str(solint_list[i]) + ' minute. \n')   
 
             stats_df.at[i, 'solint'] = solint_list[i]
@@ -1057,300 +1116,327 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## Fringe fit of the target ##
 
     ignore_list = []
+    
+    # Separate in no phaseref and phaseref targets
+    
+    ff_target_list = []
+    for i, target in enumerate(target_list):
+        t = help.FFTarget()
+        t.name = target
+        t.phaseref = phase_ref[i]
+        t.solint = solint_list[i]
+        t.log = log_list[i]
+        ff_target_list.append(t)
+    
+    no_pr_target_list = [t for t in ff_target_list if t.phaseref == 'NONE']
+    pr_target_list = [t for t in ff_target_list if t.phaseref != 'NONE']
    
-    ## I NEED TO PRINT SOMETHING IF THERE ARE NO SOLUTIONS AT ALL ##
-    for i, target in enumerate(target_list): 
-        if phase_ref[i] == 'NONE':
-            stats_df.at[i,'phaseref_ff'] = False
-            try:
-                tfring_params = frng.target_fring_fit(uvdata, refant, target, \
-                                                    solint=float(solint_list[i]), \
-                                                    version = 9+i)
+    ## NO PHASEREF FRINGE FIT ##
+    
+    for i, target in enumerate(no_pr_target_list): 
+
+        r =  stats_df.index[stats_df['target'] == target.name][0]
+
+        ratio = 0
+        ratio_single = 0
+        stats_df.at[r, 'single_ff'] = False
+        stats_df.at[r,'phaseref_ff'] = False  
+          
+        try:
+            tfring_params = frng.target_fring_fit(uvdata, refant, target.name, version = 6+i,\
+                                                solint=float(target.solint))
+        
+            target.log.write('\nFringe search performed on ' + target.name + '. Windows '\
+                              + 'for the search were ' + tfring_params[1] \
+                              + ' ns and ' + tfring_params[2] + ' mHz.\n')
             
-                log_list[i].write('\nFringe search performed on ' + target + '. Windows '\
-                                  + 'for the search were ' + tfring_params[1] \
-                                  + ' ns and ' + tfring_params[2] + ' mHz.\n')
+            print('\nFringe search performed on ' + target.name + '. Windows for ' \
+                + 'the search were ' + tfring_params[1] + ' ns and ' \
+                + tfring_params[2] + ' mHz.\n')
+            
+            ## Get the ratio of bad to good solutions ##
+    
+            badsols, totalsols, ratios_dict = frng.assess_fringe_fit(uvdata, target.log, version = 6+i) 
+            ratio = 1 - badsols/totalsols
+            
+        except RuntimeError:
+
+            print("Fringe fit has failed.\n")
+
+            target.log.write("Fringe fit has failed.\n")
+            ratio = 0    
                 
-                print('\nFringe search performed on ' + target + '. Windows for ' \
+        # If the ratio is < 0.99 (arbitrary) repeat the fringe fit but averaging IFs
+
+        if ratio < 0.99:
+
+            print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
+            print('Repeating the fringe fit solving for all IFs together:\n')
+
+            target.log.write('Ratio of good/total solutions ' \
+                            + 'is : {:.2f}.\n'.format(ratio))
+            target.log.write('Repeating the fringe fit solving for all IFs ' \
+                            + 'together:\n')
+
+            try:
+                tfring_params = frng.target_fring_fit(uvdata, refant, target.name, \
+                                                 version = 6+i+1, solint=float(target.solint), \
+                                                 solve_ifs=False)
+                
+                target.log.write('\nFringe search performed on ' + target.name \
+                + '. Windows for the search were ' + tfring_params[1] + ' ns and ' \
+                + tfring_params[2] + ' mHz.\n')
+                
+                print('\nFringe search performed on ' + target.name + '. Windows for ' \
                     + 'the search were ' + tfring_params[1] + ' ns and ' \
                     + tfring_params[2] + ' mHz.\n')
-                
-                ## Get the ratio of bad to good solutions ##
-        
-                badsols, totalsols, ratios_dict = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i) 
-                ratio = 1 - badsols/totalsols
-
-            except RuntimeError:
-
-                print("Fringe fit has failed.\n")
-
-                log_list[i].write("Fringe fit has failed.\n")
-                ratio = 0    
-                
-            # If the ratio is > 0.99, apply the solutions to a CL table
-
-            if ratio >= 0.99:
-                frng.fringe_clcal(uvdata, target, version = 9+i)
-
-            # If the ratio is < 0.99 (arbitrary) repeat the fringe fit but averaging IFs
-
-            if ratio < 0.99:
-
-                print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
-                print('Repeating the fringe fit solving for all IFs together:\n')
-
-                log_list[i].write('Ratio of good/total solutions ' \
-                                + 'is : {:.2f}.\n'.format(ratio))
-                log_list[i].write('Repeating the fringe fit solving for all IFs ' \
-                                + 'together:\n')
-
-                try:
-                    tfring_params = frng.target_fring_fit(uvdata, refant, target, \
-                                                    solint=float(solint_list[i]), 
-                                                    version = 9+i+1, solve_ifs=False)
                     
-                    log_list[i].write('\nFringe search performed on ' + target \
-                    + '. Windows for the search were ' + tfring_params[1] + ' ns and ' \
-                    + tfring_params[2] + ' mHz.\n')
-                    
-                    print('\nFringe search performed on ' + target + '. Windows for ' \
-                        + 'the search were ' + tfring_params[1] + ' ns and ' \
-                        + tfring_params[2] + ' mHz.\n')
-                        
-                    ## Get the new ratio of bad to good solutions ##
-                
-                    badsols_s, totalsols_s, ratios_dict_s = frng.assess_fringe_fit(uvdata, log_list[i], \
-                                                                version = 6+i+1) 
-                    
-                    ratio_single = 1 - badsols_s/totalsols_s
-                    
-                except RuntimeError:
-                    print('\nThe new fringe fit has failed, the previous one will ' \
-                         + 'be kept.\n')
-
-                    log_list[i].write('\nThe new fringe fit has failed, the previous ' \
-                                     + 'one will be kept.\n')
-                    ratio_single = 0
-
-
-                # If both ratios are 0, end the pipeline
-                if (ratio + ratio_single) == 0:
-
-                    print('\nThe pipeline was not able to find any good solutions.\n')
-
-                    log_list[i].write('\nThe pipeline was not able to find any good ' \
-                                    + 'solutions.\n')
-
-                    ## Remove target from the workflow
-                    ignore_list.append(target_list[i])
-                    # target_list[i] = 'IGNORE'
-                    #log_list.remove(log_list[i])
-    
-                
-                # If the new ratio is smaller or equal than the previous, 
-                # then keep the previous
-
-                elif ratio_single <= ratio:
-                    print("New ratio of good/total solutions "\
-                        + "is : {:.2f}.\n".format(ratio_single))
-                    print("The multi-IF fringe fit will be applied.\n")
-
-                    log_list[i].write("New ratio of good/total solutions "\
-                        + "is : {:.2f}.\n".format(ratio_single))
-                    log_list[i].write("The multi-IF fringe fit will be applied.\n ")
-                    frng.fringe_clcal(uvdata, target, version = 9+i)
-                    # Remove the single-IF fringe fit SN table
-                    uvdata.zap_table('SN', 6+i+1)
-
-
-                # If new ratio is better than the previous, then replace the SN table and 
-                # apply the solutions
-                elif ratio_single > ratio:
-                    print("New ratio of good/total solutions "\
-                        + "is : {:.2f}.\n".format(ratio_single))
-                    print("The averaged IF fringe fit will be applied.\n ")
-
-                    log_list[i].write("New ratio of good/total solutions "\
-                        + "is : {:.2f}.\n".format(ratio_single))
-                    log_list[i].write("The averaged IF fringe fit will be applied.\n ")
-                    uvdata.zap_table('SN', 6+i)
-                    tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
-                    frng.fringe_clcal(uvdata, target, version = 9+i)
-
-            if target_list[i] not in ignore_list:
-
-                log_list[i].write('\nFringe fit corrections applied to the target!\n'\
-                    + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
-                    + ' created.\n')
-
-                print('\nFringe fit corrections applied to ' + target + '!\nSN#' \
-                    + str(6+i) + ' and CL#' + str(9+i) + ' created.\n') 
-
-        if phase_ref[i] != 'NONE':
-            stats_df.at[i,'phaseref_ff'] = True
-            try:
-                tfring_params = frng.target_fring_fit(uvdata, refant, phase_ref[i], \
-                                                    solint=float(solint_list[i]), \
-                                                    version = 9+i)
+                ## Get the new ratio of bad to good solutions ##
             
-                log_list[i].write('\nFringe search performed on the phase calibrator: ' \
-                                  + phase_ref[i] + '. Windows '\
-                                  + 'for the search were ' + tfring_params[1] \
-                                  + ' ns and ' + tfring_params[2] + ' mHz.\n')
+                badsols_s, totalsols_s, ratios_dict_s = frng.assess_fringe_fit(uvdata, target.log, \
+                                                            version = 6+i+1) 
                 
-                print('\nFringe search performed on the phase calibrator: ' \
-                    + phase_ref[i] \
-                    + '. Windows for the search were ' + tfring_params[1] + ' ns and ' \
-                    + tfring_params[2] + ' mHz.\n')
+                ratio_single = 1 - badsols_s/totalsols_s
                 
-                ## Get the ratio of bad to good solutions ##
-        
-                badsols, totalsols, ratios_dict = frng.assess_fringe_fit(uvdata, log_list[i], version = 6+i) 
-                ratio = 1 - badsols/totalsols
-
             except RuntimeError:
+                print('\nThe new fringe fit has failed, the previous one will ' \
+                     + 'be kept.\n')
 
-                print("Fringe fit has failed.\n")
-
-                log_list[i].write("Fringe fit has failed.\n")
-                ratio = 0      
-
-
-            # If the ratio is > 0.99, apply the solutions to a CL table
-
-            if ratio >= 0.99:
-                frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
-
-            # If the ratio is < 0.99 (arbitrary) repeat the fringe fit but averaging IFs
-
-            if ratio < 0.99:
-
-                print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
-                print('Repeating the fringe fit solving for all IFs together:\n')
-
-                log_list[i].write('Ratio of good/total solutions ' \
-                                + 'is : {:.2f}.\n'.format(ratio))
-                log_list[i].write('Repeating the fringe fit solving for all IFs ' \
-                                + 'together:\n')
-
-                try:
-                    tfring_params = frng.target_fring_fit(uvdata, refant, phase_ref[i], \
-                                                    solint=float(solint_list[i]), 
-                                                    version = 9+i+1, solve_ifs=False)
-                    
-                    log_list[i].write('\nFringe search performed on the phase ' \
-                                    + 'calibrator: ' + phase_ref[i] + '. Windows '\
-                                    + 'for the search were ' + tfring_params[1] \
-                                    + ' ns and ' + tfring_params[2] + ' mHz.\n')
-                    
-                    print('\nFringe search performed on the phase calibrator: ' \
-                        + phase_ref[i] \
-                        + '. Windows for the search were ' + tfring_params[1] \
-                        + ' ns and ' + tfring_params[2] + ' mHz.\n')
-                        
-                    ## Get the new ratio of bad to good solutions ##
-                
-                    badsols_s, totalsols_s, ratios_dict_s = frng.assess_fringe_fit(uvdata, log_list[i], \
-                                                                version = 6+i+1) 
-                    ratio_single = 1 - badsols_s/totalsols_s
-                    
-                except RuntimeError:
-                    print('\nThe new fringe fit has failed, the previous one will ' \
-                         + 'be kept.\n')
-
-                    log_list[i].write('\nThe new fringe fit has failed, the previous ' \
-                                     + 'one will be kept.\n')
-                    ratio_single = 0
-
-                
-                # If both ratios are 0, end the pipeline
-                if (ratio + ratio_single) == 0:
-                    print('\nThe pipeline was not able to find any good solutions.\n')
-
-                    log_list[i].write('\nThe pipeline was not able to find any good ' \
-                                    + 'solutions.\n')
-                    
-                    ## Remove target from the workflow
-                    ignore_list.append(target_list[i])
-                    # target_list[i] = 'IGNORE'
-                    #log_list.remove(log_list[i])
+                target.log.write('\nThe new fringe fit has failed, the previous ' \
+                                 + 'one will be kept.\n')
+                ratio_single = 0    
     
-                
-                # If the new ratio is smaller or equal than the previous, 
-                # then keep the previous
+            # If both ratios are 0, end the pipeline
+            if (ratio + ratio_single) == 0:
 
-                elif ratio_single <= ratio:
-                    print("New ratio of good/total solutions "\
-                        + "is : {:.2f}.\n".format(ratio_single))
-                    print("The multi-IF fringe fit will be applied.\n ")
+                print('\nThe pipeline was not able to find any good solutions.\n')
 
-                    log_list[i].write("New ratio of good/total solutions "\
-                        + "is : {:.2f}.\n".format(ratio_single))
-                    log_list[i].write("The multi-IF fringe fit will be applied.\n ")
-                    frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
-                    # Remove the single-IF fringe fit SN table
-                    uvdata.zap_table('SN', 6+i+1)
+                target.log.write('\nThe pipeline was not able to find any good ' \
+                                + 'solutions.\n')
+
+                ## Remove target from the workflow
+                ignore_list.append(target.name)
+
+            
+            # If the new ratio is smaller or equal than the previous, 
+            # then keep the previous
+
+            elif ratio_single <= ratio:
+                print("New ratio of good/total solutions "\
+                    + "is : {:.2f}.\n".format(ratio_single))
+                print("The multi-IF fringe fit will be applied.\n")
+
+                target.log.write("New ratio of good/total solutions "\
+                    + "is : {:.2f}.\n".format(ratio_single))
+                target.log.write("The multi-IF fringe fit will be applied.\n ")
+                # Remove the single-IF fringe fit SN table
+                uvdata.zap_table('SN', 6+i+1)
 
 
-                # If new ratio is better than the previous, then replace the SN table and 
-                # apply the solutions
-                elif ratio_single > ratio:
-                    print("New ratio of good/total solutions "\
-                        + "is : {:.2f}.\n".format(ratio_single))
-                    print("The averaged IF fringe fit will be applied.\n ")
+            # If new ratio is better than the previous, then replace the SN table and 
+            # apply the solutions
+            elif ratio_single > ratio:
+                print("New ratio of good/total solutions "\
+                    + "is : {:.2f}.\n".format(ratio_single))
+                print("The averaged IF fringe fit will be applied.\n ")
 
-                    log_list[i].write("New ratio of good/total solutions "\
-                        + "is : {:.2f}.\n".format(ratio_single))
-                    log_list[i].write("The averaged IF fringe fit will be applied.\n ")
-                    uvdata.zap_table('SN', 6+i)
-                    tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
-                    frng.fringe_phaseref_clcal(uvdata, target, version = 9+i)
-
-            if target_list[i] not in ignore_list:
-
-                log_list[i].write('\nFringe fit corrections applied to the target!\n'\
-                    + 'SN#' + str(6+i) + ' and CL#' + str(9+i) \
-                    + ' created.\n')
-
-                print('\nFringe fit corrections applied to ' + target + '!\nSN#' \
-                    + str(6+i) + ' and CL#' + str(9+i) + ' created.\n')
+                target.log.write("New ratio of good/total solutions "\
+                    + "is : {:.2f}.\n".format(ratio_single))
+                target.log.write("The averaged IF fringe fit will be applied.\n ")
+                uvdata.zap_table('SN', 6+i)
+                tysm.tacop(uvdata, 'SN', 6+i+1, 6+i)
+                uvdata.zap_table('SN', 6+i+1)
+                stats_df.at[r, 'single_ff'] = True   
             
         if (ratio + ratio_single) == 0:
-            stats_df.at[i, 'good_sols'] = False
-            stats_df.at[i, 'total_sols'] = False
-            stats_df.at[i, 'ratios_dict'] = False
-            stats_df.at[i, 'good_sols_single'] = False
-            stats_df.at[i, 'total_sols_single'] = False
-            stats_df.at[i, 'ratios_dict_single'] = False
+            stats_df.at[r, 'good_sols'] = False
+            stats_df.at[r, 'total_sols'] = False
+            stats_df.at[r, 'ratios_dict'] = False
+            stats_df.at[r, 'good_sols_single'] = False
+            stats_df.at[r, 'total_sols_single'] = False
+            stats_df.at[r, 'ratios_dict_single'] = False
         
-        elif ratio < 0.99: 
-            stats_df.at[i, 'good_sols'] = totalsols - badsols
-            stats_df.at[i, 'total_sols'] = totalsols
-            stats_df.at[i, 'ratios_dict'] = json.dumps(ratios_dict)
-            stats_df.at[i, 'good_sols_single'] = totalsols_s - badsols_s
-            stats_df.at[i, 'total_sols_single'] = totalsols_s
-            stats_df.at[i, 'ratios_dict_single'] = json.dumps(ratios_dict_s)
+        elif ratio < 0.99 and ratio_single != 0: 
+            stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
+            stats_df.at[r, 'total_sols'] = int(totalsols)
+            stats_df.at[r, 'ratios_dict'] = json.dumps(ratios_dict)
+            stats_df.at[r, 'good_sols_single'] = int(totalsols_s - badsols_s)
+            stats_df.at[r, 'total_sols_single'] = int(totalsols_s)
+            stats_df.at[r, 'ratios_dict_single'] = json.dumps(ratios_dict_s)
+
+        elif ratio < 0.99 and ratio_single == 0: 
+            stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
+            stats_df.at[r, 'total_sols'] = int(totalsols)
+            stats_df.at[r, 'ratios_dict'] = json.dumps(ratios_dict)
+            stats_df.at[r, 'good_sols_single'] = False
+            stats_df.at[r, 'total_sols_single'] = False
+            stats_df.at[r, 'ratios_dict_single'] = False
 
         elif ratio >= 0.99: 
-            stats_df.at[i, 'good_sols'] = totalsols - badsols
-            stats_df.at[i, 'total_sols'] = totalsols
-            stats_df.at[i, 'ratios_dict'] = json.dumps(ratios_dict)
-            stats_df.at[i, 'good_sols_single'] = False
-            stats_df.at[i, 'total_sols_single'] = False
-            stats_df.at[i, 'ratios_dict_single'] = False
+            stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
+            stats_df.at[r, 'total_sols'] = int(totalsols)
+            stats_df.at[r, 'ratios_dict'] = json.dumps(ratios_dict)
+            stats_df.at[r, 'good_sols_single'] = False
+            stats_df.at[r, 'total_sols_single'] = False
+            stats_df.at[r, 'ratios_dict_single'] = False
 
-    # Counting visibilities
-    expo.data_split(uvdata, [t for t in target_list if t not in ignore_list], \
-                    cl_table=9, flagver=2, bpass = True)
+    ## PHASEREF FRINGE FIT ##
+    pr_sn = uvdata.table_highver('SN') + 1
+
+    for i, target in enumerate(pr_target_list): 
+
+        r =  stats_df.index[stats_df['target'] == target.name][0]
+
+        ratio = 0
+        ratio_single = 0
+        stats_df.at[r, 'single_ff'] = False
+        stats_df.at[r,'phaseref_ff'] = False  
+          
+        try:
+            tfring_params = frng.target_fring_fit(uvdata, refant, target.phaseref, version = pr_sn+i,\
+                                                solint=float(target.solint))
+        
+            target.log.write('\nFringe search performed on the phase calibrator: ' \
+                              + target.phaseref + '. Windows '\
+                              + 'for the search were ' + tfring_params[1] \
+                              + ' ns and ' + tfring_params[2] + ' mHz.\n')
+            
+            print('\nFringe search performed on the phase calibrator: ' \
+                  + target.phaseref + '. Windows for ' \
+                  + 'the search were ' + tfring_params[1] + ' ns and ' \
+                  + tfring_params[2] + ' mHz.\n')
+            
+            ## Get the ratio of bad to good solutions ##
     
-    for i, target in enumerate(target_list):
-        if target not in ignore_list:
-            cl9_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 9)
-            vis_cl9_bp1 = expo.vis_count(cl9_bp1)
-            stats_df.at[i, 'CL9_BP1_vis'] = int(vis_cl9_bp1)
-            print(f"CL9 + BP1 visibilities of {target}: {vis_cl9_bp1}\n")
-        else:
-            stats_df.at[i, 'CL9_BP1_vis'] = 0
+            badsols, totalsols, ratios_dict = frng.assess_fringe_fit(uvdata, target.log, version = pr_sn+i) 
+            ratio = 1 - badsols/totalsols
+            
+        except RuntimeError:
+
+            print("Fringe fit has failed.\n")
+
+            target.log.write("Fringe fit has failed.\n")
+            ratio = 0    
+            
+        # If the ratio is > 0.99, apply the solutions to a CL table
+
+        #if ratio >= 0.99:
+        #    continue
+    
+        # If the ratio is < 0.99 (arbitrary) repeat the fringe fit but averaging IFs
+
+        if ratio < 0.99:
+
+            print('Ratio of good/total solutions is : {:.2f}.\n'.format(ratio))
+            print('Repeating the fringe fit solving for all IFs together:\n')
+
+            target.log.write('Ratio of good/total solutions ' \
+                            + 'is : {:.2f}.\n'.format(ratio))
+            target.log.write('Repeating the fringe fit solving for all IFs ' \
+                            + 'together:\n')
+
+            try:
+                tfring_params = frng.target_fring_fit(uvdata, refant, target.phaseref, \
+                                                 version = pr_sn+i+1, solint=float(target.solint), \
+                                                 solve_ifs=False)
+                
+                target.log.write('\nFringe search performed on the phase calibrator: ' \
+                                 + target.phaseref + '. Windows for the search were ' \
+                                 + tfring_params[1] + ' ns and ' \
+                                 + tfring_params[2] + ' mHz.\n')
+                
+                print('\nFringe search performed on the phase claibrator: ' + target.phaseref + '. Windows for ' \
+                    + 'the search were ' + tfring_params[1] + ' ns and ' \
+                    + tfring_params[2] + ' mHz.\n')
+                    
+                ## Get the new ratio of bad to good solutions ##
+            
+                badsols_s, totalsols_s, ratios_dict_s = frng.assess_fringe_fit(uvdata, target.log, \
+                                                            version = pr_sn+i+1) 
+                
+                ratio_single = 1 - badsols_s/totalsols_s
+                
+            except RuntimeError:
+                print('\nThe new fringe fit has failed, the previous one will ' \
+                     + 'be kept.\n')
+
+                target.log.write('\nThe new fringe fit has failed, the previous ' \
+                                 + 'one will be kept.\n')
+                ratio_single = 0    
+    
+            # If both ratios are 0, end the pipeline
+            if (ratio + ratio_single) == 0:
+
+                print('\nThe pipeline was not able to find any good solutions.\n')
+
+                target.log.write('\nThe pipeline was not able to find any good ' \
+                                + 'solutions.\n')
+
+                ## Remove target from the workflow
+                ignore_list.append(target.name)
+
+            
+            # If the new ratio is smaller or equal than the previous, 
+            # then keep the previous
+
+            elif ratio_single <= ratio:
+                print("New ratio of good/total solutions "\
+                    + "is : {:.2f}.\n".format(ratio_single))
+                print("The multi-IF fringe fit will be applied.\n")
+
+                target.log.write("New ratio of good/total solutions "\
+                    + "is : {:.2f}.\n".format(ratio_single))
+                target.log.write("The multi-IF fringe fit will be applied.\n ")
+                # Remove the single-IF fringe fit SN table
+                uvdata.zap_table('SN', pr_sn+i+1)
+                
+
+
+            # If new ratio is better than the previous, then replace the SN table and 
+            # apply the solutions
+            elif ratio_single > ratio:
+                print("New ratio of good/total solutions "\
+                    + "is : {:.2f}.\n".format(ratio_single))
+                print("The averaged IF fringe fit will be applied.\n ")
+
+                target.log.write("New ratio of good/total solutions "\
+                    + "is : {:.2f}.\n".format(ratio_single))
+                target.log.write("The averaged IF fringe fit will be applied.\n ")
+                uvdata.zap_table('SN', pr_sn+i)
+                tysm.tacop(uvdata, 'SN', pr_sn+i+1, pr_sn+i)
+                uvdata.zap_table('SN', pr_sn+i+1)
+                stats_df.at[r, 'single_ff'] = True   
+
+        r =  stats_df.index[stats_df['target'] == target.name][0]
+            
+        if (ratio + ratio_single) == 0:
+            stats_df.at[r, 'good_sols'] = False
+            stats_df.at[r, 'total_sols'] = False
+            stats_df.at[r, 'ratios_dict'] = False
+            stats_df.at[r, 'good_sols_single'] = False
+            stats_df.at[r, 'total_sols_single'] = False
+            stats_df.at[r, 'ratios_dict_single'] = False
+        
+        elif ratio < 0.99: 
+            stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
+            stats_df.at[r, 'total_sols'] = int(totalsols)
+            stats_df.at[r, 'ratios_dict'] = json.dumps(ratios_dict)
+            stats_df.at[r, 'good_sols_single'] = int(totalsols_s - badsols_s)
+            stats_df.at[r, 'total_sols_single'] = int(totalsols_s)
+            stats_df.at[r, 'ratios_dict_single'] = json.dumps(ratios_dict_s)
+
+        elif ratio >= 0.99: 
+            stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
+            stats_df.at[r, 'total_sols'] = int(totalsols)
+            stats_df.at[r, 'ratios_dict'] = json.dumps(ratios_dict)
+            stats_df.at[r, 'good_sols_single'] = False
+            stats_df.at[r, 'total_sols_single'] = False
+            stats_df.at[r, 'ratios_dict_single'] = False
+
+    # Apply all SN tables into CL9    
+    no_pr_target_scans = [x for x in scan_list if x.source_name in [t.name for t in no_pr_target_list]]
+    frng.fringe_clcal(uvdata, no_pr_target_list, no_pr_target_scans, max_ver = pr_sn - 1)
+    frng.fringe_phaseref_clcal(uvdata, pr_target_list, version = pr_sn)
 
 
     t14 = time.time()
@@ -1368,7 +1454,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     no_baseline = expo.data_export(path_list, uvdata, target_list, \
                                    filename_list, ignore_list,\
                                    flag_frac = flag_edge)
-
+    
 
     for i, target in enumerate(target_list): 
         if target in ignore_list:
@@ -1389,9 +1475,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                               + 'there are not enough solutions to form a baseline.\n')
             print('\n' + target + ' visibilites could not be exported, ' \
                               + 'there are not enough solutions to form a baseline.\n')
-
-
-            
+                     
 
     expo.table_export(path_list, uvdata, target_list, filename_list)
     for i, target in enumerate(target_list): 
@@ -1400,29 +1484,54 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         print('\n' + target + ' calibration tables exported to /TABLES/' \
               + filename_list[i] + '.caltab.uvfits\n')
         
+    # Counting visibilities
+    expo.data_split(uvdata, [t for t in target_list if t not in ignore_list and t not in no_baseline], \
+                    cl_table=9, flagver=2, bpass = True)
+    
+    for i, target in enumerate(target_list):
+        r =  stats_df.index[stats_df['target'] == target][0]
+        if target not in ignore_list and target not in no_baseline:
+            cl9_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 9)
+            vis_cl9_bp1 = expo.vis_count(cl9_bp1)
+            stats_df.at[r, 'CL9_BP1_vis'] = int(vis_cl9_bp1)
+            print(f"CL9 + BP1 visibilities of {target}: {vis_cl9_bp1}\n")
+            log_list[i].write(f"\nCL9 + BP1 visibilities of {target}: {vis_cl9_bp1}\n")
+        else:
+            stats_df.at[r, 'CL9_BP1_vis'] = 0
+        
     stats_df['time_18'] = time.time() - t_export
 
     ## PLOTS ##
 
-    ######################## TEST FOR THE GUI ########################
+    ######################## PLOTS FOR THE GUI ########################
     t_interactive = time.time()
-    disp.print_box("Generating interactive plots")
-    #
-    interactive = True
+
     if interactive ==  True:
+        disp.print_box("Generating interactive plots")
+        disp.write_box(log_list, "Generating interactive plots")
         plot.generate_pickle_plots(uvdata, target_list, path_list)
 
-    for i, path in enumerate(path_list):
-        target_name = path.split('/')[-1]
-        plot_size = sum(
-            f.stat().st_size for f in Path('../tmp/').rglob('*')
-            if f.is_file() and target_name in f.name)
+        for i, path in enumerate(path_list):
+            target_name = path.split('/')[-1]
+            plot_size = sum(
+                f.stat().st_size for f in Path('../tmp/').rglob('*')
+                if f.is_file() and target_name in f.name)
+            
+            stats_df.at[i, 'int_plot_size_mb'] = plot_size / 1024**2
+            log_list[i].write(f'\nSize of generated interactive plots for {target_list[i]}: {round(plot_size / 1024**2, 2)} Mb\n')
+        for pipeline_log in log_list:    
+            pipeline_log.write('\nExecution time: {:.2f} s.\n'.format(time.time()-t_interactive))
         
-        stats_df.at[i, 'plot_size_mb'] = plot_size / 1024**2
+        print(f'Total interactive plot files size: {round(stats_df["int_plot_size_mb"].sum(), 2)} Mb.')
+        print('\nExecution time: {:.2f} s.\n'.format(time.time()-t_interactive))
+    
+    else:
+        for i, path in enumerate(path_list):
+            stats_df.at[i, 'int_plot_size_mb'] = 0
 
     stats_df['time_19'] = time.time() - t_interactive
 
-    ######################## TEST FOR THE GUI ########################
+    ######################## PLOTS FOR THE GUI ########################
 
     t_plots = time.time()
 
@@ -1432,75 +1541,76 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     
     ## Uncalibrated ##
     for i, target in enumerate(target_list):
-        #if target in ignore_list:
-        #    continue
-        #if target not in no_baseline:
-            plot_check = 0
-            plot_check = plot.possm_plotter(path_list[i], uvdata, target, 
-                                            calibrator_scans, 1, bpver = 0, \
+            try:
+                plot.possm_plotter(path_list[i], uvdata, target, 
+                                            gainuse = 1, bpver = 0, \
                                             flagver=1, flag_edge=False)
-            if plot_check == 999:
-                log_list[i].write('\nUncalibrated visibilities could not be plotted!\n')
-                print('\nUncalibrated visibilities could not be plotted!\n')
-            else:
                 log_list[i].write('\nUncalibrated visibilities plotted in /PLOTS/'  \
                                 + filename_list[i] + '_CL1_POSSM.ps\n')
                 print('\nUncalibrated visibilities plotted in /PLOTS/'  \
                                 + filename_list[i] + '_CL1_POSSM.ps\n')
+                
+            except RuntimeError:
+                log_list[i].write('\nUncalibrated visibilities could not be plotted!\n')
+                print('\nUncalibrated visibilities could not be plotted!\n')
+
         
     ## Calibrated ##
     for i, target in enumerate(target_list):
         if target in ignore_list:
             continue
         if target not in no_baseline:    
-            plot_check = 0    
-            plot_check = plot.possm_plotter(path_list[i], uvdata, target, 
-                                            calibrator_scans, 9+i, bpver = 1, 
+            try: 
+                plot.possm_plotter(path_list[i], uvdata, target, 
+                                            gainuse = 9, bpver = 1, 
                                             flag_edge=False)
-            if plot_check == 999:
+                log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
+                                + filename_list[i] + '_CL' + str(9) + '_POSSM.ps\n')
+                print('Calibrated visibilities plotted in /PLOTS/' \
+                                + filename_list[i] + '_CL' + str(9) + '_POSSM.ps\n')
+            except RuntimeError:
                 log_list[i].write('\nUncalibrated visibilities could not be plotted!\n')
                 print('\nUncalibrated visibilities could not be plotted!\n')
-            else:
-                log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
-                                + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
-                print('Calibrated visibilities plotted in /PLOTS/' \
-                                + filename_list[i] + '_CL' + str(9+i) + '_POSSM.ps\n')
+
         
     ## Plot uv coverage ##
     for i, target in enumerate(target_list):
         if target in ignore_list:
             continue
         if target not in no_baseline:
-            plot_check = 0
-            plot_check = plot.uvplt_plotter(path_list[i], uvdata, target)
-            if plot_check == 999:
-                log_list[i].write('UV coverage could not be plotted\n')
-                print('UV coverage could not be plotted!\n')    
-            else:
+            try:
+                plot.uvplt_plotter(path_list[i], uvdata, target)
                 log_list[i].write('UV coverage plotted in /PLOTS/' \
                                 + filename_list[i] + '_UVPLT.ps\n')
                 print('UV coverage plotted in /PLOTS/' + filename_list[i] + '_UVPLT.ps\n')
+            except RuntimeError:
+                log_list[i].write('UV coverage could not be plotted\n')
+                print('UV coverage could not be plotted!\n')    
+
         
     ## Plot visibilities as a function of time of target ## 
     for i, target in enumerate(target_list):
         if target in ignore_list:
             continue
         if target not in no_baseline:
-            plot_check = 0
-            plot_check = plot.vplot_plotter(path_list[i], uvdata, target, 9+i)     
-            if plot_check == 999:
-                log_list[i].write('Visibilities as a function of time could not be ' \
-                                  + 'plotted!\n')
-                print('Visibilities as a function of time could not be plotted!\n')
-            else:
+            try:
+                plot.vplot_plotter(path_list[i], uvdata, target, 9)   
                 log_list[i].write('Visibilities as a function of time plotted in /PLOTS/' \
                                 + filename_list[i]  + '_VPLOT.ps\n')
                 print('Visibilities as a function of time plotted in /PLOTS/' \
-                                + filename_list[i]  + '_VPLOT.ps\n')
+                                + filename_list[i]  + '_VPLOT.ps\n')  
+            except RuntimeError:
+                log_list[i].write('Visibilities as a function of time could not be ' \
+                                  + 'plotted!\n')
+                print('Visibilities as a function of time could not be plotted!\n')
                 
     ## Plot visibilities as a function of uv distance of target ##
+    if interactive == False:
+        plot.generate_pickle_radplot(uvdata, [t for t in  target_list \
+                if t not in ignore_list and t not in no_baseline], path_list)
+
     for i, target in enumerate(target_list):
-        if target not in ignore_list:
+        if target not in ignore_list and target not in no_baseline:
             target_name = path_list[i].split('/')[-1]
             fig = pickle.load(open(f'../tmp/{target_name}.radplot.pickle', 'rb'))
             # Keep the color scheme in black and white, for consistency with other plots
@@ -1519,9 +1629,21 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     collection.set_edgecolor('black')
                     collection.set_facecolor('black')
 
+            # Set rasterization on individual elements
+            for ax in fig.get_axes():
+                for coll in ax.collections:
+                    coll.set_rasterized(True)
+                for line in ax.lines:
+                    line.set_rasterized(True)
+
             fig.tight_layout()
-            fig.savefig(f'{path_list[i]}/PLOTS/{filename_list[i]}_RADPLOT.pdf', bbox_inches='tight')
-                    
+            fig.savefig(f'{path_list[i]}/PLOTS/{filename_list[i]}_RADPLOT.pdf',
+                bbox_inches='tight', dpi=330, format='pdf')
+
+            log_list[i].write('Visibilities as a function of uv-distance plotted in /PLOTS/' \
+                + filename_list[i]  + '_RADPLOT.ps\n')
+            print('Visibilities as a function of uv-distance plotted in /PLOTS/' \
+                            + filename_list[i]  + '_RADPLOT.ps\n')        
         
     for i, target in enumerate(target_list):
         plot_size = sum(f.stat().st_size for f in Path(path_list[i] + '/PLOTS/').rglob('*') if f.is_file())
@@ -1542,13 +1664,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         pipeline_log.close()
     print('\nScript run time: {:.2f} s.\n'.format(tf-t_i))
 
-    ######################## TEST FOR STATS ########################
+    ######################## PRINT STATS ########################
 
     stats_df['total_time'] = tf - t_i
     for i, path in enumerate(path_list):
         stats_df.transpose().to_csv(f'{path}/{filename_list[i]}.stats.csv')
 
-    ######################## TEST FOR STATS ########################   
+    ######################## PRINT STATS ######################## 
+     
 
 def pipeline(input_dict):
     """Read the inputs, split multiple frequencies and calibrate the dataset
@@ -1572,105 +1695,134 @@ def pipeline(input_dict):
     output_directory = input_dict['output_directory'] 
     flag_edge = input_dict['flag_edge']
     phase_ref = input_dict['phase_ref']
+    interactive = input_dict['interactive']
+
 
     ## Clean tmp directory ##
     os.system('rm ../tmp/*')
 
     ## Check for multiband datasets ##
-    # If multiple files, done only on the first, since all need to have the same 
-    # frequency setup
     # In IDs    
-    multifreq_id = load.is_it_multifreq_id(filepath_list[0])
-    # In IFs
-    multifreq_if = load.is_it_multifreq_if(filepath_list[0])
+    multifreq_id = load.is_it_multifreq_id(filepath_list)
+
     # If there are multiple IDs:
     if multifreq_id[0] == True:
-        for ids in range(multifreq_id[1]):
-
+        for id in multifreq_id[1]:
             ############################################
             ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
             ############################################
             t_0 = time.time()
             stats_df = pd.DataFrame({"target": target_list})
 
-            ## Select sources to load ##
-            full_source_list = load.get_source_list(filepath_list, multifreq_id[2][ids])
-            if load_all == False:
-                calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
-                # If no sources are on the calibrator list, load all and print a message
-                if calibs == 999:
-                    sources = [x.name for x in full_source_list]
-                    load_all = True
-                    print("None of the sources was found on the VLBA calibrator list." \
-                         + " All sources will be loaded.\n" )
-                else:
-                    sources = calibs.copy()
-                    sources += target_list
-                    sources += [x for x in phase_ref if x!='NONE']
-            if load_all == True:
-                sources = [x.name for x in full_source_list]
+            ## Select files to work with
+            filepath_list_ID = []
+            for f in multifreq_id[2]:
+                if id in multifreq_id[2][f]:
+                    filepath_list_ID.append(f)
 
-            # STATS #
-            stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))            
-            stats_df['n_of_freqs'] = multifreq_id[1]
+            # Check if there are multiple frequencies in different IFs inside the ID
+            freq_groups = load.group_ids(id)
 
-            if multifreq_id[2][ids] > 1e10:
-                klass_1 = str(multifreq_id[2][ids])[:2] + 'G'
-            else:
-                klass_1 = str(multifreq_id[2][ids])[:1] + 'G'
-
-            # Define AIPS name
-            hdul = fits.open(filepath_list[0])
-            aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_1
-
-            ## Check if the AIPS catalogue name is too long, and rename ##
-            # 12 is the maximum length for a file name in AIPS
-            aips_name_short = aips_name
-            if len(aips_name) > 12:
-                name = aips_name.split('_')[0]
-                suffix = aips_name.split('_')[1]
-                size_name = 12 - (len(suffix) + 1)
-                aips_name_short = name[:size_name] + '_' + suffix
-
-            # Check if project directory already exists, if not, create one
-            project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
-            if os.path.exists(project_dir) == False:
-                os.system('mkdir ' + project_dir)
-
-            # Create subdirectories for the targets and DELETE EXISTING ONES
-            # Also, create the pipeline log file of each target
-            filename_list = target_list.copy()
-            log_list = target_list.copy()
-            path_list = target_list.copy()
-            for i, name in enumerate(filename_list):
-                filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
-                path_list[i] = project_dir + '/' + filename_list[i]
-                if os.path.exists(project_dir + '/' + filename_list[i]) == True:
-                    os.system('rm -rf ' + project_dir + '/' + filename_list[i])
-                os.system('mkdir ' + project_dir + '/' + filename_list[i])
-                os.system('mkdir ' + project_dir + '/' + filename_list[i] \
-                          + '/PLOTS')
-                os.system('mkdir ' + project_dir + '/' + filename_list[i] \
-                          + '/TABLES')
-                log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
-                                   + filename_list[i] + '_VIPCALslog.txt', 'w+')
-                log_list[i].write(ascii_logo + '\n')
-                #for filepath in filepath_list:
-                #    log_list[i].write(os.path.basename(filepath) + ' --- '\
-                #                        + '{:.2f} MB \n'.format\
-                #                        (os.path.getsize(filepath)/1024**2 ))
-
-            stats_df['t_0'] = time.time() - t_0
-            ## START THE PIPELINE ##         
-            calibrate(filepath_list, aips_name_short, sources, full_source_list, \
-                        target_list, filename_list, log_list, path_list, \
-                        disk_number, klass = klass_1, \
-                        multi_id = True, selfreq = multifreq_id[2][ids]/1e6,\
-                        default_refant = def_refant, input_calibrator = inp_cal, \
-                        load_all = load_all, shift_coords = shifts, \
-                        phase_ref = phase_ref, flag_edge = flag_edge, stats_df = stats_df) 
+            for group in freq_groups:
             
+                ## Select sources to load ##
+                if type(id) == np.float64: # Single IF
+                    full_source_list = load.get_source_list(filepath_list_ID, freq = group[0])
+                else:
+                    full_source_list = load.get_source_list(filepath_list_ID, freq = group[0])
+
+                ## Choose IFs to load ##
+                bif = group[2][0] + 1
+                eif = group[2][1] + 1
+
+                # Create a new variable so that the different ids are independent
+                if load_all:
+                    load_all_id = True
+                else:
+                    load_all_id = False
+                
+                if load_all:
+                    sources = [x.name for x in full_source_list]
+
+                else:
+                    if full_source_list[0].band not in ['S', 'C', 'X', 'U', 'K', 'Ka']:
+                        load_all_id = True
+                        sources = [x.name for x in full_source_list]
+
+                    else:
+                        try:
+                            calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
+                            sources = calibs.copy()
+                            sources += target_list
+                            sources += [x for x in phase_ref if x != 'NONE']
+                        except ValueError:
+                            print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
+                            load_all_id = True
+                            sources = [x.name for x in full_source_list]
+
+                # STATS #
+                stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))            
+                stats_df['n_of_freqs'] = len(freq_groups)
+
+                if group[0] > 1e10:
+                    klass_1 = str(group[0])[:2] + 'G'
+                else:
+                    klass_1 = str(group[0])[:1] + 'G'
+
+                # Define AIPS name
+                with fits.open(filepath_list_ID[0]) as hdul:
+                    aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_1
+
+                ## Check if the AIPS catalogue name is too long, and rename ##
+                # 12 is the maximum length for a file name in AIPS
+                aips_name_short = aips_name
+                if len(aips_name) > 12:
+                    name = aips_name.split('_')[0]
+                    suffix = aips_name.split('_')[1]
+                    size_name = 12 - (len(suffix) + 1)
+                    aips_name_short = name[:size_name] + '_' + suffix
+
+                # Check if project directory already exists, if not, create one
+                project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+                if os.path.exists(project_dir) == False:
+                    os.system('mkdir ' + project_dir)
+
+                # Create subdirectories for the targets and DELETE EXISTING ONES
+                # Also, create the pipeline log file of each target
+                filename_list = target_list.copy()
+                log_list = target_list.copy()
+                path_list = target_list.copy()
+                for i, name in enumerate(filename_list):
+                    filename_list[i] = load.set_name(filepath_list_ID[0], name, klass_1)
+                    path_list[i] = project_dir + '/' + filename_list[i]
+                    if os.path.exists(project_dir + '/' + filename_list[i]) == True:
+                        os.system('rm -rf ' + project_dir + '/' + filename_list[i])
+                    os.system('mkdir ' + project_dir + '/' + filename_list[i])
+                    os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                            + '/PLOTS')
+                    os.system('mkdir ' + project_dir + '/' + filename_list[i] \
+                            + '/TABLES')
+                    log_list[i] = open(project_dir + '/' + filename_list[i] + '/' \
+                                    + filename_list[i] + '_VIPCALslog.txt', 'w+')
+                    log_list[i].write(ascii_logo + '\n')
+
+                stats_df['t_0'] = time.time() - t_0
+                
+                ## START THE PIPELINE ##    
+                calibrate(filepath_list_ID, aips_name_short, sources, full_source_list, \
+                            target_list, filename_list, log_list, path_list, \
+                            disk_number, klass = klass_1, bif = bif, eif = eif,\
+                            multi_id = True, selfreq = group[0]/1e6,\
+                            default_refant = def_refant, input_calibrator = inp_cal, \
+                            load_all = load_all_id, shift_coords = shifts, \
+                            phase_ref = phase_ref, flag_edge = flag_edge, \
+                            interactive = interactive, stats_df = stats_df)     
+
         return() # STOP the pipeline. This needs to be tweaked.
+
+
+    # In IFs
+    multifreq_if = load.is_it_multifreq_if(filepath_list[0])
 
     # If there are multiple IFs:   
     if multifreq_if[0] == True:
@@ -1688,20 +1840,25 @@ def pipeline(input_dict):
         
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list, multifreq_if[7])
-        if load_all == False:
-            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
-            # If no sources are on the calibrator list, load all and print a message
-            if calibs == 999:
-                sources = [x.name for x in full_source_list]
-                load_all = True
-                print("None of the sources was found on the VLBA calibrator list." \
-                        + " All sources will be loaded.\n" )
-            else:
-                sources = calibs.copy()
-                sources += target_list
-                sources += [x for x in phase_ref if x!='NONE']
-        if load_all == True:
+
+        if load_all:
             sources = [x.name for x in full_source_list]
+
+        else:
+            if full_source_list[0].band not in ['S', 'C', 'X', 'U', 'K', 'Ka']:
+                load_all = True
+                sources = [x.name for x in full_source_list]
+
+            else:
+                try:
+                    calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
+                    sources = calibs.copy()
+                    sources += target_list
+                    sources += [x for x in phase_ref if x != 'NONE']
+                except ValueError:
+                    print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
+                    load_all_id = True
+                    sources = [x.name for x in full_source_list]
 
         # STATS #
         stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
@@ -1752,7 +1909,7 @@ def pipeline(input_dict):
                 bif = multifreq_if[1], eif = multifreq_if[2], \
                 default_refant = def_refant, input_calibrator = inp_cal, \
                 load_all = load_all, shift_coords = shifts, flag_edge = flag_edge, \
-                phase_ref = phase_ref, stats_df = stats_df)
+                phase_ref = phase_ref, interactive = interactive,  stats_df = stats_df)
         
 
         ## SECOND FREQUENCY ##
@@ -1765,20 +1922,24 @@ def pipeline(input_dict):
 
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list, multifreq_if[8])
-        if load_all == False:
-            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
-            # If no sources are on the calibrator list, load all and print a message
-            if calibs == 999:
-                sources = [x.name for x in full_source_list]
-                load_all = True
-                print("None of the sources was found on the VLBA calibrator list." \
-                        + " All sources will be loaded.\n" )
-            else:
-                sources = calibs.copy()
-                sources += target_list
-                sources += [x for x in phase_ref if x!='NONE']
-        if load_all == True:
+        if load_all:
             sources = [x.name for x in full_source_list]
+
+        else:
+            if full_source_list[0].band not in ['S', 'C', 'X', 'U', 'K', 'Ka']:
+                load_all = True
+                sources = [x.name for x in full_source_list]
+
+            else:
+                try:
+                    calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
+                    sources = calibs.copy()
+                    sources += target_list
+                    sources += [x for x in phase_ref if x != 'NONE']
+                except ValueError:
+                    print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
+                    load_all_id = True
+                    sources = [x.name for x in full_source_list]
 
          # STATS #
         stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
@@ -1829,7 +1990,8 @@ def pipeline(input_dict):
                 disk_number, klass = klass_2, \
                 bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
                 input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts,
-                flag_edge = flag_edge, phase_ref = phase_ref, stats_df = stats_df) 
+                flag_edge = flag_edge, phase_ref = phase_ref, \
+                interactive = interactive, stats_df = stats_df) 
 
         # End the pipeline
         return()
@@ -1847,20 +2009,24 @@ def pipeline(input_dict):
         
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list)
-        if load_all == False:
-            calibs = load.find_calibrators(full_source_list, choose = 'BYCOORD')
-            # If no sources are on the calibrator list, load all and print a message
-            if calibs == 999:
-                sources = [x.name for x in full_source_list]
-                load_all = True
-                print("None of the sources was found on the VLBA calibrator list." \
-                        + " All sources will be loaded.\n" )
-            else:
-                sources = calibs.copy()
-                sources += target_list
-                sources += [x for x in phase_ref if x!='NONE']
-        if load_all == True:
+        if load_all:
             sources = [x.name for x in full_source_list]
+
+        else:
+            if full_source_list[0].band not in ['S', 'C', 'X', 'U', 'K', 'Ka']:
+                load_all = True
+                sources = [x.name for x in full_source_list]
+
+            else:
+                try:
+                    calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
+                    sources = calibs.copy()
+                    sources += target_list
+                    sources += [x for x in phase_ref if x != 'NONE']
+                except ValueError:
+                    print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
+                    load_all_id = True
+                    sources = [x.name for x in full_source_list]
 
         # STATS #
         stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
@@ -1910,4 +2076,5 @@ def pipeline(input_dict):
                 filename_list, log_list, path_list, \
                 disk_number, klass = klass_1, default_refant = def_refant, \
                 input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts,
-                flag_edge = flag_edge, phase_ref = phase_ref, stats_df = stats_df)   
+                flag_edge = flag_edge, phase_ref = phase_ref, \
+                interactive = interactive, stats_df = stats_df)   
