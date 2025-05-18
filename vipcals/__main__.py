@@ -7,7 +7,7 @@ from datetime import datetime
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
 
-from pipeline import pipeline
+from pipeline_alfrd import pipeline
 
 import functools
 print = functools.partial(print, flush=True)
@@ -74,6 +74,7 @@ def create_default_dict():
     default_dict['flag_edge'] = 0
     default_dict['phase_ref'] = ['NONE']
     default_dict['subarrays'] = False
+    default_dict['interactive'] = False
 
     return default_dict
 
@@ -172,6 +173,7 @@ for i, entry in enumerate(entry_list):
     for i, path in enumerate(input_dict['paths'],1):
             globals()[f"hdul_{i}"] = fits.open(path)
             all_sources.extend(list(globals()[f"hdul_{i}"]['SOURCE'].data['SOURCE']))
+            globals()[f"hdul_{i}"].close()
     all_sources = list(set(all_sources))    # Remove duplicates
     # Clean the list from non ASCII characters
     try:
@@ -189,54 +191,41 @@ for i, entry in enumerate(entry_list):
     # Phase reference sources have to be in the file/s
     if input_dict['phase_ref'] != ['NONE']:
         for prs in input_dict['phase_ref']:
+            if prs == 'NONE':
+                continue
             if prs not in all_sources:
                 print(prs + ' was not found in any of the files provided.\n')
-        if any(x not in all_sources for x in input_dict['phase_ref']):
+        if any(x not in all_sources for x in input_dict['phase_ref'] if x != 'NONE'):
             exit()
 
     # Load multiple files together:
     if len(input_dict['paths']) > 1:
-    # Same frequency setup
-#        for i, path in enumerate(input_dict['paths'],1):
-#            globals()[f"hdul_{i}"] = fits.open(path)
-#            
-#        for j, path in enumerate(input_dict['paths'],1):
-#            if (globals()[f"hdul_1"]['FREQUENCY'].data !=\
-#                globals()[f"hdul_{j}"]['FREQUENCY'].data).all() == True:
-#
-#                print('Frequency setups of ' +  input_dict['paths'][0].split('/')[-1] \
-#                    + ' and ' + path.split('/')[-1] + ' do not coincide.' \
-#                    + '\nData cannot be loaded together.')
-#                exit() 
-
-    # Same project
-        for j, path in enumerate(input_dict['paths'],1):
-            if (globals()[f"hdul_1"][0].header['OBSERVER'] !=\
-                globals()[f"hdul_{i}"][0].header['OBSERVER']) == True:
-
-                print('Project code of ' +  input_dict['paths'][0].split('/')[-1] \
-                    + ' and ' + path.split('/')[-1] + ' does not coincide.' \
-                    + '\nData cannot be loaded together.')
-                exit()
                 
     # Similar date (+-3 days)
         obs_dates = []
         for j, path in enumerate(input_dict['paths'],1):
-            YYYY = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][:4])
-            MM = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][5:7])
-            DD = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][8:])
-
-            obs_dates.append(datetime(YYYY, MM, DD).toordinal())
+            for fmt in ("%d/%m/%y", "%Y-%m-%d"):
+                try:
+                    #print(globals()[f"hdul_{j}"][0].header['DATE-OBS'])
+                    dt = datetime.strptime(globals()[f"hdul_{j}"][0].header['DATE-OBS'], fmt)
+                    YYYY, MM, DD = dt.year, dt.month, dt.day
+                    obs_dates.append(datetime(YYYY, MM, DD).toordinal())
+                except ValueError:
+                    continue
+                
         if (max(obs_dates) - min(obs_dates)) > 2:
             print('\nWARNING! There are more than 2 days between observations.\n')
+
+        if len(obs_dates) == 0:
+            raise ValueError("Incorrect date format")
     
     # Reference antenna #
     for filepath in input_dict['paths']:
         if input_dict['refant'] != 'NONE':
-            hdul = fits.open(filepath)
             antenna_names = []
             hdul = fits.open(filepath)
             non_ascii_antennas = list(hdul['ANTENNA'].data['ANNAME'])
+            hdul.close()
             for ant in non_ascii_antennas:
                 ant = ant.encode()[:2].decode()
                 antenna_names.append(ant)

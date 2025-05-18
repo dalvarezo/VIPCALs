@@ -12,10 +12,6 @@ from pipeline_alfrd import pipeline
 import functools
 print = functools.partial(print, flush=True)
 
-###################################################################################
-# Modified version of the pipeline to include ALFRD and write the output of some  #
-# tasks onto a google sheet. Meant to be used only for SMILE.                     #
-###################################################################################
 
 def read_args(file):
     """Read arguments from a json file and return them as a list of dictionaries.
@@ -59,17 +55,19 @@ def read_args(file):
 
     return dict_list
 
-def create_default_dict():
+def create_default_dict_gui():
     """Create an input dictionary with default inputs.
+
+    Modified version that fixes the userno and the disk for the GUI.
 
     :return: dictionary with default inputs
     :rtype: dict
     """
     default_dict = {}
-    default_dict['userno'] = None
+    default_dict['userno'] = 2
     default_dict['paths'] = None
     default_dict['targets'] = None
-    default_dict['disk'] = None
+    default_dict['disk'] = 1
     default_dict['calib'] = 'NONE'
     default_dict['load_all'] = False
     default_dict['shifts'] = 'NONE'
@@ -77,6 +75,8 @@ def create_default_dict():
     default_dict['output_directory'] = 'NONE'
     default_dict['flag_edge'] = 0
     default_dict['phase_ref'] = ['NONE']
+    default_dict['subarrays'] = False
+    default_dict['interactive'] = True
 
     return default_dict
 
@@ -99,7 +99,7 @@ print('A total of ' + str(len(entry_list)) + ' calibration blocks were read.\n')
 for i, entry in enumerate(entry_list):
     print('Checking inputs of calibration block ' + str(i+1) + '.\n')
     # Create default input dictionary
-    input_dict = create_default_dict()
+    input_dict = create_default_dict_gui()
     # Unzip inputs
     for key in entry:
         if entry[key] != "":
@@ -133,9 +133,17 @@ for i, entry in enumerate(entry_list):
         + 'the input file.\n')
         exit()
 
+    print(input_dict['paths'])
+    print('\n')
+
     # Load all has to be True/False
     if type(input_dict['load_all']) != bool:
         print('load_all option has to be True/False.\n')
+        exit()
+
+    # subarrays has to be True/False
+    if type(input_dict['subarrays']) != bool:
+        print('subarrays option has to be True/False.\n')
         exit()
 
     # Phase reference #
@@ -144,7 +152,6 @@ for i, entry in enumerate(entry_list):
             print('\nThe number of phase reference calibrators does not match ' \
             + 'the number of targets to calibrate.\n')
             exit()
-            
     # Phase shift #
     if input_dict['shifts'] != 'NONE':
         if len(input_dict['targets']) != len(input_dict['shifts']):
@@ -168,6 +175,7 @@ for i, entry in enumerate(entry_list):
     for i, path in enumerate(input_dict['paths'],1):
             globals()[f"hdul_{i}"] = fits.open(path)
             all_sources.extend(list(globals()[f"hdul_{i}"]['SOURCE'].data['SOURCE']))
+            globals()[f"hdul_{i}"].close()
     all_sources = list(set(all_sources))    # Remove duplicates
     # Clean the list from non ASCII characters
     try:
@@ -185,54 +193,41 @@ for i, entry in enumerate(entry_list):
     # Phase reference sources have to be in the file/s
     if input_dict['phase_ref'] != ['NONE']:
         for prs in input_dict['phase_ref']:
+            if prs == 'NONE':
+                continue
             if prs not in all_sources:
                 print(prs + ' was not found in any of the files provided.\n')
-        if any(x not in all_sources for x in input_dict['phase_ref']):
+        if any(x not in all_sources for x in input_dict['phase_ref'] if x != 'NONE'):
             exit()
 
     # Load multiple files together:
     if len(input_dict['paths']) > 1:
-    # Same frequency setup
-#        for i, path in enumerate(input_dict['paths'],1):
-#            globals()[f"hdul_{i}"] = fits.open(path)
-#            
-#        for j, path in enumerate(input_dict['paths'],1):
-#            if (globals()[f"hdul_1"]['FREQUENCY'].data !=\
-#                globals()[f"hdul_{j}"]['FREQUENCY'].data).all() == True:
-#
-#                print('Frequency setups of ' +  input_dict['paths'][0].split('/')[-1] \
-#                    + ' and ' + path.split('/')[-1] + ' do not coincide.' \
-#                    + '\nData cannot be loaded together.')
-#                exit() 
-
-    # Same project
-        for j, path in enumerate(input_dict['paths'],1):
-            if (globals()[f"hdul_1"][0].header['OBSERVER'] !=\
-                globals()[f"hdul_{i}"][0].header['OBSERVER']) == True:
-
-                print('Project code of ' +  input_dict['paths'][0].split('/')[-1] \
-                    + ' and ' + path.split('/')[-1] + ' does not coincide.' \
-                    + '\nData cannot be loaded together.')
-                exit()
                 
     # Similar date (+-3 days)
         obs_dates = []
         for j, path in enumerate(input_dict['paths'],1):
-            YYYY = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][:4])
-            MM = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][5:7])
-            DD = int(globals()[f"hdul_{j}"][0].header['DATE-OBS'][8:])
-
-            obs_dates.append(datetime(YYYY, MM, DD).toordinal())
+            for fmt in ("%d/%m/%y", "%Y-%m-%d"):
+                try:
+                    #print(globals()[f"hdul_{j}"][0].header['DATE-OBS'])
+                    dt = datetime.strptime(globals()[f"hdul_{j}"][0].header['DATE-OBS'], fmt)
+                    YYYY, MM, DD = dt.year, dt.month, dt.day
+                    obs_dates.append(datetime(YYYY, MM, DD).toordinal())
+                except ValueError:
+                    continue
+                
         if (max(obs_dates) - min(obs_dates)) > 2:
             print('\nWARNING! There are more than 2 days between observations.\n')
+
+        if len(obs_dates) == 0:
+            raise ValueError("Incorrect date format")
     
     # Reference antenna #
     for filepath in input_dict['paths']:
         if input_dict['refant'] != 'NONE':
-            hdul = fits.open(filepath)
             antenna_names = []
             hdul = fits.open(filepath)
             non_ascii_antennas = list(hdul['ANTENNA'].data['ANNAME'])
+            hdul.close()
             for ant in non_ascii_antennas:
                 ant = ant.encode()[:2].decode()
                 antenna_names.append(ant)
