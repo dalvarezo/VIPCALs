@@ -1,5 +1,4 @@
 import sys
-import time
 import json
 import os
 import glob
@@ -466,7 +465,8 @@ class VplotWindow(qtw.QMainWindow):
         self.target = target
 
         # Load the VPLOT data
-        self.loaded_vplot_data = pickle.load(open(f'../tmp/{self.target}.vplt.pickle', 'rb'))
+        file = glob.glob(f'../tmp/{self.target}*.vplt.pickle')
+        self.loaded_vplot_data = pickle.load(open(file[0], 'rb'))
         self.plot_keys = sorted([key for key in self.loaded_vplot_data.keys() if isinstance(key, tuple)])
         self.current_index = 0
         self.selected_baseline = self.plot_keys[0] if self.plot_keys else None
@@ -772,7 +772,8 @@ class RadplotWindow(qtw.QMainWindow):
 
     def plot_data(self):
         # Load the pickled figure
-        loaded_figure = pickle.load(open(f'../tmp/{self.target}.radplot.pickle', 'rb'))
+        file = glob.glob(f'../tmp/{self.target}*.radplot.pickle')
+        loaded_figure = pickle.load(open(file[0], 'rb'))
         original_axes = loaded_figure.get_axes()
 
         # Create new figure and canvas
@@ -848,7 +849,8 @@ class UvplotWindow(qtw.QMainWindow):
 
     def plot_data(self):
         # Load the pickled figure
-        loaded_figure = pickle.load(open(f'../tmp/{self.target}.uvplt.pickle', 'rb'))
+        file = glob.glob(f'../tmp/{self.target}*.uvplt.pickle')
+        loaded_figure = pickle.load(open(file[0], 'rb'))
         original_axes = loaded_figure.get_axes()
 
         # Create new figure and canvas

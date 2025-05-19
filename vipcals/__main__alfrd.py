@@ -7,7 +7,7 @@ from datetime import datetime
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
 
-from pipeline import pipeline
+from pipeline_alfrd import pipeline
 
 import functools
 print = functools.partial(print, flush=True)

@@ -112,7 +112,7 @@ fi\n\
 ' >> /etc/bash.bashrc
 
 # Copy and run VIPCALs
-ADD ../../vipcals /home/aips/vipcals
+ADD vipcals /home/aips/vipcals
 RUN chown -R aips:aips /home/aips/vipcals
 USER aips
 WORKDIR /home/aips/vipcals

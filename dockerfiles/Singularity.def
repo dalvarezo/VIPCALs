@@ -65,7 +65,7 @@ From: ubuntu:22.04
 %files
     pyside62.yml /opt/pyside62.yml
     31DEC24 /opt/.AIPSRC
-    ../../vipcals /opt/vipcals
+    vipcals /opt/vipcals
 
 %runscript
     source /opt/conda/etc/profile.d/conda.sh
