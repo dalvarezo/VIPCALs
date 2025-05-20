@@ -355,7 +355,7 @@ def load_ty_tables(data, bif, eif):
     # If there are letters:
     else:
         for s in letters:
-            input_file = open("tables" + s + ".vlba", "r") 
+            input_file = open(tmp + "/tables" + s + ".vlba", "r") 
             cal_table = input_file.read() 
             cal_list = cal_table.split("\n")
             
@@ -747,7 +747,7 @@ def load_fg_tables(data):
     # If there are letters:
     else:
         for s in letters:
-            input_file = open("tables" + s + ".vlba", "r") 
+            input_file = open(f"{tmp}/tables{s}.vlba", "r") 
             cal_table = input_file.read() 
             cal_list = cal_table.split("\n")
          
@@ -822,6 +822,9 @@ def load_gc_tables(data, ant_list = ['all']):
     :param log: pipeline log
     :type log: file
     """
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+
     # Read data
     good_url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/vlba_gains.key'
     inputfile = open(os.path.dirname(__file__) + 
@@ -906,7 +909,7 @@ def load_gc_tables(data, ant_list = ['all']):
         # closest date, or even interpolate between two dates.
         raise NoTablesError('No gain curves available for the observation date.')
             
-    with open(r'./gaincurves.vlba', 'w') as fp:
+    with open(f'{tmp}/gaincurves.vlba', 'w') as fp:
         for item in gain_curves:
             # write each item on a new line
             fp.write("%s\n" % item)
@@ -917,7 +920,7 @@ def load_gc_tables(data, ant_list = ['all']):
     antab.inclass = data.klass
     antab.indisk = data.disk
     antab.inseq = data.seq
-    antab.calin = './gaincurves.vlba'
+    antab.calin = f'{tmp}/gaincurves.vlba'
     antab.gcver = 1
     
     antab.go()
