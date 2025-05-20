@@ -9,6 +9,8 @@ from astropy.coordinates import SkyCoord
 
 from pipeline import pipeline
 
+from AIPSData import AIPSUVData, AIPSCat
+
 import functools
 print = functools.partial(print, flush=True)
 
@@ -250,4 +252,27 @@ for i, entry in enumerate(entry_list):
         input_dict['output_directory'] = os.getcwd()
 
     # Everything is fine, start the pipeline
-    pipeline(input_dict)
+    try:
+        pipeline(input_dict)
+    except: # When the pipeline fails, clean the disk - ONLY IN DOCKER MODE
+        # Choose disk number
+        disk = 1  # Change to your AIPS disk number
+
+        # Find all catalog entries
+        catalog = AIPSCat(disk)
+
+        # Loop through and delete
+        for entry in catalog[disk]:
+            AIPSUVData(entry.name, entry.klass, disk, entry.seq).zap()
+
+
+    # When the pipeline finishes, clean the disk - ONLY IN DOCKER MODE
+    # Choose disk number
+    disk = 1  # Change to your AIPS disk number
+
+    # Find all catalog entries
+    catalog = AIPSCat(disk)
+
+    # Loop through and delete
+    for entry in catalog[disk]:
+        AIPSUVData(entry.name, entry.klass, disk, entry.seq).zap()
