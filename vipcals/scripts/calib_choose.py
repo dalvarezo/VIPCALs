@@ -4,6 +4,7 @@ from AIPSTask import AIPSTask
 
 AIPSTask.msgkill = -8
 
+from scripts.helper import NoScansError
 from scripts.helper import Scan
     
 def snr_fring(data, refant, delay_w = 1000, rate_w = 200):
@@ -107,7 +108,7 @@ def snr_scan_list_v2(data, version = 1):
     # If there are no scans, tell the main worflow to print an error message
     # and stop the pipeline
     if len(scan_list) == 0:
-        return(404)
+        raise NoScansError
     
     # Assign source names to the Scan objects
     for scans in scan_list:

@@ -11,6 +11,10 @@ class NoTablesError(Exception):
     """Raised when no VLBA calibration tables are found."""
     pass
 
+class NoScansError(Exception):
+    """Raised when no suitable scans for calibration are found."""
+    pass
+
 ################################################
 ####                Classes               ####
 ################################################
