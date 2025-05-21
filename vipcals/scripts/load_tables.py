@@ -15,7 +15,7 @@ from scripts.helper import GC_entry
 
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
-    
+
 def load_ty_tables(data, bif, eif):
     """Retrieve and load TY tables from an external server.
 
@@ -29,7 +29,9 @@ def load_ty_tables(data, bif, eif):
     project as the one in the data header. Then, the retrieved files are formatted 
     automatically and saved into /TABLES/tsys.vlba on the output directory. The required 
     IFs have to be given as an input, as usually they will come all together in the same 
-    calibration file.
+    calibration file. For the files in TSM format, the function  
+    :func:`~vipcals.scripts.load_tables.ty_tsm_vlog` uses the VLOG task in AIPS to split 
+    the TY tables from the rest of the calibration tables. 
 
     .. _VOBS: http://www.vlba.nrao.edu/astro/VOBS/astronomy/
 
@@ -38,7 +40,7 @@ def load_ty_tables(data, bif, eif):
     :param bif: first frequency IF to consider 
     :type bif: int
     :param eif: last frequency IF to consider
-    :type eif: end
+    :type eif: int
     :return: urls from which the calibration tables have been retrieved
     :rtype: list of str
     """    
@@ -228,60 +230,7 @@ def load_ty_tables(data, bif, eif):
         # If produced by TSM:
         if 'Produced by: TSM' in cal_list[0]:
         
-            for n, lines in enumerate(cal_list):
-                if 'Tsys information' in lines:
-                    start = n
-                    break
-            for n, lines in enumerate(cal_list[start:]):
-                if '! For antenna(s): ' in lines:
-                    end = start+n-1
-                    break
-                end = n
-                
-            clean_list = cal_list[start:end]
-            
-            # If multi-if dataset:
-            if bif == 0 and eif != 0:
-                final_list = clean_list
-                
-            if bif == 0 and eif == 0:
-                final_list = clean_list
-            
-            if bif == 1 and eif != 0:
-                final_list = []
-                for item in clean_list:
-                    if len(item.split()) > 0:
-                        if item.split()[0] in ['!', 'TSYS','/']:
-                            final_list.append(item)
-                            continue
-                        aux = item.split()
-                        del aux[2+eif:]
-                        aux2 = ' '.join(aux)
-                        final_list.append(aux2)
-            if bif != 1 and eif != 0:
-                final_list = []
-                for item in clean_list:
-                    if len(item.split()) > 0:
-                        if item.split()[0] in ['!', 'TSYS','/']:
-                            final_list.append(item)
-                            continue
-                        aux = item.split()
-                        del aux[2:bif+1]
-                        aux2 = ' '.join(aux)
-                        final_list.append(aux2)
-                
-            
-            with open(f'{tmp}/tsys.vlba', 'w') as fp:
-                for item in final_list:
-                    
-                    # Im not sure of this part here... it was needed from 
-                    # some old dataset but I dont know the implications
-                    # Replace * with 0.0, is it safe?? 
-                    if '*' in item:
-                        item = item.replace('*', '0.0')
-        
-                    # write each item on a new line
-                    fp.write("%s\n" % item)
+            ty_tsm_vlog(data, bif, eif, [f"{tmp}/tables.vlba"])
                     
         # If produced by rdbetsm (from October 2015):
         if 'Produced by: rdbetsm ' in cal_list[0]:
@@ -361,62 +310,8 @@ def load_ty_tables(data, bif, eif):
             
             # If produced by TSM:
             if 'Produced by: TSM' in cal_list[0]:
-            
-                for n, lines in enumerate(cal_list):
-                    if 'Tsys information' in lines:
-                        start = n
-                        break
-                for n, lines in enumerate(cal_list[start:]):
-                    if '! For antenna(s): ' in lines:
-                        end = start+n-1
-                        break
-                    end = n
-                    
-
-                clean_list = cal_list[start:end]
-                
-                
-                if bif == 0 and eif != 0:
-                    final_list = clean_list
-                    
-                if bif == 0 and eif == 0:
-                    final_list = clean_list
-                
-                if bif == 1 and eif != 0:
-                    final_list = []
-                    for item in clean_list:
-                        if len(item.split()) > 0:
-                            if item.split()[0] in ['!', 'TSYS','/']:
-                                final_list.append(item)
-                                continue
-                            aux = item.split()
-                            del aux[2+eif:]
-                            aux2 = ' '.join(aux)
-                            final_list.append(aux2)
-                if bif != 1 and eif != 0:
-                    final_list = []
-                    for item in clean_list:
-                        if len(item.split()) > 0:
-                            if item.split()[0] in ['!', 'TSYS','/']:
-                                final_list.append(item)
-                                continue
-                            aux = item.split()
-                            del aux[2:bif+1]
-                            aux2 = ' '.join(aux)
-                            final_list.append(aux2)
-                    
-                
-                with open(f'{tmp}/tsys.vlba', 'a') as fp:
-                    for item in final_list:
-                        
-                        # Im not sure of this part here... it was needed from 
-                        # some old dataset but I dont know the implications
-                        # Replace * with 0.0, is it safe?? 
-                        if '*' in item:
-                            item = item.replace('*', '0.0')
-            
-                        # write each item on a new line
-                        fp.write("%s\n" % item)
+                ty_tsm_vlog(data, bif, eif, glob.glob(f'{tmp}/tables*.vlba'))
+                break
                         
             # If produced by rdbetsm (from October 2015):
             if 'Produced by: rdbetsm ' in cal_list[0]:
@@ -493,7 +388,18 @@ def load_ty_tables(data, bif, eif):
     antab.indisk = data.disk
     antab.inseq = data.seq
     antab.calin = f'{tmp}/tsys.vlba'
-    
+
+    # Ignore antennas not in the observation
+    tsys_ants = []
+    with open('/home/dalvarez/vipcals/tmp/tsys.vlba', 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            if 'Tsys information' in l: 
+                tsys_ants.append(l.split(' ')[-2])
+    ignore_ants = [x for x in tsys_ants if x not in [a.strip() for a in data.antennas]]
+
+    antab.sparm = AIPSList(ignore_ants)
+
     antab.go()
 
     return(retrieved_urls)    
@@ -509,7 +415,10 @@ def load_fg_tables(data):
     `http://www.vlba.nrao.edu/astro/VOBS/astronomy/ <VOBS>`_. The function uses 
     brute-force to look for any possible name of vlba.cal files from the same 
     project as the one in the data header. Then, the retrieved files are formatted 
-    automatically and saved into /TABLES/flags.vlba on the output directory.
+    automatically and saved into /TABLES/flags.vlba on the output directory. For the 
+    files in TSM format, the function :func:`~vipcals.scripts.load_tables.fg_tsm_vlog` 
+    uses the VLOG task in AIPS to split the TY tables from the rest of the calibration 
+    tables. 
 
     .. _VOBS: http://www.vlba.nrao.edu/astro/VOBS/astronomy/    
 
@@ -703,19 +612,7 @@ def load_fg_tables(data):
         
         # If produced by TSM:
         if 'Produced by: TSM' in cal_list[0]:
-            for n, lines in enumerate(cal_list):
-                if 'Edit data' in lines:
-                    start = n
-                    break
-            for n, lines in enumerate(cal_list[start:]):
-                if '! For antenna(s): ' in lines:
-                    end = start+n-1
-                    break
-                end = n
-            with open(f'{tmp}/flags.vlba', 'w') as fp:
-                for item in cal_list[start:end]:
-                    # write each item on a new line
-                    fp.write("%s\n" % item)
+            fg_tsm_vlog(data, [f"{tmp}/tables.vlba"])
                     
         # If produced by rdbetsm (from October 2015):
         if 'Produced by: rdbetsm ' in cal_list[0]:
@@ -753,19 +650,7 @@ def load_fg_tables(data):
          
             # If produced by TSM:
             if 'Produced by: TSM' in cal_list[0]:
-                for n, lines in enumerate(cal_list):
-                    if 'Edit data' in lines:
-                        start = n
-                        break
-                for n, lines in enumerate(cal_list[start:]):
-                    if '! For antenna(s): ' in lines:
-                        end = start+n-1
-                        break
-                    end = n
-                with open(f'{tmp}/flags.vlba', 'a') as fp:
-                    for item in cal_list[start:end]:
-                        # write each item on a new line
-                        fp.write("%s\n" % item)
+                fg_tsm_vlog(data, glob.glob(f'{tmp}/tables*.vlba'))
                      
             # If produced by rdbetsm (from October 2015):
             if 'Produced by: rdbetsm ' in cal_list[0]:
@@ -814,8 +699,6 @@ def load_gc_tables(data, ant_list = ['all']):
     file, and selects the ones corresponding to the time range of the observation.
 
     Final gain curve table is saved as /TABLES/gaincurves.vlba on the output directory.
-    
-    A MORE EXTENSIVE DOCSTRING IS NEEDED.
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -1024,3 +907,106 @@ def remove_ascii_poltype(data, filepath):
         tabed_poltype.keystrng = AIPSList(backup_names[i])  # Replace value
 
         tabed_poltype.go()
+
+def ty_tsm_vlog(data, bif, eif, table_paths):
+    """Split tsys tables from a TSM produced cal.vlba file.
+
+    Uses the VLOG task in AIPS to separate the system temperature information from one 
+    or multiple cal.vlba files in the TSM format. The output is written onto 
+    /vipcals/tmp/tsys.vlba
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param bif: first frequency IF to consider 
+    :type bif: int
+    :param eif: last frequency IF to consider
+    :type eif: int
+    :param table_paths: list of paths where the calibration tables have been downloaded
+    :type table_pahts: list of str
+    """ 
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    for path in table_paths:
+        vlog = AIPSTask('VLOG')
+        vlog.inname = data.name
+        vlog.inclass = data.klass
+        vlog.inseq = data.seq
+        vlog.indisk = data.disk
+
+        vlog.calin = path
+        vlog.outfile = path[:-5]
+
+        vlog.go()
+
+    for path in table_paths:
+        with open(f'{tmp}/tsys.vlba', 'a') as f:
+            f.write(open(path[:-5]+'.TSYS', 'r').read())
+
+    tsys_file = open(f"{tmp}/tsys.vlba", "r")
+    tsys_list = tsys_file.read().split('\n')
+    # If multi-if dataset:
+    if bif == 0 and eif != 0:
+        final_list = tsys_list
+        
+    if bif == 0 and eif == 0:
+        final_list = tsys_list
+    
+    if bif == 1 and eif != 0:
+        final_list = []
+        for item in tsys_list:
+            if len(item.split()) > 0:
+                if item.split()[0] in ['!', 'TSYS','/']:
+                    final_list.append(item)
+                    continue
+                aux = item.split()
+                del aux[2+eif:]
+                aux2 = ' '.join(aux)
+                final_list.append(aux2)
+    if bif != 1 and eif != 0:
+        final_list = []
+        for item in tsys_list:
+            if len(item.split()) > 0:
+                if item.split()[0] in ['!', 'TSYS','/']:
+                    final_list.append(item)
+                    continue
+                aux = item.split()
+                del aux[2:bif+1]
+                aux2 = ' '.join(aux)
+                final_list.append(aux2)
+
+    with open(f'{tmp}/tsys.vlba', 'w') as fp:
+        for item in final_list:
+            # Replace the offset with 0.0 
+            if '*' in item:
+                item = item.replace('*', '0.0')
+            # write each item on a new line
+            fp.write("%s\n" % item)
+
+def fg_tsm_vlog(data, table_paths):
+    """Split flag tables from a TSM produced cal.vlba file.
+
+    Uses the VLOG task in AIPS to separate the flag information from one or multiple 
+    cal.vlba files in the TSM format. The output is written onto /vipcals/tmp/flags.vlba
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param table_paths: list of paths where the calibration tables have been downloaded
+    :type table_pahts: list of str
+    """    
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    for path in table_paths:
+        vlog = AIPSTask('VLOG')
+        vlog.inname = data.name
+        vlog.inclass = data.klass
+        vlog.inseq = data.seq
+        vlog.indisk = data.disk
+
+        vlog.calin = path
+        vlog.outfile = path[:-5]
+
+        vlog.go()
+
+    for path in table_paths:
+        with open(f'{tmp}/flags.vlba', 'a') as f:
+            f.write(open(path[:-5]+'.FLAG', 'r').read())
