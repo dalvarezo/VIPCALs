@@ -80,15 +80,15 @@ def load_ty_tables(data, bif, eif):
         if r.status_code != 404:
             good_url = url
             if '.Z' in url:
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba.Z')
                 os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables.vlba')
             elif '.gz' in url:
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba.gz')
                 os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables.vlba')
             else:
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba')  
             retrieved_urls.append(good_url)
             break
@@ -102,7 +102,7 @@ def load_ty_tables(data, bif, eif):
             r = requests.get(url)
             if r.status_code != 404:
                 good_url = url
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba')  
                 retrieved_urls.append(good_url)
                 break
@@ -110,7 +110,7 @@ def load_ty_tables(data, bif, eif):
             r = requests.get(url)
             if r.status_code != 404:
                 good_url = url
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba.Z')  
                 os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables.vlba')
                 retrieved_urls.append(good_url)
@@ -119,7 +119,7 @@ def load_ty_tables(data, bif, eif):
             r = requests.get(url)
             if r.status_code != 404:
                 good_url = url
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba.gz')  
                 os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables.vlba')
                 retrieved_urls.append(good_url)
@@ -131,7 +131,7 @@ def load_ty_tables(data, bif, eif):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables' + s + '.vlba') 
                     letters.append(s)
                     retrieved_urls.append(good_url)
@@ -147,7 +147,7 @@ def load_ty_tables(data, bif, eif):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables' + s + '.vlba') 
                     letters.append(s)
                     retrieved_urls.append(good_url)
@@ -161,7 +161,7 @@ def load_ty_tables(data, bif, eif):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables.vlba.Z')  
                     os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
@@ -177,7 +177,7 @@ def load_ty_tables(data, bif, eif):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables.vlba.Z')  
                     os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
@@ -192,7 +192,7 @@ def load_ty_tables(data, bif, eif):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables.vlba.gz')  
                     os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
@@ -208,7 +208,7 @@ def load_ty_tables(data, bif, eif):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables.vlba.gz')  
                     os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
@@ -463,15 +463,15 @@ def load_fg_tables(data):
         if r.status_code != 404:
             good_url = url
             if '.Z' in url:
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba.Z')
                 os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables.vlba')
             elif '.gz' in url:
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba.gz')
                 os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables.vlba')
             else:
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba')             
             retrieved_urls.append(good_url)
             break
@@ -485,7 +485,7 @@ def load_fg_tables(data):
             r = requests.get(url)
             if r.status_code != 404:
                 good_url = url
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba')  
                 retrieved_urls.append(good_url)
                 break
@@ -493,7 +493,7 @@ def load_fg_tables(data):
             r = requests.get(url)
             if r.status_code != 404:
                 good_url = url
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba.Z')  
                 os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables.vlba')
                 retrieved_urls.append(good_url)
@@ -502,7 +502,7 @@ def load_fg_tables(data):
             r = requests.get(url)
             if r.status_code != 404:
                 good_url = url
-                os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                           + ' > ' + tmp + '/tables.vlba.gz')  
                 os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables.vlba')
                 retrieved_urls.append(good_url)
@@ -514,7 +514,7 @@ def load_fg_tables(data):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables' + s + '.vlba') 
                     letters.append(s)
                     retrieved_urls.append(good_url)
@@ -530,7 +530,7 @@ def load_fg_tables(data):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables' + s + '.vlba') 
                     letters.append(s)
                     retrieved_urls.append(good_url)
@@ -544,7 +544,7 @@ def load_fg_tables(data):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables.vlba.Z')  
                     os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
@@ -560,7 +560,7 @@ def load_fg_tables(data):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables.vlba.Z')  
                     os.system('zcat ' + tmp + '/tables.vlba.Z > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
@@ -575,7 +575,7 @@ def load_fg_tables(data):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables.vlba.gz')  
                     os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)
@@ -591,7 +591,7 @@ def load_fg_tables(data):
                 r = requests.get(url)
                 if r.status_code != 404:
                     good_url = url
-                    os.system('curl -f --retry 5 --retry-delay 10 ' + url \
+                    os.system('curl -sf --retry 5 --retry-delay 10 ' + url \
                               + ' > ' + tmp + '/tables.vlba.gz')  
                     os.system('zcat ' + tmp + '/tables.vlba.gz > ' + tmp + '/tables' + s +'.vlba')
                     letters.append(s)

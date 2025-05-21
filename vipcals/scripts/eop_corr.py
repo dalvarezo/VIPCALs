@@ -18,7 +18,7 @@ def eop_correct(data):
     tmp = os.path.abspath(os.path.join(here, "../../tmp"))
 
     if os.path.exists('../../tmp/usno_finals_bis.erp') == False:
-        curl_command = 'curl -u anonymous:daip@nrao.edu --ftp-ssl ' \
+        curl_command = 'curl -su anonymous:daip@nrao.edu --ftp-ssl ' \
         + 'ftp://gdc.cddis.eosdis.nasa.gov/vlbi/gsfc/ancillary/' \
         + 'solve_apriori/usno_finals.erp > ' + tmp + '/usno_finals_bis.erp'
         os.system(curl_command)

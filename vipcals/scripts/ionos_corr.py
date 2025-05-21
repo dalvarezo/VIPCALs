@@ -98,7 +98,7 @@ def old_tecor(data):
         
         if os.path.exists(tmp + '/codg' + new_DDD +'0.'+ new_YY +'i') == False:
             curl_command = (
-    f"curl -f --retry 5 --retry-delay 10 -u 'anonymous:daip@nrao.edu' --ftp-ssl "
+    f"curl -sf --retry 5 --retry-delay 10 -u 'anonymous:daip@nrao.edu' --ftp-ssl "
     f"ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/{str(new_YYYY)}/{new_DDD}/"
     f"codg{new_DDD}0.{new_YY}i.Z > {tmp}/codg{new_DDD}0.{new_YY}i.Z")
 
@@ -187,7 +187,7 @@ def new_tecor(data):
         
         if os.path.exists(tmp + '/codg' + new_DDD +'0.'+ new_YY +'i') == False:
             curl_command = (
-    f"curl -f --retry 5 --retry-delay 10 -u 'anonymous:daip@nrao.edu' --ftp-ssl "
+    f"curl -sf --retry 5 --retry-delay 10 -u 'anonymous:daip@nrao.edu' --ftp-ssl "
     f"ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/{new_YYYY}/{new_DDD}/"
     f"COD0OPSFIN_{new_YYYY}{new_DDD}0000_01D_01H_GIM.INX.gz "
     f"> {tmp}/codg{new_DDD}0.{new_YY}i.gz")
