@@ -59,10 +59,16 @@ class Scan():
         self.time_interval = None
         self.antennas = []
         self.calib_antennas = []
-    def get_antennas(self, wuvdata):
+    def get_antennas(self, wuvdata, bad_antennas):
         for vis in wuvdata:
             if (vis.time < self.time + self.time_interval/2) \
             and (vis.time > self.time - self.time_interval/2):
+                # Ignore visibilities with one flagged antenna
+                if len(set(vis.baseline).intersection(set(bad_antennas))) > 0:
+                    continue
+                # Ignore autocorrelations
+                if vis.baseline[0] == vis.baseline[1]:
+                    continue
                 self.antennas.append(vis.baseline[0])
                 self.antennas.append(vis.baseline[1])
         self.antennas = list(set(self.antennas))

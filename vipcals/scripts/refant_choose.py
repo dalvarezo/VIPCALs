@@ -12,7 +12,7 @@ from scripts.helper import ddhhmmss, tacop
 
 import Wizardry.AIPSData as wizard
 
-from AIPSTask import AIPSTask, AIPSList
+from AIPSTask import AIPSTask
 AIPSTask.msgkill = -8 
 
 def refant_choose_snr(data, sources, target_list, full_source_list, \
@@ -89,7 +89,9 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
         s.time_interval = scans['time_interval']
         s.len = scans['time_interval']
         s.source_id = scans['source_id']
-        s.get_antennas(wuvdata)
+        s.get_antennas(wuvdata, bad_antennas)
+        if len(is_flagged_scan(data, s)) < 2:
+            continue
         scan_list.append(s)
 
     # Give scans a source_name
@@ -233,8 +235,9 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
     current_SN = data.table_highver('SN')
     
     for n, scan in enumerate(selected_scans):
-        init_time = ddhhmmss(scan.time - scan.time_interval/1.8)
-        final_time = ddhhmmss(scan.time + scan.time_interval/1.8)
+
+        init_time = ddhhmmss(scan.time - scan.time_interval/1.95)
+        final_time = ddhhmmss(scan.time + scan.time_interval/1.95)
         timeran = [None] + init_time.tolist() + final_time.tolist()
 
 
@@ -286,3 +289,27 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
             data.zap_table('SN', i)
         tacop(data, 'SN', current_SN+n+2, current_SN+1)
         data.zap_table('SN', current_SN+n+2) 
+
+
+def is_flagged_scan(data, scan):
+    """Check if all baselines from a scan have been flagged due to missing TSYS/GC.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param scan: scan where the baselines will be checked
+    :type scan: :class:`~vipcals.scripts.helper.Scan` object
+    """    
+    fg_table = data.table('FG', 0)
+
+    flagged_antennas = []
+
+    for row in fg_table:
+        reason = row['reason'].strip()
+        if reason.strip() == 'NO TSYS/GC':
+            flagged_antennas.append(row['ants'][0])
+
+    flagged_antennas = list(set(flagged_antennas))
+
+    available_antennas = [a for a in scan.antennas if a not in flagged_antennas]
+
+    return available_antennas
