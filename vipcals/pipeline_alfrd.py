@@ -270,17 +270,20 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             for good_url in retrieved_urls:
                 pipeline_log.write('\nSystem temperatures were not available in the ' \
                                   + 'file, they have been retrieved from ' \
-                                  + good_url + '\n')
-            pipeline_log.write('TY#1 created.\n')
+                                  + good_url)
+            pipeline_log.write('\nTY#1 created.\n')
 
         # Move the temperature file to the target folders
         for path in path_list:
             os.system('cp ../tmp/tsys.vlba ' + path + '/TABLES/tsys.vlba')
+
+        # Clean the tmp directory
+        os.system('rm ../tmp/*')
    
         print('\nSystem temperatures were not available in the ' \
                                   + 'file, they have been retrieved from \n' \
-                                  + good_url + '\n')
-        print('TY#1 created.\n')
+                                  + good_url)
+        print('\nTY#1 created.\n')
         stats_df['need_ty'] = True
         stats_df['vlbacal_files'] = str(retrieved_urls)
         
@@ -304,10 +307,10 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             
         # Move the gain curve file to the target folders
         for path in path_list:
-            os.system('cp ./gaincurves.vlba ' + path + '/TABLES/gaincurves.vlba')
+            os.system('cp ../tmp/gaincurves.vlba ' + path + '/TABLES/gaincurves.vlba')
     
-        # And delete the files from the main directory
-        os.system('rm ./gaincurves.vlba')           
+        # Clean the tmp directory
+        os.system('rm ../tmp/*')           
         
         print('\nGain curve information was not available in the file, it has '\
           + 'been retrieved from\n' + good_url + '\nGC#1 created.\n')
@@ -373,6 +376,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         # Move the flag file to the target folders
         for path in path_list:
             os.system('cp ../tmp/flags.vlba ' + path + '/TABLES/flags.vlba')
+
+        # Clean the tmp directory
+        os.system('rm ../tmp/*')
 
         print('Flag information was not available in the file, ' \
                         + 'it has been retrieved from\n' + good_url + '\n')
@@ -925,11 +931,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         cali.snr_fring(uvdata, refant)
         
         ## Get a list of scans ordered by SNR ##
-        
-        scan_list = cali.snr_scan_list_v2(uvdata)
-        
-        ## Check if snr_scan_list() returned an error and, if so, end the pipeline
-        if scan_list == 404:
+        try:
+            scan_list = cali.snr_scan_list_v2(uvdata)
+        except help.NoScansError:
             for pipeline_log in log_list:
                 pipeline_log.write('\nNone of the scans reached a minimum SNR of ' \
                                 + '5 and the dataset could not be automatically ' \
@@ -1403,11 +1407,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 stats_df.at[r, 'single_ff'] = True   
             
         if (ratio + ratio_single) == 0:
-            stats_df.at[r, 'good_sols'] = False
-            stats_df.at[r, 'total_sols'] = False
+            stats_df.at[r, 'good_sols'] = 0
+            stats_df.at[r, 'total_sols'] = 1
             stats_df.at[r, 'ratios_dict'] = False
-            stats_df.at[r, 'good_sols_single'] = False
-            stats_df.at[r, 'total_sols_single'] = False
+            stats_df.at[r, 'good_sols_single'] = 0
+            stats_df.at[r, 'total_sols_single'] = 1
             stats_df.at[r, 'ratios_dict_single'] = False
         
         elif ratio < 0.99 and ratio_single != 0: 
@@ -1564,11 +1568,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         r =  stats_df.index[stats_df['target'] == target.name][0]
             
         if (ratio + ratio_single) == 0:
-            stats_df.at[r, 'good_sols'] = False
-            stats_df.at[r, 'total_sols'] = False
+            stats_df.at[r, 'good_sols'] = 0
+            stats_df.at[r, 'total_sols'] = 1
             stats_df.at[r, 'ratios_dict'] = False
-            stats_df.at[r, 'good_sols_single'] = False
-            stats_df.at[r, 'total_sols_single'] = False
+            stats_df.at[r, 'good_sols_single'] = 0
+            stats_df.at[r, 'total_sols_single'] = 1
             stats_df.at[r, 'ratios_dict_single'] = False
         
         elif ratio < 0.99: 

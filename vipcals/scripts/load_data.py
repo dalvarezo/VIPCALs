@@ -65,7 +65,7 @@ def set_name(path, source, klass):
     else:
         band = 'W'
 
-    name = source + '_' + obs + '_' + band + '_' + date_obs
+    name = source + '_' + obs + '_' + klass + '_' + date_obs
     return(name)
 
 def get_source_list(file_path_list, freq = 0):
