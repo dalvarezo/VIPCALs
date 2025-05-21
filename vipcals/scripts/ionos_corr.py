@@ -78,23 +78,35 @@ def old_tecor(data):
 
     for elements in days:
         YY = data.header.date_obs[2:4]
-        new_DDD = str(DDD + elements)
-        if len(new_DDD) == 2:
-            new_DDD = '0' + new_DDD
-        if len(new_DDD) == 1:
-            new_DDD = '00' + new_DDD
+        if DDD + elements <= 365:
+            new_DDD = str(DDD + elements)
+            if len(new_DDD) == 2:
+                new_DDD = '0' + new_DDD
+            if len(new_DDD) == 1:
+                new_DDD = '00' + new_DDD
+            new_YYYY = YYYY
+            new_YY = YY
+
+        if DDD + elements > 365:
+            new_DDD = str(DDD + elements - 365)
+            if len(new_DDD) == 2:
+                new_DDD = '0' + new_DDD
+            if len(new_DDD) == 1:
+                new_DDD = '00' + new_DDD
+            new_YYYY = YYYY + 1
+            new_YY = str(new_YYYY)[2:4]
         
-        if os.path.exists(tmp + '/codg' + new_DDD +'0.'+ YY +'i') == False:
+        if os.path.exists(tmp + '/codg' + new_DDD +'0.'+ new_YY +'i') == False:
             curl_command = (
     f"curl -f --retry 5 --retry-delay 10 -u 'anonymous:daip@nrao.edu' --ftp-ssl "
-    f"ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/{str(YYYY)}/{new_DDD}/"
-    f"codg{new_DDD}0.{YY}i.Z > {tmp}/codg{new_DDD}0.{YY}i.Z")
+    f"ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/{str(new_YYYY)}/{new_DDD}/"
+    f"codg{new_DDD}0.{new_YY}i.Z > {tmp}/codg{new_DDD}0.{new_YY}i.Z")
 
             os.system(curl_command)
 
             files.append(curl_command.split(' ')[9])
             
-            zcat_command = f"""zcat {tmp}/codg{new_DDD}0.{YY}i.Z >> {tmp}/codg{new_DDD}0.{YY}i"""
+            zcat_command = f"""zcat {tmp}/codg{new_DDD}0.{new_YY}i.Z >> {tmp}/codg{new_DDD}0.{new_YY}i"""
             os.system(zcat_command)
     
     infile = str(DDD + days[0])
@@ -155,25 +167,36 @@ def new_tecor(data):
 
     for elements in days:
         YY = data.header.date_obs[2:4]
-        new_DDD = str(DDD + elements)
-        if len(new_DDD) == 2:
-            new_DDD = '0' + new_DDD
-             
-        if len(new_DDD) == 1:
-            new_DDD = '00' + new_DDD
+        if DDD + elements <= 365:
+            new_DDD = str(DDD + elements)
+            if len(new_DDD) == 2:
+                new_DDD = '0' + new_DDD
+            if len(new_DDD) == 1:
+                new_DDD = '00' + new_DDD
+            new_YYYY = YYYY
+            new_YY = YY
+
+        if DDD + elements > 365:
+            new_DDD = str(DDD + elements - 365)
+            if len(new_DDD) == 2:
+                new_DDD = '0' + new_DDD
+            if len(new_DDD) == 1:
+                new_DDD = '00' + new_DDD
+            new_YYYY = YYYY + 1
+            new_YY = str(new_YYYY)[2:4]
         
-        if os.path.exists(tmp + '/codg' + new_DDD +'0.'+ YY +'i') == False:
+        if os.path.exists(tmp + '/codg' + new_DDD +'0.'+ new_YY +'i') == False:
             curl_command = (
     f"curl -f --retry 5 --retry-delay 10 -u 'anonymous:daip@nrao.edu' --ftp-ssl "
-    f"ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/{YYYY}/{new_DDD}/"
-    f"COD0OPSFIN_{YYYY}{new_DDD}0000_01D_01H_GIM.INX.gz "
-    f"> {tmp}/codg{new_DDD}0.{YY}i.gz")
+    f"ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/{new_YYYY}/{new_DDD}/"
+    f"COD0OPSFIN_{new_YYYY}{new_DDD}0000_01D_01H_GIM.INX.gz "
+    f"> {tmp}/codg{new_DDD}0.{new_YY}i.gz")
 
             os.system(curl_command)
 
             files.append(curl_command.split(' ')[9])
             
-            zcat_command = f'zcat {tmp}/codg{new_DDD}0.{YY}i.gz >> {tmp}/codg{new_DDD}0.{YY}i'
+            zcat_command = f'zcat {tmp}/codg{new_DDD}0.{new_YY}i.gz >> {tmp}/codg{new_DDD}0.{new_YY}i'
             os.system(zcat_command)
     
     infile = str(DDD + days[0])
