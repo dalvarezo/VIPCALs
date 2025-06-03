@@ -57,6 +57,14 @@ def load_ty_tables(data, bif, eif):
     yy = str(YY)
     project = data.header.observer.lower()
     
+    # Weird exceptions:
+    if project == 'bt022' and mmm == 'jul':
+        project = 'bt22'
+    if project == 'br005' and mmm == 'jul':
+        project = 'br5'
+    if project == 'bc016' and mmm == 'jun':
+        project = 'bc16'
+    
     normal = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
              + mmm + yy + '/' + project  #### + '[a-z]cal.vlba'
     
@@ -439,6 +447,14 @@ def load_fg_tables(data):
     mmm = month_dict[MM]
     yy = str(YY)
     project = data.header.observer.lower()
+
+    # Weird exceptions:
+    if project == 'bt022' and mmm == 'jul':
+        project = 'bt22'
+    if project == 'br005' and mmm == 'jul':
+        project = 'br5'
+    if project == 'bc016' and mmm == 'jun':
+        project = 'bc16'
     
     normal = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
              + mmm + yy + '/' + project  #### + '[a-z]cal.vlba'
@@ -954,23 +970,29 @@ def ty_tsm_vlog(data, bif, eif, table_paths):
     if bif == 1 and eif != 0:
         final_list = []
         for item in tsys_list:
+            item = re.sub(r'([^\s/])/$', r'\1 /', item)
             if len(item.split()) > 0:
                 if item.split()[0] in ['!', 'TSYS','/']:
                     final_list.append(item)
                     continue
                 aux = item.split()
                 del aux[2+eif:]
+                if aux[0] == 'INDEX' and '/' not in aux[-1]:
+                    aux.append('/') 
                 aux2 = ' '.join(aux)
                 final_list.append(aux2)
     if bif != 1 and eif != 0:
         final_list = []
         for item in tsys_list:
+            item = re.sub(r'([^\s/])/$', r'\1 /', item)
             if len(item.split()) > 0:
                 if item.split()[0] in ['!', 'TSYS','/']:
                     final_list.append(item)
                     continue
                 aux = item.split()
                 del aux[2:bif+1]
+                if aux[0] == 'INDEX' and '/' not in aux[-1]:
+                    aux.append('/') 
                 aux2 = ' '.join(aux)
                 final_list.append(aux2)
 
