@@ -62,18 +62,34 @@ def create_default_dict():
     :rtype: dict
     """
     default_dict = {}
+    # Basic inputs
     default_dict['userno'] = None
+    default_dict['disk'] = None
     default_dict['paths'] = None
     default_dict['targets'] = None
-    default_dict['disk'] = None
-    default_dict['calib'] = 'NONE'
+    default_dict['output_directory'] = None
+    # Calibration options
+    default_dict['calib'] = None
+    default_dict['calib_all'] =  False
+    default_dict['phase_ref'] = None
+    # Loading options
     default_dict['load_all'] = False
-    default_dict['shifts'] = 'NONE'
-    default_dict['refant'] = 'NONE'
-    default_dict['output_directory'] = 'NONE'
+    default_dict['freq_sel'] = None
+    default_dict['subarray'] = False
+    default_dict['shifts'] = None
+    # Reference antenna options
+    default_dict['refant'] = None
+    default_dict['refant_list'] = None
+    default_dict['search_central'] = True
+    default_dict['max_scan_refant_search'] = 10
+    # Fringe options
+    default_dict['solint'] = None
+    default_dict['min_solint'] = 1
+    default_dict['max_solint'] = 10
+    # Export options
+    default_dict['channel_out'] = 'SINGLE'
     default_dict['flag_edge'] = 0
-    default_dict['phase_ref'] = ['NONE']
-    default_dict['subarrays'] = False
+    # Plotting options
     default_dict['interactive'] = True
 
     return default_dict
@@ -123,7 +139,7 @@ for i, entry in enumerate(entry_list):
     if type(input_dict['targets']) != list:
         print('Target names have to be given as a list in the input file.\n')
         exit()
-    if type(input_dict['shifts']) != list and input_dict['shifts'] != 'NONE':
+    if type(input_dict['shifts']) != list and input_dict['shifts'] != None:
         print('Coordinate shifts have to be given as a list in the input file.\n')
         exit()
     if type(input_dict['phase_ref']) != list:
@@ -145,13 +161,13 @@ for i, entry in enumerate(entry_list):
         exit()
 
     # Phase reference #
-    if input_dict['phase_ref'] != ['NONE']:
+    if input_dict['phase_ref'] != None:
         if len(input_dict['targets']) != len(input_dict['phase_ref']):
             print('\nThe number of phase reference calibrators does not match ' \
             + 'the number of targets to calibrate.\n')
             exit()
     # Phase shift #
-    if input_dict['shifts'] != 'NONE':
+    if input_dict['shifts'] != None:
         if len(input_dict['targets']) != len(input_dict['shifts']):
             print('\nThe number of shifted coordinates does not match the number of ' \
                 + 'targets to calibrate.\n')
@@ -189,7 +205,7 @@ for i, entry in enumerate(entry_list):
         exit()
 
     # Phase reference sources have to be in the file/s
-    if input_dict['phase_ref'] != ['NONE']:
+    if input_dict['phase_ref'] != None:
         for prs in input_dict['phase_ref']:
             if prs == 'NONE':
                 continue
@@ -221,7 +237,7 @@ for i, entry in enumerate(entry_list):
     
     # Reference antenna #
     for filepath in input_dict['paths']:
-        if input_dict['refant'] != 'NONE':
+        if input_dict['refant'] != None:
             antenna_names = []
             hdul = fits.open(filepath)
             non_ascii_antennas = list(hdul['ANTENNA'].data['ANNAME'])
@@ -235,7 +251,7 @@ for i, entry in enumerate(entry_list):
                 exit()
 
     # Output directory
-    if input_dict['output_directory'] != 'NONE':
+    if input_dict['output_directory'] != None:
         if os.path.isdir(input_dict['output_directory']) == False:
             print('\nThe selected output directory does not exist.' \
                 + ' The pipeline will stop now.\n')
@@ -244,7 +260,7 @@ for i, entry in enumerate(entry_list):
             input_dict['output_directory'] = input_dict['output_directory'][:-1]
 
 
-    if input_dict['output_directory'] == 'NONE':
+    if input_dict['output_directory'] == None:
         input_dict['output_directory'] = os.getcwd()
 
     # Everything is fine, start the pipeline

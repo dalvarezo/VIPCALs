@@ -66,18 +66,34 @@ def create_default_dict_gui():
     :rtype: dict
     """
     default_dict = {}
+    # Basic inputs
     default_dict['userno'] = 2
+    default_dict['disk'] = 1
     default_dict['paths'] = None
     default_dict['targets'] = None
-    default_dict['disk'] = 1
-    default_dict['calib'] = 'NONE'
+    default_dict['output_directory'] = None
+    # Calibration options
+    default_dict['calib'] = None
+    default_dict['calib_all'] =  False
+    default_dict['phase_ref'] = None
+    # Loading options
     default_dict['load_all'] = False
-    default_dict['shifts'] = 'NONE'
-    default_dict['refant'] = 'NONE'
-    default_dict['output_directory'] = 'NONE'
+    default_dict['freq_sel'] = None
+    default_dict['subarray'] = None
+    default_dict['shifts'] = None
+    # Reference antenna options
+    default_dict['refant'] = None
+    default_dict['refant_list'] = None
+    default_dict['search_central'] = True
+    default_dict['max_scan_refant_search'] = 10
+    # Fringe options
+    default_dict['solint'] = None
+    default_dict['min_solint'] = 1
+    default_dict['max_solint'] = 10
+    # Export options
+    default_dict['channel_out'] = 'SINGLE'
     default_dict['flag_edge'] = 0
-    default_dict['phase_ref'] = ['NONE']
-    default_dict['subarrays'] = False
+    # Plotting options
     default_dict['interactive'] = True
 
     return default_dict
