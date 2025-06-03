@@ -318,6 +318,7 @@ def is_it_multifreq_if(file_path):
     hdul = fits.open(file_path)
     if_freq = hdul['SOURCE'].data['RESTFREQ'][0] \
               + hdul['FREQUENCY'].data['BANDFREQ']
+
     if isinstance(if_freq[0], np.float64) == True:
         # Data is single IF
         if if_freq[0] > 1e10:
@@ -513,6 +514,7 @@ def print_listr(data, path_list, filename_list):
     listr.inseq = data.seq
     
     listr.optype = 'SCAN'
+    listr.flagver = 1
     listr.xinc = 1
     listr.docrt = -2
     for i, name in enumerate(filename_list):

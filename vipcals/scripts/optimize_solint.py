@@ -34,7 +34,7 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
     :type output_version: int
     :param delay_w: delay window in ns in which the search is performed; defaults to 1000
     :type delay_w: int, optional
-    :param rate_w: rate window in hz in which the search is performed; defaults to 200
+    :param rate_w: rate window in mHz in which the search is performed; defaults to 200
     :type rate_w: int, optional 
     """    
     optimiz_fring = AIPSTask('fring')
@@ -55,15 +55,16 @@ def snr_fring_optimiz(data, refant, solint, timeran, source, output_version,\
     optimiz_fring.aparm[1] = 2    # At least 2 antennas per solution
     optimiz_fring.aparm[5] = 0    # Solve IFs separately
     optimiz_fring.aparm[6] = 2    # Amount of information printed
-    optimiz_fring.aparm[7] = 1    # NO SNR cutoff   
+    optimiz_fring.aparm[7] = 1    # NO SNR cutoff  
+    optimiz_fring.aparm[9] = 1    # Exhaustive search 
     
     optimiz_fring.dparm[1] = 1    # Number of baseline combinations searched
     optimiz_fring.dparm[2] = delay_w   # Delay window (ns) 0 => Full Nyquist 
                                        # range
     optimiz_fring.dparm[3] = rate_w    # Rate window (mHz) 0 => Full Nyquist 
                                        # range
-    optimiz_fring.dparm[5] = 1    # Stop at the FFT step  
-    
+    optimiz_fring.dparm[5] = 1    # Stop at the FFT step 
+
     optimiz_fring.go()
 
 def optimize_solint_mm(data, target, target_scans, refant, min_solint = 1.0, 
@@ -144,24 +145,24 @@ def optimize_solint_mm(data, target, target_scans, refant, min_solint = 1.0,
 
             # Perform an SNR fringe fit
             snr_fring_optimiz(data, refant, float(solint), timerang, \
-                              AIPSList(target), 7)
+                              AIPSList(target), 6)
                 
-            snr_table = data.table('SN', 7)
+            snr_table = data.table('SN', 6)
             # Save the SNR of the scan
             
             for antennas in snr_table:
                 if antennas['antenna_no'] == refant:
                     snr_dict[antennas['antenna_no']].append(np.nan)
                 else:
-                    try:
-                        snr_dict[antennas['antenna_no']].append\
-                        (antennas['weight_1'][0])
-                    except TypeError:    # Single IF datasets
-                        snr_dict[antennas['antenna_no']].append\
-                        (antennas['weight_1'])
-                        
+                    if type(antennas['weight_1']) == list:
+                        snr_dict[antennas['antenna_no']] += [x/2  for x in antennas['weight_1']]
+                    else:    # Single IF datasets
+                        snr_dict[antennas['antenna_no']].append(antennas['weight_1']/2)
+
             # Delete the solution table
-            data.zap_table('SN', 7)
+            data.zap_table('SN', 6)
+
+
 
         # Check if the median SNR across scans reaches the threshold
         snr_values = []
@@ -235,9 +236,9 @@ def optimize_solint_cm(data, target, target_scans, refant, min_solint = 1.0):
 
             # Perform an SNR fringe fit
             snr_fring_optimiz(data, refant, int(solint), timerang, \
-                              AIPSList(target), 7)
+                              AIPSList(target), 6)
                 
-            snr_table = data.table('SN', 7)
+            snr_table = data.table('SN', 6)
             # Save the SNR of the scan
             
             for antennas in snr_table:
@@ -252,7 +253,7 @@ def optimize_solint_cm(data, target, target_scans, refant, min_solint = 1.0):
                         (antennas['weight_1'])
                         
             # Delete the solution table
-            data.zap_table('SN', 7)
+            data.zap_table('SN', 6)
 
         # Check if the median SNR across scans reaches the threshold
         snr_values = []

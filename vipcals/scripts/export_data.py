@@ -10,7 +10,7 @@ AIPSTask.msgkill = -8
 import Wizardry.AIPSData as wizard
 
 def data_export(path_list, data, target_list, filename_list, \
-                ignore_list, flag_edge = True, flag_frac = 0.1):
+                ignore_list, channel_out, flag_edge = True, flag_frac = 0.1):
     """Split multi-source uv data to single source and export it to uvfits format.
 
     Uses the SPLIT task in AIPS to apply the calibration tables to each source and 
@@ -36,6 +36,9 @@ def data_export(path_list, data, target_list, filename_list, \
     :type filename_list: list of str
     :param ignore_list: list of targets to ignore because the fringe fit failed
     :type ignore_list: list of str
+    :param channel_out: 'SINGLE' -> export one channel per IF, 'MULTI' -> export 
+        multiple channels per IF
+    :type channel_out: str
     :param flag_edge: flag edge channels; defaults to True
     :type flag_edge: bool, optional
     :param flag_frac: number of edge channels to flag, either a percentage (if < 1) \
@@ -73,7 +76,11 @@ def data_export(path_list, data, target_list, filename_list, \
         split.docal = 1
         split.gainuse = 9
         split.doband = 1
-        split.aparm[1] = 2  # Average frequency in IFs, produce one channel per IF
+        if channel_out == 'SINGLE':
+            split.aparm[1] = 2  # Average in frequency, produce one channel per IF
+        if channel_out == 'MULTI':
+            split.aparm[1] = 1  # DON't average in frequency, produce multiple channels 
+                                # per IF
     
         if flag_edge == False:
             flag_chann = 0
@@ -183,7 +190,7 @@ def data_split(data, target_list, cl_table = 1, bpass = False, flagver = 0, \
     only cross correlations are splitted. These are entries are later used by 
     :function:`~vipcals.scripts.export_data.vis_count` to compute the number of 
     unflagged visibilities.    
-    The class of the splitted catalogue entries is "PLOTS", since this entries can be 
+    The class of the splitted catalogue entries is "PLOTS", since these entries can be 
     also used for the interactive plots of the GUI.
 
     :param data: visibility data

@@ -187,7 +187,6 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
             selected_scans.append(scn)
             count[scn.source_name] += 1
 
-
     # Run a fringe fit with each of the remaining antennas for the selected scans      
     for ant in antennas_dict:
         if ant in snr_dict.keys():
@@ -243,9 +242,6 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
     :param rate_w: rate window in hz in which the search is performed, defaults to 200
     :type rate_w: int, optional  
     """    
-    # Set as solint the maximum scan length
-    solint = max(selected_scans, key=lambda x: x.time_interval).time_interval*24*60
-
     # Get the current highest SN table
     current_SN = data.table_highver('SN')
     
@@ -255,6 +251,9 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
         init_time = ddhhmmss(scan.time - scan.time_interval/1.95)
         final_time = ddhhmmss(scan.time + scan.time_interval/1.95)
         timeran = [None] + init_time.tolist() + final_time.tolist()
+
+        # Solution interval is set as the scan length
+        solint = scan.time_interval*24*60
 
 
         refant_fring = AIPSTask('fring')
