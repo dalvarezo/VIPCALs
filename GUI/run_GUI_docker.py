@@ -94,11 +94,8 @@ class PipelineWorker(QThread):
     def run(self):
         """Runs mock_pipeline.py in a subprocess and streams output."""
         process = subprocess.Popen(
-            [#"conda", "run", "--no-capture-output" ,"-n", "pyside62", 
-             "ParselTongue", "../vipcals/__main__docker.py",
+            ["ParselTongue", "../vipcals/__main__docker.py",
              "../tmp/temp.json"],
-            #["conda", "run", "--no-capture-output" ,"-n", "vipcals", 
-            # "ParselTongue", "mock_pipeline.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

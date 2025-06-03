@@ -177,7 +177,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         uvdata.antennas
     except SystemError:
         tabl.remove_ascii_antname(uvdata, filepath_list[0])
-        tabl.remove_ascii_poltype(uvdata)
+        tabl.remove_ascii_poltype(uvdata, filepath_list[0])
         print('\nAN Table was modified to correct for padding in entries.\n')
 
     ## Check for order
@@ -705,47 +705,47 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         for pipeline_log in log_list:
             pipeline_log.write('\nChoosing reference antenna with all sources.\n')
 
-        try:
-            refant, ant_dict = rant.refant_choose_snr(
-                uvdata, sources, target_list, full_source_list, log_list)
-        except ValueError:
-            for i, target in enumerate(target_list):
-                cols = ['TARGET', 'FILES', 'PROJECT', 'BAND', 'SIZE(GB)', 'TIME(s)', \
-                        'TSYS_%_FLAGGED', 'REFANT', 'REFANT_SNR', 'GOOD/TOTAL', \
-                        'INITIAL_VIS', 'FINAL_VIS']
-                    
-                values = [target, str([x.split('/')[-1] for x in filepath_list]), \
-                        stats_df['project'][i], uvdata.klass, \
-                        stats_df['total_size'][i]/1024**3, stats_df['time_5'][i], \
-                        (1-stats_df['ty2_points'][i]/stats_df['ty1_points'][i])*100, \
-                        'NOANT', 'NOANT', \
-                        'NOANT', \
-                        stats_df['CL1_vis'][i], 0]
-                    
-                new_row = pd.DataFrame([values], columns = cols)
-
-                # Normalize both DataFrames for comparison
-                for col in ['TARGET', 'PROJECT', 'BAND']:
-                    lf.df_sheet[col] = lf.df_sheet[col].astype(str).str.strip()
-                    new_row[col] = new_row[col].astype(str).str.strip()
-
-                # Remove existing matching row
-                lf.df_sheet = lf.df_sheet[~(
-                    (lf.df_sheet['TARGET'] == new_row.at[0, 'TARGET']) &
-                    (lf.df_sheet['PROJECT'] == new_row.at[0, 'PROJECT']) &
-                    (lf.df_sheet['BAND'] == new_row.at[0, 'BAND'])
-                )]
-
-                # Append the new row
-                lf.df_sheet = pd.concat([lf.df_sheet, new_row], ignore_index=True)
-
-            # Sort the entire sheet by TARGET before updating
-            lf.df_sheet = lf.df_sheet.sort_values(by='TARGET').reset_index(drop=True)
-
-            # Update the sheet
-            lf.update_sheet(count=1, failed=0, csvfile='df_sheet.csv')
-
-            return()
+        #try:
+        refant, ant_dict = rant.refant_choose_snr(
+            uvdata, sources, target_list, full_source_list, log_list)
+        #except ValueError:
+        #    for i, target in enumerate(target_list):
+        #        cols = ['TARGET', 'FILES', 'PROJECT', 'BAND', 'SIZE(GB)', 'TIME(s)', \
+        #                'TSYS_%_FLAGGED', 'REFANT', 'REFANT_SNR', 'GOOD/TOTAL', \
+        #                'INITIAL_VIS', 'FINAL_VIS']
+        #            
+        #        values = [target, str([x.split('/')[-1] for x in filepath_list]), \
+        #                stats_df['project'][i], uvdata.klass, \
+        #                stats_df['total_size'][i]/1024**3, stats_df['time_5'][i], \
+        #                (1-stats_df['ty2_points'][i]/stats_df['ty1_points'][i])*100, \
+        #                'NOANT', 'NOANT', \
+        #                'NOANT', \
+        #                stats_df['CL1_vis'][i], 0]
+        #            
+        #        new_row = pd.DataFrame([values], columns = cols)
+        #
+        #        # Normalize both DataFrames for comparison
+        #        for col in ['TARGET', 'PROJECT', 'BAND']:
+        #            lf.df_sheet[col] = lf.df_sheet[col].astype(str).str.strip()
+        #            new_row[col] = new_row[col].astype(str).str.strip()
+        #
+        #        # Remove existing matching row
+        #        lf.df_sheet = lf.df_sheet[~(
+        #            (lf.df_sheet['TARGET'] == new_row.at[0, 'TARGET']) &
+        #            (lf.df_sheet['PROJECT'] == new_row.at[0, 'PROJECT']) &
+        #            (lf.df_sheet['BAND'] == new_row.at[0, 'BAND'])
+        #        )]
+        #
+        #        # Append the new row
+        #        lf.df_sheet = pd.concat([lf.df_sheet, new_row], ignore_index=True)
+        #
+        #    # Sort the entire sheet by TARGET before updating
+        #    lf.df_sheet = lf.df_sheet.sort_values(by='TARGET').reset_index(drop=True)
+        #
+        #    # Update the sheet
+        #    lf.update_sheet(count=1, failed=0, csvfile='df_sheet.csv')
+        #
+        #    return()
 
 
         refant_summary = (
@@ -1323,6 +1323,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
             target.log.write("Fringe fit has failed.\n")
             ratio = 0    
+            totalsols = 0
+            badsols = 0
                 
         # If the ratio is < 0.99 (arbitrary) repeat the fringe fit but averaging IFs
 
@@ -1363,6 +1365,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 target.log.write('\nThe new fringe fit has failed, the previous ' \
                                  + 'one will be kept.\n')
                 ratio_single = 0    
+                totalsols_s = 0
+                badsols_s = 0
     
             # If both ratios are 0, end the pipeline
             if (ratio + ratio_single) == 0:
@@ -1414,10 +1418,18 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             stats_df.at[r, 'total_sols_single'] = 1
             stats_df.at[r, 'ratios_dict_single'] = False
         
-        elif ratio < 0.99 and ratio_single != 0: 
+        elif ratio < 0.99 and ratio_single != 0 and ratio != 0 : 
             stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
             stats_df.at[r, 'total_sols'] = int(totalsols)
             stats_df.at[r, 'ratios_dict'] = json.dumps(ratios_dict)
+            stats_df.at[r, 'good_sols_single'] = int(totalsols_s - badsols_s)
+            stats_df.at[r, 'total_sols_single'] = int(totalsols_s)
+            stats_df.at[r, 'ratios_dict_single'] = json.dumps(ratios_dict_s)
+
+        elif ratio == 0 and ratio_single != 0: 
+            stats_df.at[r, 'good_sols'] = False
+            stats_df.at[r, 'total_sols'] = False
+            stats_df.at[r, 'ratios_dict'] = False
             stats_df.at[r, 'good_sols_single'] = int(totalsols_s - badsols_s)
             stats_df.at[r, 'total_sols_single'] = int(totalsols_s)
             stats_df.at[r, 'ratios_dict_single'] = json.dumps(ratios_dict_s)
@@ -1475,6 +1487,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
             target.log.write("Fringe fit has failed.\n")
             ratio = 0    
+            totalsols = 0
+            badsols = 0   
             
         # If the ratio is > 0.99, apply the solutions to a CL table
 
@@ -1521,6 +1535,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                 target.log.write('\nThe new fringe fit has failed, the previous ' \
                                  + 'one will be kept.\n')
                 ratio_single = 0    
+                totalsols_s = 0
+                badsols_s = 0
+       
     
             # If both ratios are 0, end the pipeline
             if (ratio + ratio_single) == 0:
@@ -1575,13 +1592,29 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             stats_df.at[r, 'total_sols_single'] = 1
             stats_df.at[r, 'ratios_dict_single'] = False
         
-        elif ratio < 0.99: 
+        elif ratio < 0.99 and ratio_single != 0 and ratio != 0: 
             stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
             stats_df.at[r, 'total_sols'] = int(totalsols)
             stats_df.at[r, 'ratios_dict'] = json.dumps(ratios_dict)
             stats_df.at[r, 'good_sols_single'] = int(totalsols_s - badsols_s)
             stats_df.at[r, 'total_sols_single'] = int(totalsols_s)
             stats_df.at[r, 'ratios_dict_single'] = json.dumps(ratios_dict_s)
+
+        elif ratio == 0 and ratio_single != 0: 
+            stats_df.at[r, 'good_sols'] = False
+            stats_df.at[r, 'total_sols'] = False
+            stats_df.at[r, 'ratios_dict'] = False
+            stats_df.at[r, 'good_sols_single'] = int(totalsols_s - badsols_s)
+            stats_df.at[r, 'total_sols_single'] = int(totalsols_s)
+            stats_df.at[r, 'ratios_dict_single'] = json.dumps(ratios_dict_s)
+
+        elif ratio < 0.99 and ratio_single == 0: 
+            stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
+            stats_df.at[r, 'total_sols'] = int(totalsols)
+            stats_df.at[r, 'ratios_dict'] = json.dumps(ratios_dict)
+            stats_df.at[r, 'good_sols_single'] = False
+            stats_df.at[r, 'total_sols_single'] = False
+            stats_df.at[r, 'ratios_dict_single'] = False
 
         elif ratio >= 0.99: 
             stats_df.at[r, 'good_sols'] = int(totalsols - badsols)
@@ -1610,7 +1643,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.print_box('Exporting visibility data')
 
     no_baseline = expo.data_export(path_list, uvdata, target_list, \
-                                   filename_list, ignore_list,\
+                                   filename_list, ignore_list, 'SINGLE',\
                                    flag_frac = flag_edge)
     
 

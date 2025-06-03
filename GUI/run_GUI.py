@@ -93,11 +93,8 @@ class PipelineWorker(QThread):
     def run(self):
         """Runs mock_pipeline.py in a subprocess and streams output."""
         process = subprocess.Popen(
-            [#"conda", "run", "--no-capture-output" ,"-n", "pyside62", 
-             "ParselTongue", "../vipcals/__main__.py",
+            ["ParselTongue", "../vipcals/__main__.py",
              "../tmp/temp.json"],
-            #["conda", "run", "--no-capture-output" ,"-n", "vipcals", 
-            # "ParselTongue", "mock_pipeline.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -157,9 +154,7 @@ class MainPage(qtw.QWidget, Ui_main_window):
         self.setupUi(self)
         
         self.JSON_input_btn.clicked.connect(self.open_json_page)
-        #self.help_btn.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.help_page))
         self.man_input_btn.clicked.connect(self.open_manual_page)
-        #self.exit_btn.clicked.connect(self.main_window.close)
 
     def open_manual_page(self):
         self.main_window.manual_page.should_reset_fields = True
