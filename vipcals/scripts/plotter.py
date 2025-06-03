@@ -41,6 +41,8 @@ def possm_plotter(filepath, data, target, \
                       or an integer number of channels (if >= 1); defaults to 0.1
     :type flag_frac: float, optional
     """    
+    here = os.path.dirname(__file__)
+    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
     
     filename = filepath.split('/')[-1]
     
@@ -108,10 +110,17 @@ def possm_plotter(filepath, data, target, \
     lwpla.invers = max_plot
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
-    lwpla.outfile = filepath +  '/PLOTS/' + filename + '_CL' + str(gainuse) + '_POSSM.ps'
+    outpath = filepath +  '/PLOTS/' + filename + '_CL' + str(gainuse) + '_POSSM.ps'
+    if len(outpath) > 114:
+        lwpla.outfile = f'{tmp}/CL{gainuse}.ps'
+    else:    
+        lwpla.outfile = outpath
     
     lwpla.go()
     
+    # If filename was long, move it
+    if len(outpath) > 114:
+        os.system(f'mv {tmp}/CL{gainuse}.ps {outpath}')
     # Clean all plots
     data.zap_table('PL', -1)
 
