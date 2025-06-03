@@ -37,61 +37,80 @@ from AIPSData import AIPSUVData, AIPSCat
 import functools
 print = functools.partial(print, flush=True)
 
-def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
-             filename_list, log_list, path_list,\
-             disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
-             multi_id = False, selfreq = 0, default_refant = 'NONE', \
-             input_calibrator = 'NONE', load_all = False, shift_coords = 'None',
-             flag_edge = 0, phase_ref = ['NONE'], interactive = False, stats_df = None):
+def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list, 
+              sources, load_all, full_source_list, disk_number, aips_name, klass, 
+              multi_id, selfreq, bif, eif, default_refant, default_refant_list, 
+              search_central, max_scan_refant_search, default_solint, min_solint, 
+              max_solint, phase_ref, input_calibrator, subarray, shift_coords, 
+              channel_out, flag_edge, interactive, stats_df):
+
     """Main workflow of the pipeline 
 
     :param filepath_list: list of paths to the original uvfits/idifits files
     :type filepath_list: list of str
-    :param aips_name: name for the catalogue entry in AIPS
-    :type aips_name: str
-    :param sources: list with source names to be loaded
-    :type sources: list of str
-    :param full_source_list: list containing all sources in the dataset
-    :type full_source_list: list of Source objects
-    :param target_list: target names
-    :type target_list: list of str
-    :param filename_list: list containing the subdirectories of each target
+    :param filename_list: list containing the names of the subdirectories of each target
     :type filename_list: list of str
+    :param outpath_list: list containing the output file paths for each target
+    :type outpath_list: list of str
     :param log_list: list of log files
     :type log_list: list of file
-    :param path_list: list containing the file paths of each target
-    :type path_list: list of str
+    :param target_list: science target names
+    :type target_list: list of str
+    :param sources: all sources to be loaded
+    :type sources: list of str
+    :param load_all: load all sources on the dataset
+    :type load_all: bool
+    :param full_source_list: list containing all sources in the dataset
+    :type full_source_list: list of :class:`~vipcals.scripts.helper.Source` objects
     :param disk_number: disk number within AIPS
     :type disk_number: int
-    :param klass: class name within AIPS; defaults to ‘’
-    :type klass: str, optional
-    :param seq: sequence number within AIPS; defaults to 1
-    :type seq: int, optional
-    :param bif: first IF to copy, 0 => 1; defaults to 0
-    :type bif: int, optional
-    :param eif: highest IF to copy, 0 => all higher than bif; defaults to 0
-    :type eif: int, optional
-    :param selfreq: if there are multiple frequency ids, which one to load; defaults to 0
-    :type selfreq: int, optional
-    :param default_refant: force the pipeline to choose this reference antenna by giving \
-                           its antenna code; defaults to 'NONE'
-    :type default_refant: str, optional
-    :param input_calibrator: force the pipeline to use this source as calibrator; \
-                             defaults to 'NONE'
-    :type input_calibrator: str, optional
-    :param load_all: load all sources on the dataset; default = False
-    :type load_all: bool, optional
-    :param shift_coords: list of new coordinates for the targets, as Astropy SkyCoord \
-                         objects, in case a phase shift was necessary; defaults to 'NONE'
-    :type shift_coords: list of SkyCoord
-    :param flag_edge: fraction of the total channels to flag at the edge of each IF\
-                        ; defaults to 0
-    :type flag_edge: float, optional
-    :param phase_ref: list of phase calibrator names for phase referencing; \
-                      defaults to ['NONE']
-    :type phase_ref: list of str, optional
-    :param interactive: produce interactive plots; default = False
-    :type interactive: bool, optional
+    :param aips_name: name for the catalogue entry in AIPS
+    :type aips_name: str
+    :param klass: class name within AIPS
+    :type klass: str
+    :param multi_id: whether there are multiple frequency ids present
+    :type multi_id: bool
+    :param selfreq: if there are multiple frequency ids, which one to load
+    :type selfreq: int
+    :param bif: first IF to copy, 0 => 1
+    :type bif: int
+    :param eif: highest IF to copy, 0 => all higher than bif
+    :type eif: int
+    :param default_refant: force the pipeline to choose this reference antenna by giving 
+        its antenna code
+    :type default_refant: str
+    :param default_refant_list: list of prioritized antenna codes to use as reference antenna 
+    :type default_refant_list: list of str
+    :param search_central: for VLBA datasets, give priority to KP, LA, PT, OV, FD
+    :type search_central: bool
+    :param max_scan_refant_search: maximum number of scans per source where the SNR is 
+        computed when looking for reference antenna
+    :type max_scan_refant_search: int
+    :param default_solint: solution interval for the science target fringe fit
+    :type default_solint: int
+    :param min_solint: minimum solution interval allowed for the science target fringe 
+        fit
+    :type min_solint: int
+    :param max_solint: maximum solution interval allowed for the science target fringe 
+        fit
+    :type max_solint: int
+    :param phase_ref: list of phase calibrator names for phase referencing
+    :type phase_ref: list of str
+    :param input_calibrator: force the pipeline to use this source as calibrator
+    :type input_calibrator: str
+    :param subarray: split the dataset in subarrays and choose the one with the science 
+        target
+    :type subarray: bool
+    :param shift_coords: list of new coordinates for the targets, as Astropy SkyCoord 
+        objects, in case a phase shift was necessary
+    :type shift_coords: list of astropy.coordinates.SkyCoord
+    :param channel_out: 'SINGLE' -> export one channel per IF, 'MULTI' -> export 
+        multiple channels per IF
+    :type channel_out: str
+    :param flag_edge: fraction of the total channels to flag at the edge of each IF
+    :type flag_edge: float
+    :param interactive: produce interactive plots in the GUI
+    :type interactive: bool
     :param stats_df: Pandas DataFrame where to keep track of the different statistics
     :type stats_df: pandas.DataFrame object
     """    
@@ -101,15 +120,16 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     t_i = time.time()
 
     # AIPS log is registered simultaneously for all science targets
-    help.open_log(path_list, filename_list)
+    help.open_log(outpath_list, filename_list)
+
+    # By default, sequence will start in 1
+    seq = 1
         
     ## Check if the test file already exists and delete it ##
-    
     uvdata = AIPSUVData(aips_name, klass, disk_number, seq)
     
     if uvdata.exists() == True:
         uvdata.zap()
-
 
     ## 1.- LOAD DATA ##
     disp.write_box(log_list, 'Loading data') 
@@ -136,7 +156,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         uvdata.antennas
     except SystemError:
         tabl.remove_ascii_antname(uvdata, filepath_list[0])
-        tabl.remove_ascii_poltype(uvdata)
+        tabl.remove_ascii_poltype(uvdata, filepath_list[0])
         print('\nAN Table was modified to correct for padding in entries.\n')
 
     ## Check for order
@@ -195,7 +215,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             pipeline_log.write('\nTY#1 created.\n')
 
         # Move the temperature file to the target folders
-        for path in path_list:
+        for path in outpath_list:
             os.system('cp ../tmp/tsys.vlba ' + path + '/TABLES/tsys.vlba')
 
         # Clean the tmp directory
@@ -227,7 +247,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                                + '\nGC#1 created.\n\n')
             
         # Move the gain curve file to the target folders
-        for path in path_list:
+        for path in outpath_list:
             os.system('cp ../tmp/gaincurves.vlba ' + path + '/TABLES/gaincurves.vlba')
     
         # Clean the tmp directory
@@ -255,7 +275,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             pipeline_log.write('FG#1 created.\n')
 
         # Move the flag file to the target folders
-        for path in path_list:
+        for path in outpath_list:
             os.system('cp ../tmp/flags.vlba ' + path + '/TABLES/flags.vlba')
 
         # Clean the tmp directory
@@ -293,7 +313,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     # No shift will be done if the new coordinates are 0h0m0s +0d0m0s, in that case the
     # source will not be altered
     
-    if shift_coords != 'NONE':
+    if shift_coords != None:
         t_shift = time.time()
         disp.write_box(log_list, 'Shifting phase center')
         disp.print_box('Shifting phase center')
@@ -457,7 +477,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     stats_df['time_4'] = time.time() - t_avg
 
     ## Print scan information ##    
-    load.print_listr(uvdata, path_list, filename_list)
+    load.print_listr(uvdata, outpath_list, filename_list)
     for i, pipeline_log in enumerate(log_list):
         pipeline_log.write('\nScan information printed in '  \
                             + filename_list[i] + '_scansum.txt \n')
@@ -582,13 +602,14 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.print_box('Reference antenna search')
     print('\nSearch for reference antenna starts...\n')
     
-    if default_refant == 'NONE':
+    if default_refant == None:
         for pipeline_log in log_list:
             pipeline_log.write('\nChoosing reference antenna with all sources.\n')
 
         try:
-            refant, ant_dict = rant.refant_choose_snr(
-                uvdata, sources, target_list, full_source_list, log_list)
+            refant, ant_dict = rant.refant_choose_snr(uvdata, sources, target_list, 
+                            full_source_list, log_list, search_central=search_central, 
+                            max_scans = max_scan_refant_search)
         except ValueError:
             print('\n\nNO ANTENNAS!\n\n')
             return()
@@ -767,7 +788,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Selecting calibrator scan ##
     # If there is no input calibrator
-    if input_calibrator == 'NONE':
+    if input_calibrator == None:
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
@@ -867,7 +888,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         stats_df['time_10'] = t7 - t6
         
     # If there is an input calibrator
-    if input_calibrator != 'NONE':
+    if input_calibrator != None:
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
@@ -1062,50 +1083,74 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     # If there are no phase reference sources, make the length of the list match the 
     # target list length
-    if phase_ref == ['NONE']:
-        phase_ref = ['NONE'] * len(target_list)
+    if phase_ref == None:
+        phase_ref = [None] * len(target_list)
     
     solint_list = []
     for i, target in enumerate(target_list):
-        if phase_ref[i] == 'NONE':
+        if phase_ref[i] == None:
             target_scans = [x for x in scan_list if x.source_name == target]
 
-            solint, solint_dict = opti.optimize_solint_mm(uvdata, target, \
-                                                       target_scans, refant)
+            if default_solint == None:
 
-            solint_list.append(solint)
+                solint, solint_dict = opti.optimize_solint_mm(uvdata, target, \
+                                                        target_scans, refant, 
+                                                        min_solint = min_solint,
+                                                        max_solint = max_solint)
 
-            if solint_list[i] != 1:
-                log_list[i].write('\nThe optimal solution interval for the target is '\
-                            + str(solint_list[i]) + ' minutes. \n')
-                print('\nThe optimal solution interval for ' + target + ' is ' \
-                    + str(solint_list[i]) + ' minutes. \n')
+                if solint_list[i] != 1:
+                    log_list[i].write('\nThe optimal solution interval for the target is '\
+                                + str(solint_list[i]) + ' minutes. \n')
+                    print('\nThe optimal solution interval for ' + target + ' is ' \
+                        + str(solint_list[i]) + ' minutes. \n')
+                else:
+                    log_list[i].write('\nThe optimal solution interval for the target is '\
+                                + str(solint_list[i]) + ' minute. \n')
+                    print('\nThe optimal solution interval for ' + target + ' is ' \
+                        + str(solint_list[i]) + ' minute. \n')    
+
             else:
-                log_list[i].write('\nThe optimal solution interval for the target is '\
-                            + str(solint_list[i]) + ' minute. \n')
-                print('\nThe optimal solution interval for ' + target + ' is ' \
-                    + str(solint_list[i]) + ' minute. \n')         
+                solint = default_solint
+                solint_dict = {default_solint: 'MANUAL'}
+                log_list[i].write('\nThe optimal solution interval has been manually selected as '\
+                            + str(solint_list[i]) + ' minutes. \n')
+                print('\nThe optimal solution interval has been manually selected as ' \
+                    + str(solint_list[i]) + ' minute. \n') 
+
+            solint_list.append(solint)     
 
             stats_df.at[i, 'solint'] = solint_list[i]
             stats_df.at[i, 'solint_dict'] = json.dumps(solint_dict)        
         else:
             phase_ref_scans = [x for x in scan_list if x.source_name == phase_ref[i]]
 
-            solint, solint_dict = opti.optimize_solint_mm(uvdata, phase_ref[i], \
-                                                    phase_ref_scans, refant)
+            if solint == None:
 
-            solint_list.append(solint)
+                solint, solint_dict = opti.optimize_solint_mm(uvdata, phase_ref[i], \
+                                                        phase_ref_scans, refant, 
+                                                        min_solint = min_solint,
+                                                        max_solint = max_solint)
 
-            if solint_list[i] != 1:
-                log_list[i].write('\nThe optimal solution interval for the phase ' \
-                                + 'calibrator ' + phase_ref[i] + ' is ' + str(solint_list[i]) + ' minutes. \n')
-                print('\nThe optimal solution interval for the phase calibrator ' + phase_ref[i] + ' is ' \
-                    + str(solint_list[i]) + ' minutes. \n')
+                if solint_list[i] != 1:
+                    log_list[i].write('\nThe optimal solution interval for the phase ' \
+                                    + 'calibrator ' + phase_ref[i] + ' is ' + str(solint_list[i]) + ' minutes. \n')
+                    print('\nThe optimal solution interval for the phase calibrator ' + phase_ref[i] + ' is ' \
+                        + str(solint_list[i]) + ' minutes. \n')
+                else:
+                    log_list[i].write('\nThe optimal solution interval for the phase ' \
+                                    + 'calibrator ' + phase_ref[i] + ' is ' + str(solint_list[i]) + ' minute. \n')
+                    print('\nThe optimal solution interval for the phase calibrator ' + phase_ref[i] + ' is ' \
+                        + str(solint_list[i]) + ' minute. \n') 
+
             else:
-                log_list[i].write('\nThe optimal solution interval for the phase ' \
-                                + 'calibrator ' + phase_ref[i] + ' is ' + str(solint_list[i]) + ' minute. \n')
-                print('\nThe optimal solution interval for the phase calibrator ' + phase_ref[i] + ' is ' \
-                    + str(solint_list[i]) + ' minute. \n')   
+                solint = default_solint
+                solint_dict = {default_solint: 'MANUAL'}
+                log_list[i].write('\nThe optimal solution interval has been manually selected as '\
+                            + str(solint_list[i]) + ' minutes. \n')
+                print('\nThe optimal solution interval has been manually selected as ' \
+                    + str(solint_list[i]) + ' minute. \n') 
+
+            solint_list.append(solint)  
 
             stats_df.at[i, 'solint'] = solint_list[i]
             stats_df.at[i, 'solint_dict'] = json.dumps(solint_dict)   
@@ -1133,8 +1178,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         t.log = log_list[i]
         ff_target_list.append(t)
     
-    no_pr_target_list = [t for t in ff_target_list if t.phaseref == 'NONE']
-    pr_target_list = [t for t in ff_target_list if t.phaseref != 'NONE']
+    no_pr_target_list = [t for t in ff_target_list if t.phaseref == None]
+    pr_target_list = [t for t in ff_target_list if t.phaseref != None]
    
     ## NO PHASEREF FRINGE FIT ##
     
@@ -1456,8 +1501,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.write_box(log_list, 'Exporting visibility data')
     disp.print_box('Exporting visibility data')
 
-    no_baseline = expo.data_export(path_list, uvdata, target_list, \
-                                   filename_list, ignore_list,\
+    no_baseline = expo.data_export(outpath_list, uvdata, target_list, \
+                                   filename_list, ignore_list, channel_out,\
                                    flag_frac = flag_edge)
     
 
@@ -1472,7 +1517,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                             + '.uvfits\n')
             
             stats_df.at[i, 'exported_size_mb'] = \
-                os.path.getsize(path_list[i] + '/' + filename_list[i] + '.uvfits')/1024**2
+                os.path.getsize(outpath_list[i] + '/' + filename_list[i] + '.uvfits')/1024**2
 
         else:
             stats_df.at[i, 'exported_size'] = 0
@@ -1482,7 +1527,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                               + 'there are not enough solutions to form a baseline.\n')
                      
 
-    expo.table_export(path_list, uvdata, target_list, filename_list)
+    expo.table_export(outpath_list, uvdata, target_list, filename_list)
     for i, target in enumerate(target_list): 
         log_list[i].write('\n' + target + ' calibration tables exported to /TABLES/' \
                           + filename_list[i] + '.caltab.uvfits\n')
@@ -1514,9 +1559,9 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     if interactive ==  True:
         disp.print_box("Generating interactive plots")
         disp.write_box(log_list, "Generating interactive plots")
-        plot.generate_pickle_plots(uvdata, target_list, path_list)
+        plot.generate_pickle_plots(uvdata, target_list, outpath_list)
 
-        for i, path in enumerate(path_list):
+        for i, path in enumerate(outpath_list):
             target_name = path.split('/')[-1]
             plot_size = sum(
                 f.stat().st_size for f in Path('../tmp/').rglob('*')
@@ -1531,7 +1576,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         print('\nExecution time: {:.2f} s.\n'.format(time.time()-t_interactive))
     
     else:
-        for i, path in enumerate(path_list):
+        for i, path in enumerate(outpath_list):
             stats_df.at[i, 'int_plot_size_mb'] = 0
 
     stats_df['time_19'] = time.time() - t_interactive
@@ -1547,7 +1592,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## Uncalibrated ##
     for i, target in enumerate(target_list):
             try:
-                plot.possm_plotter(path_list[i], uvdata, target, 
+                plot.possm_plotter(outpath_list[i], uvdata, target, 
                                             gainuse = 1, bpver = 0, \
                                             flagver=1, flag_edge=False)
                 log_list[i].write('\nUncalibrated visibilities plotted in /PLOTS/'  \
@@ -1566,7 +1611,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             continue
         if target not in no_baseline:    
             try: 
-                plot.possm_plotter(path_list[i], uvdata, target, 
+                plot.possm_plotter(outpath_list[i], uvdata, target, 
                                             gainuse = 9, bpver = 1, 
                                             flag_edge=False)
                 log_list[i].write('Calibrated visibilities plotted in /PLOTS/' \
@@ -1584,7 +1629,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             continue
         if target not in no_baseline:
             try:
-                plot.uvplt_plotter(path_list[i], uvdata, target)
+                plot.uvplt_plotter(outpath_list[i], uvdata, target)
                 log_list[i].write('UV coverage plotted in /PLOTS/' \
                                 + filename_list[i] + '_UVPLT.ps\n')
                 print('UV coverage plotted in /PLOTS/' + filename_list[i] + '_UVPLT.ps\n')
@@ -1599,7 +1644,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             continue
         if target not in no_baseline:
             try:
-                plot.vplot_plotter(path_list[i], uvdata, target, 9)   
+                plot.vplot_plotter(outpath_list[i], uvdata, target, 9)   
                 log_list[i].write('Visibilities as a function of time plotted in /PLOTS/' \
                                 + filename_list[i]  + '_VPLOT.ps\n')
                 print('Visibilities as a function of time plotted in /PLOTS/' \
@@ -1612,11 +1657,11 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ## Plot visibilities as a function of uv distance of target ##
     if interactive == False:
         plot.generate_pickle_radplot(uvdata, [t for t in  target_list \
-                if t not in ignore_list and t not in no_baseline], path_list)
+                if t not in ignore_list and t not in no_baseline], outpath_list)
 
     for i, target in enumerate(target_list):
         if target not in ignore_list and target not in no_baseline:
-            target_name = path_list[i].split('/')[-1]
+            target_name = outpath_list[i].split('/')[-1]
             fig = pickle.load(open(f'../tmp/{target_name}.radplot.pickle', 'rb'))
             # Keep the color scheme in black and white, for consistency with other plots
             for ax in fig.get_axes():
@@ -1642,7 +1687,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                     line.set_rasterized(True)
 
             fig.tight_layout()
-            fig.savefig(f'{path_list[i]}/PLOTS/{filename_list[i]}_RADPLOT.pdf',
+            fig.savefig(f'{outpath_list[i]}/PLOTS/{filename_list[i]}_RADPLOT.pdf',
                 bbox_inches='tight', dpi=330, format='pdf')
 
             log_list[i].write('Visibilities as a function of uv-distance plotted in /PLOTS/' \
@@ -1651,7 +1696,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
                             + filename_list[i]  + '_RADPLOT.ps\n')        
         
     for i, target in enumerate(target_list):
-        plot_size = sum(f.stat().st_size for f in Path(path_list[i] + '/PLOTS/').rglob('*') if f.is_file())
+        plot_size = sum(f.stat().st_size for f in Path(outpath_list[i] + '/PLOTS/').rglob('*') if f.is_file())
         stats_df.at[i, 'plot_size_mb'] = plot_size / 1024**2
 
     t15 = time.time()
@@ -1672,7 +1717,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     ######################## PRINT STATS ########################
 
     stats_df['total_time'] = tf - t_i
-    for i, path in enumerate(path_list):
+    for i, path in enumerate(outpath_list):
         stats_df.transpose().to_csv(f'{path}/{filename_list[i]}.stats.csv')
 
     ######################## PRINT STATS ######################## 
@@ -1688,23 +1733,42 @@ def pipeline(input_dict):
     ascii_logo = open('../GUI/ascii_logo_string.txt', 'r').read()
 
     # Read the input dictionary
+    AIPS.userno = input_dict['userno']
+    disk_number = input_dict['disk']
     filepath_list = input_dict['paths']
-    userno = input_dict['userno'] 
-    AIPS.userno = userno
-    target_list = input_dict['targets'] 
-    disk_number = input_dict['disk'] 
-    inp_cal = input_dict['calib'] 
-    load_all = input_dict['load_all'] 
-    shifts = input_dict['shifts'] 
-    def_refant = input_dict['refant'] 
-    output_directory = input_dict['output_directory'] 
-    flag_edge = input_dict['flag_edge']
+    target_list = input_dict['targets']
+    output_directory = input_dict['output_directory']
+    # Calibration options
+    inp_cal = input_dict['calib']
+    calib_all = input_dict['calib_all']
     phase_ref = input_dict['phase_ref']
+    # Loading options
+    load_all =  input_dict['load_all']
+    def_selfreq = input_dict['freq_sel']
+    subarray = input_dict['subarray']
+    shifts = input_dict['shifts']
+    # Reference antenna options
+    def_refant = input_dict['refant']
+    def_refant_list = input_dict['refant_list']
+    search_central = input_dict['search_central']
+    max_scan_refant_search = input_dict['max_scan_refant_search']
+    # Fringe options
+    def_solint = input_dict['solint']
+    min_solint = input_dict['min_solint']
+    max_solint = input_dict['max_solint']
+    # Export options
+    channel_out = input_dict['channel_out']
+    flag_edge = input_dict['flag_edge']
+    # Plotting options
     interactive = input_dict['interactive']
 
 
     ## Clean tmp directory ##
     os.system('rm ../tmp/*')
+
+    ## If calibrate all is selected => load all is also selected
+    if calib_all == True:
+        load_all == True
 
     ## Check for multiband datasets ##
     # In IDs    
@@ -1743,13 +1807,9 @@ def pipeline(input_dict):
                 # Create a new variable so that the different ids are independent
                 if load_all:
                     load_all_id = True
+                    sources = [x.name for x in full_source_list]
                 else:
                     load_all_id = False
-                
-                if load_all:
-                    sources = [x.name for x in full_source_list]
-
-                else:
                     if full_source_list[0].band not in ['S', 'C', 'X', 'U', 'K', 'Ka']:
                         load_all_id = True
                         sources = [x.name for x in full_source_list]
@@ -1759,7 +1819,7 @@ def pipeline(input_dict):
                             calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                             sources = calibs.copy()
                             sources += target_list
-                            sources += [x for x in phase_ref if x != 'NONE']
+                            sources += [x for x in phase_ref if x != None]
                         except ValueError:
                             print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                             load_all_id = True
@@ -1792,14 +1852,18 @@ def pipeline(input_dict):
                 if os.path.exists(project_dir) == False:
                     os.system('mkdir ' + project_dir)
 
+                # If calibrate all is selected:
+                if calib_all == True:
+                    target_list = sources
+
                 # Create subdirectories for the targets and DELETE EXISTING ONES
                 # Also, create the pipeline log file of each target
                 filename_list = target_list.copy()
                 log_list = target_list.copy()
-                path_list = target_list.copy()
+                outpath_list = target_list.copy()
                 for i, name in enumerate(filename_list):
                     filename_list[i] = load.set_name(filepath_list_ID[0], name, klass_1)
-                    path_list[i] = project_dir + '/' + filename_list[i]
+                    outpath_list[i] = project_dir + '/' + filename_list[i]
                     if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                         os.system('rm -rf ' + project_dir + '/' + filename_list[i])
                     os.system('mkdir ' + project_dir + '/' + filename_list[i])
@@ -1812,16 +1876,14 @@ def pipeline(input_dict):
                     log_list[i].write(ascii_logo + '\n')
 
                 stats_df['t_0'] = time.time() - t_0
-                
+
                 ## START THE PIPELINE ##    
-                calibrate(filepath_list_ID, aips_name_short, sources, full_source_list, \
-                            target_list, filename_list, log_list, path_list, \
-                            disk_number, klass = klass_1, bif = bif, eif = eif,\
-                            multi_id = True, selfreq = group[0]/1e6,\
-                            default_refant = def_refant, input_calibrator = inp_cal, \
-                            load_all = load_all_id, shift_coords = shifts, \
-                            phase_ref = phase_ref, flag_edge = flag_edge, \
-                            interactive = interactive, stats_df = stats_df)     
+                calibrate(filepath_list_ID, filename_list, outpath_list, log_list, target_list, 
+                  sources, load_all_id, full_source_list, disk_number, aips_name_short, klass_1,
+                  multifreq_id[0], group[0]/1e6, bif, eif, def_refant, def_refant_list, search_central,
+                  max_scan_refant_search, def_solint, min_solint, max_solint, phase_ref,
+                  inp_cal, subarray, shifts, channel_out, flag_edge, interactive, 
+                  stats_df)     
 
         return() # STOP the pipeline. This needs to be tweaked.
 
@@ -1859,7 +1921,7 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != 'NONE']
+                    sources += [x for x in phase_ref if x != None]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
@@ -1886,14 +1948,18 @@ def pipeline(input_dict):
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 
+        # If calibrate all is selected:
+        if calib_all == True:
+            target_list = sources
+
         # Create subdirectories for the targets and DELETE EXISTING ONES
         # Also, create the pipeline log file of each target
         filename_list = target_list.copy()
         log_list = target_list.copy()
-        path_list = target_list.copy()
+        outpath_list = target_list.copy()
         for i, name in enumerate(filename_list):
             filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
-            path_list[i] = project_dir + '/' + filename_list[i]
+            outpath_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
             os.system('mkdir ' + project_dir + '/' + filename_list[i])
@@ -1908,13 +1974,14 @@ def pipeline(input_dict):
 
         stats_df['t_0'] = time.time() - t_0        
         ## START THE PIPELINE ##
-        calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list, \
-                filename_list, log_list, path_list, \
-                disk_number, klass = klass_1,\
-                bif = multifreq_if[1], eif = multifreq_if[2], \
-                default_refant = def_refant, input_calibrator = inp_cal, \
-                load_all = load_all, shift_coords = shifts, flag_edge = flag_edge, \
-                phase_ref = phase_ref, interactive = interactive,  stats_df = stats_df)
+        calibrate(filepath_list, filename_list, outpath_list, log_list, target_list, 
+                  sources, load_all, full_source_list, disk_number, aips_name_short, klass_1,
+                  multifreq_id[0], 0, multifreq_if[1], multifreq_if[2], def_refant, def_refant_list, search_central,
+                  max_scan_refant_search, def_solint, min_solint, max_solint, phase_ref,
+                  inp_cal, subarray, shifts, channel_out, flag_edge, interactive, 
+                  stats_df)   
+        
+        
         
 
         ## SECOND FREQUENCY ##
@@ -1940,7 +2007,7 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != 'NONE']
+                    sources += [x for x in phase_ref if x != None]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
@@ -1968,14 +2035,18 @@ def pipeline(input_dict):
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 
+        # If calibrate all is selected:
+        if calib_all == True:
+            target_list = sources
+
         # Create subdirectories for the targets and DELETE EXISTING ONES
         # Also, create the pipeline log file of each target
         filename_list = target_list.copy()
         log_list = target_list.copy()
-        path_list = target_list.copy()
+        outpath_list = target_list.copy()
         for i, name in enumerate(filename_list):
             filename_list[i] = load.set_name(filepath_list[0], name, klass_2)
-            path_list[i] = project_dir + '/' + filename_list[i]
+            outpath_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
             os.system('mkdir ' + project_dir + '/' + filename_list[i])
@@ -1990,13 +2061,12 @@ def pipeline(input_dict):
 
         stats_df['t_0'] = time.time() - t_0           
         ## START THE PIPELINE ##  
-        calibrate(filepath_list, aips_name_short, sources, full_source_list, target_list, \
-                filename_list, log_list, path_list, \
-                disk_number, klass = klass_2, \
-                bif = multifreq_if[3], eif = multifreq_if[4], default_refant = def_refant, \
-                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts,
-                flag_edge = flag_edge, phase_ref = phase_ref, \
-                interactive = interactive, stats_df = stats_df) 
+        calibrate(filepath_list, filename_list, outpath_list, log_list, target_list, 
+                sources, load_all, full_source_list, disk_number, aips_name_short, klass_2,
+                multifreq_id[0], 0, multifreq_if[3], multifreq_if[4], def_refant, def_refant_list, search_central,
+                max_scan_refant_search, def_solint, min_solint, max_solint, phase_ref,
+                inp_cal, subarray, shifts, channel_out, flag_edge, interactive, 
+                stats_df) 
 
         # End the pipeline
         return()
@@ -2027,7 +2097,7 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != 'NONE']
+                    sources += [x for x in phase_ref if x != None]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
@@ -2054,14 +2124,18 @@ def pipeline(input_dict):
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 
+        # If calibrate all is selected:
+        if calib_all == True:
+            target_list = sources
+
         # Create subdirectories for the targets and DELETE EXISTING ONES
         # Also, create the pipeline log file of each target
         filename_list = target_list.copy()
         log_list = target_list.copy()
-        path_list = target_list.copy()
+        outpath_list = target_list.copy()
         for i, name in enumerate(filename_list):
             filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
-            path_list[i] = project_dir + '/' + filename_list[i]
+            outpath_list[i] = project_dir + '/' + filename_list[i]
             
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
@@ -2077,9 +2151,9 @@ def pipeline(input_dict):
 
         stats_df['t_0'] = time.time() - t_0            
         ## START THE PIPELINE ##               
-        calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
-                filename_list, log_list, path_list, \
-                disk_number, klass = klass_1, default_refant = def_refant, \
-                input_calibrator = inp_cal, load_all = load_all, shift_coords = shifts,
-                flag_edge = flag_edge, phase_ref = phase_ref, \
-                interactive = interactive, stats_df = stats_df)   
+        calibrate(filepath_list, filename_list, outpath_list, log_list, target_list, 
+                  sources, load_all, full_source_list, disk_number, aips_name, klass_1,
+                  multifreq_id[0], 0, 0, 0, def_refant, def_refant_list, search_central,
+                  max_scan_refant_search, def_solint, min_solint, max_solint, phase_ref,
+                  inp_cal, subarray, shifts, channel_out, flag_edge, interactive, 
+                  stats_df)   
