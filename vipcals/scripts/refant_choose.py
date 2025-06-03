@@ -1,3 +1,4 @@
+import gc
 import random
 import warnings
 import numpy as np
@@ -79,8 +80,13 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
 
     wuvdata = wizard.AIPSUVData(data.name, data.klass, data.disk, \
                                 data.seq)  # Wizardry version of the data
+    
+    inttime =  float(round(min([x.inttim for x  in wuvdata]), 2))   # Minimum integration time, needed
+                                                                # for KRING
 
     # Create scan list
+    time_to_antennas = index_visibility_antennas(wuvdata, bad_antennas)
+    flagged_antennas = get_flagged_antennas(data)
     scan_list = []
     for i, scans in enumerate(nx_table):
         s = Scan()
@@ -89,10 +95,13 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
         s.time_interval = scans['time_interval']
         s.len = scans['time_interval']
         s.source_id = scans['source_id']
-        s.get_antennas(wuvdata, bad_antennas)
-        if len(is_flagged_scan(data, s)) < 2:
+        s.get_antennas(time_to_antennas)
+        if len(is_flagged_scan(s, flagged_antennas)) < 2:
             continue
         scan_list.append(s)
+
+    # Free memory
+    del wuvdata
 
     # Give scans a source_name
     for sc in scan_list:
@@ -131,12 +140,17 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
             if scan.id not in antennas_dict[ant].scans_obs:
                 bad_antennas.append(ant)
         
-    for element in list(set(bad_antennas)):
-        del antennas_dict[element]
+    if set(antennas_dict.keys()).intersection(set(bad_antennas)) == set(antennas_dict.keys()):
+        for pipeline_log in log_list:
+            pipeline_log.write('\nWARNING: No antenna was available for all target scans\n')
+        print('\nWARNING: No antenna was available for all target scans\n')
+    else:
+        for element in list(set(bad_antennas)):
+            del antennas_dict[element]
 
-    # If at this stage there are no antennas, raise Error
-    if len(antennas_dict) == 0:
-        raise ValueError("No antennas are available on all target sources scans.")
+    ## If at this stage there are no antennas, raise Error
+    #if len(antennas_dict) == 0:
+    #    raise ValueError("No antennas are available on all target sources scans.")
 
     # Define the dictionary with the antennas
     snr_dict = {}
@@ -178,6 +192,7 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
     for ant in antennas_dict:
         if ant in snr_dict.keys():
             refant_fring(data, ant, selected_scans)
+            #refant_kring(data, ant, selected_scans, inttime)
             # Check the last SN table and store the median SNR (computed over IFs)
             last_table = data.table('SN', 0)
             for entry in last_table:
@@ -235,6 +250,7 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
     current_SN = data.table_highver('SN')
     
     for n, scan in enumerate(selected_scans):
+        gc.collect()
 
         init_time = ddhhmmss(scan.time - scan.time_interval/1.95)
         final_time = ddhhmmss(scan.time + scan.time_interval/1.95)
@@ -256,7 +272,7 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
         refant_fring.aparm[1] = 2    # At least 2 antennas per solution
         refant_fring.aparm[5] = 0    # Solve each IFs separately
         refant_fring.aparm[6] = 2    # Amount of information printed
-        refant_fring.aparm[7] = 5    # SNR cutoff   
+        refant_fring.aparm[7] = 1    # SNR cutoff   
         
         refant_fring.dparm[1] = 1        # Number of baseline combinations searched
         refant_fring.dparm[2] = delay_w   # Delay window (ns) 0 => Full Nyquist range
@@ -265,6 +281,9 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
         
         refant_fring.snver = 0       # One more than the highest existing version
         
+        # print(vars(refant_fring))
+        refant_fring.flagver = -1
+
         refant_fring.go()
 
     # Merge the tables in one
@@ -291,25 +310,133 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
         data.zap_table('SN', current_SN+n+2) 
 
 
-def is_flagged_scan(data, scan):
-    """Check if all baselines from a scan have been flagged due to missing TSYS/GC.
+def get_flagged_antennas(data):
+    """Return a set of antennas flagged due to 'NO TSYS/GC'."""
+    if [1, 'AIPS FG'] not in data.tables:
+        return set()
+    fg_table = data.table('FG', 0)
+    return {
+        row['ants'][0] for row in fg_table
+        if row['reason'].strip() == 'NO TSYS/GC'
+    }
+
+def is_flagged_scan(scan, flagged_antennas):
+    """Filter out flagged antennas from the scan."""
+    return [a for a in scan.antennas if a not in flagged_antennas]
+
+
+def index_visibility_antennas(wuvdata, bad_antennas):
+    """Build a time-indexed mapping of antennas participating in visibilities.
+
+    Iterates over all visibilities in the given AIPSUVData object and records the
+    antennas involved at each timestamp, excluding autocorrelations and any antennas
+    marked as bad. This mapping can be used to quickly determine which antennas
+    were observing during specific time intervals, avoiding repeated iteration over
+    the full visibility dataset.
+
+    :param wuvdata: Wizardry AIPSUVData object
+    :type wuvdata: wizard.AIPSUVData
+    :param bad_antennas: List of antenna IDs to exclude
+    :type bad_antennas: list of int
+    :return: Dictionary mapping visibility timestamps to sets of active antenna IDs
+    :rtype: dict[float, set[int]]
+    """    
+    time_to_antennas = defaultdict(set)
+    bad_set = set(bad_antennas)
+
+    for vis in wuvdata:
+        ant1, ant2 = vis.baseline
+        if ant1 == ant2 or ant1 in bad_set or ant2 in bad_set:
+            continue
+        time_to_antennas[vis.time].update((ant1, ant2))
+
+    return time_to_antennas
+
+
+def refant_kring(data, refant, selected_scans, inttime, delay_w = 1000, \
+                       rate_w = 200):
+    """TEST
 
     :param data: visibility data
     :type data: AIPSUVData
-    :param scan: scan where the baselines will be checked
-    :type scan: :class:`~vipcals.scripts.helper.Scan` object
+    :param refant: reference antenna number
+    :type refant: int
+    :param selected_scans: list of scans where to compute the SNR
+    :type selected_scans: list of :class:`~vipcals.scripts.helper.Scan` objects
+    :param delay_w: delay window in ns in which the search is performed, defaults to 1000
+    :type delay_w: int, optional
+    :param rate_w: rate window in hz in which the search is performed, defaults to 200
+    :type rate_w: int, optional  
     """    
-    fg_table = data.table('FG', 0)
+    # Get the current highest SN table
+    current_SN = data.table_highver('SN')
+    
+    for n, scan in enumerate(selected_scans):
 
-    flagged_antennas = []
+        # Set as solint the scan length
+        solint = scan.time_interval*24*60
 
-    for row in fg_table:
-        reason = row['reason'].strip()
-        if reason.strip() == 'NO TSYS/GC':
-            flagged_antennas.append(row['ants'][0])
+        if solint > 10:
+            solint = 9.9
 
-    flagged_antennas = list(set(flagged_antennas))
+        init_time = ddhhmmss(scan.time - scan.time_interval/1.95)
+        final_time = ddhhmmss(scan.time + scan.time_interval/1.95)
+        timeran = [None] + init_time.tolist() + final_time.tolist()
 
-    available_antennas = [a for a in scan.antennas if a not in flagged_antennas]
 
-    return available_antennas
+        refant_kring = AIPSTask('kring')
+        refant_kring.inname = data.name
+        refant_kring.inclass = data.klass
+        refant_kring.indisk = data.disk
+        refant_kring.inseq = data.seq
+
+        refant_kring.timeran = timeran
+
+        refant_kring.refant = refant
+        refant_kring.search = [None, refant]
+
+        refant_kring.docalib = 1    # Apply CL tables
+        refant_kring.gainuse = 0    # Apply the latest CL table
+
+        refant_kring.solint = solint
+
+        refant_kring.soltype = 'NOLS' # Stop at the FFT step
+        refant_kring.solmode = 'NRD'
+
+        refant_kring.cparm[1] = inttime           # Minimum integration time of the data
+        refant_kring.cparm[2] = delay_w     # Delay window (ns) 0 => Full Nyquist range
+        refant_kring.cparm[3] = rate_w      # Rate window (mHz) 0 => Full Nyquist range
+        refant_kring.cparm[4] = 5           # SNR cutoff
+        refant_kring.cparm[5] = 1           # Number of baseline combinations searched
+        refant_kring.cparm[6] = 1           # Use only the antennas in search as refants
+        
+        refant_kring.snver = 0      # One more than the highest existing version
+        
+        refant_kring.prtlev = 2     # Amount of information printed
+
+        print(vars(refant_kring))
+
+        refant_kring.go()
+
+    # Merge the tables in one
+
+    if n > 0:
+        clcal_merge = AIPSTask('clcal')
+        clcal_merge.inname = data.name
+        clcal_merge.inclass = data.klass
+        clcal_merge.indisk = data.disk
+        clcal_merge.inseq = data.seq
+
+        clcal_merge.opcode = 'MERG'
+        clcal_merge.snver = current_SN + 1 # First table to merge
+        clcal_merge.invers = current_SN + n + 1 # Last table to merge
+        clcal_merge.refant = refant
+
+        clcal_merge.go()
+
+    # remove previous tables and leave only the merged one
+    if n > 0:
+        for i in range (current_SN+1, current_SN+n+2):
+            data.zap_table('SN', i)
+        tacop(data, 'SN', current_SN+n+2, current_SN+1)
+        data.zap_table('SN', current_SN+n+2) 
