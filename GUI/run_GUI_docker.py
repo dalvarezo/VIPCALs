@@ -94,9 +94,9 @@ class PipelineWorker(QThread):
     def run(self):
         """Runs mock_pipeline.py in a subprocess and streams output."""
         process = subprocess.Popen(
-            #["ParselTongue", "../vipcals/__main__.py",
-            #"../tmp/temp.json"],
-            ["cat", "../tmp/temp.json"],
+            ["ParselTongue", "../vipcals/__main__docker.py",
+            "../tmp/temp.json"],
+            #["cat", "../tmp/temp.json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -194,8 +194,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
 
         self.fields = {
             # Basic inputs
-            "userno": 2 ,#self.userno_line,
-            "disk": 1 ,# self.disk_line,
+            "userno": self.userno_line,
+            "disk": self.disk_line,
             "paths": self.filepath_line,
             "targets": self.target_line,
             "output_directory": self.output_line,
@@ -240,14 +240,6 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         
     def start_pipeline(self):
         """Switch to RunWindow and execute pipeline."""
-        # Get list of targets from line (assuming comma-separated or space-separated)
-        targets_input = self.target_line.text()
-        target_list = [t.strip() for t in targets_input.replace(",", " ").split() if t.strip()]
-        
-        # Create a new PlotsWindow with this target list
-        self.main_window.plots_page = PlotsWindow(self.main_window, target_list)
-        self.main_window.stack.addWidget(self.main_window.plots_page)
-
         # Show run page
         self.main_window.stack.setCurrentWidget(self.main_window.run_page)  # Show RunWindow
         self.main_window.run_page.RunPipeline()  # Call the function when the button is clicked
@@ -324,6 +316,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 inputs[label] = self.loadall_chck.isChecked()
             elif label == "calib_all":
                 inputs[label] = self.caliball_chck.isChecked()
+            elif label == "search_central":
+                inputs[label] = self.centrant_chck.isChecked()
             elif label == "subarray":
                 inputs[label] = self.subarray_chck.isChecked()
             elif label == "interactive":
@@ -464,6 +458,7 @@ class RunWindow(qtw.QWidget, Ui_run_window):
         self.worker = PipelineWorker()
         self.worker.output_received.connect(self.append_colored_output)
         self.worker.error_received.connect(self.append_colored_output)   # Live error update
+        self.worker.process_finished.connect(self.prepare_plot_window)  # Show buttons when finished
         self.worker.process_finished.connect(self.show_buttons)  # Show buttons when finished
 
         self.worker.start()  # Start pipeline process
@@ -472,6 +467,22 @@ class RunWindow(qtw.QWidget, Ui_run_window):
         """Show plots and return buttons after process finishes."""
         self.plots_btn.setVisible(True)
         self.return_btn.setVisible(True)
+    
+    def prepare_plot_window(self):
+        # Get list of targets from the /vipcals/tmp directory
+        pattern = pattern = re.compile(r'^(.*?_\d+G)_')
+        target_list = set()
+
+        for filename in os.listdir('../tmp/'):
+            match = pattern.match(filename)
+            if match:
+                target_list.add(match.group(1))
+
+        target_list = sorted(target_list)
+        
+        # Create a new PlotsWindow with this target list
+        self.main_window.plots_page = PlotsWindow(self.main_window, target_list)
+        self.main_window.stack.addWidget(self.main_window.plots_page)
 
     def append_colored_output(self, text):
         if not text:
@@ -515,7 +526,7 @@ class PlotsWindow(qtw.QWidget):
         button_dict = {}
         # Create group boxes dynamically
         for i, target in enumerate(target_list):
-            group_box = qtw.QGroupBox(target)
+            group_box = qtw.QGroupBox(target.split('_')[0]+' - ' + target.split('_')[-1])
 
             group_box.setStyleSheet(f"""
                 QGroupBox {{
@@ -702,13 +713,14 @@ class PossmWindow(qtw.QMainWindow):
         self.cl_selector = qtw.QComboBox()
 
         # Dynamically find all CL options from filenames
-        pattern = re.compile(rf"{re.escape(self.target)}_(CL\d+).*\.possm\.npz$")
+        pattern = re.compile(rf"{re.escape(self.target)}.*_CL(\d+)(?:_[^.]*)?\.possm\.npz$")
         cl_options = []
 
         for file in glob.glob(f"../tmp/{self.target}_*.possm.npz"):
-            match = pattern.search(file.split("/")[-1])  # Match CLx without considering "_BP"
+            match = pattern.search(file.split("/")[-1])
             if match:
-                cl_options.append(match.group(1))  # Append the matched "CLx" (e.g., "CL1")
+                cl_options.append(f"CL{match.group(1)}")
+
 
         # Sort CL options numerically (e.g., CL1, CL2, CL10)
         cl_options = sorted(set(cl_options), key=lambda x: int(x[2:]))
@@ -793,58 +805,53 @@ class PossmWindow(qtw.QMainWindow):
             self.plot_data()
 
     def load_possm_data(self):
-        # Extract the number after "CL" from self.selected_cl, e.g., "CL4" -> 4
+        """Load POSSM data for the selected target and CL version."""
         cl_number = re.search(r'CL(\d+)', self.selected_cl).group(1)
+        target_prefix = f"{self.target}_"
+        cl_label = f"CL{cl_number}"
 
-        # Find the matching files in the directory
-        filenames = []
-        for file in os.listdir('../tmp'):
-            if file.endswith('.possm.npz') and f'CL{cl_number}' in file:
-                filenames.append(file)
-        
+        # Filter files that match both the current target and CL version
+        filenames = [
+            file for file in os.listdir('../tmp')
+            if file.startswith(target_prefix) and f"_{cl_label}" in file and file.endswith('.possm.npz')
+        ]
+
         if not filenames:
-            qtw.QMessageBox.warning(self, "File not found", f"No files found for CL{cl_number}")
+            qtw.QMessageBox.warning(self, "File not found", f"No files found for {self.target} {cl_label}")
             self.possm_data = {}
             self.plot_keys = []
             self.bl_selector.clear()
             self.selected_baseline = None
             return
 
-        # Try to load the first matching file (you can modify this if you need to load a specific one)
         filename = f'../tmp/{filenames[0]}'
-        try:
-            #with open(filename, 'rb') as file:
-            #    self.possm_data = pickle.load(file)
+        self.possm_data = {}
 
-            loaded_dict =  np.load(filename, allow_pickle = True)
+        try:
+            loaded_dict = np.load(filename, allow_pickle=True)
 
             for key in loaded_dict:
-                # Try to convert back to tuple if it's a string representation of a tuple
+                # Safely evaluate only tuple-like keys
                 try:
-                    original_key = eval(key)  # This converts string '("A", "B")' back to the tuple ('A', 'B')
-                except:
-                    original_key = key  # If it's not a tuple, just use the string as is
+                    original_key = eval(key) if key.startswith("(") and key.endswith(")") else key
+                except Exception:
+                    original_key = key
                 self.possm_data[original_key] = loaded_dict[key]
 
-            # self.possm_data = {k: loaded_dict[k] for k in loaded_dict}
-
             self.plot_keys = [key for key in self.possm_data.keys() if isinstance(key, tuple)]
-            self.plot_keys.sort()  # Ensure consistent ordering
+            self.plot_keys.sort()
 
-            # ⬇️ Preserve previous baseline if possible
             prev_baseline = self.selected_baseline
 
             self.bl_selector.clear()
             for key in self.plot_keys:
                 self.bl_selector.addItem(f"{key[0]}-{key[1]}")
 
-            # Try to restore previously selected baseline
             if prev_baseline in self.plot_keys:
                 self.selected_baseline = prev_baseline
             else:
                 self.selected_baseline = self.plot_keys[0] if self.plot_keys else None
 
-            # Update combo box and index
             if self.selected_baseline:
                 self.bl_selector.setCurrentText(f"{self.selected_baseline[0]}-{self.selected_baseline[1]}")
                 self.current_plot_index = self.plot_keys.index(self.selected_baseline)
@@ -855,6 +862,7 @@ class PossmWindow(qtw.QMainWindow):
             self.plot_keys = []
             self.bl_selector.clear()
             self.selected_baseline = None
+
 
 
 
@@ -1045,13 +1053,25 @@ def interactive_possm(POSSM, bline, scan, possm_fig):
     n = scan
     bl = bline
 
-    reals = np.array(POSSM[bl][n])[:,:,:,:,0]
-    imags = np.array(POSSM[bl][n])[:,:,:,:,1]
-    weights = np.array(POSSM[bl][n])[:,:,:,:,2]
-    avg_reals = sum(reals*weights)/sum(weights)
-    avg_imags = sum(imags*weights)/sum(weights) 
-    amps = np.sqrt(avg_reals**2 + avg_imags**2).flatten()
-    phases = (np.arctan2(avg_imags, avg_reals) * 360/(2*np.pi)).flatten()
+    reals = np.array(POSSM[bl][n])[:, :, :, :, 0]
+    imags = np.array(POSSM[bl][n])[:, :, :, :, 1]
+    weights = np.array(POSSM[bl][n])[:, :, :, :, 2]
+
+    # Compute sums
+    weighted_reals = reals * weights
+    weighted_imags = imags * weights
+    sum_weights = np.sum(weights, axis=0)  # Shape: [?, ?, ?]
+
+    weighted_reals = np.array(weighted_reals, dtype=float)
+    weighted_imags = np.array(weighted_imags, dtype=float)
+    sum_weights = np.array(sum_weights, dtype=float)
+
+
+    avg_reals = np.divide(np.sum(weighted_reals, axis=0), sum_weights)
+    avg_imags = np.divide(np.sum(weighted_imags, axis=0), sum_weights)
+
+    amps = np.sqrt((avg_reals**2 + avg_imags**2).astype(float)).flatten()
+    phases = (np.arctan2(avg_imags.astype(float), avg_reals.astype(float)) * 360/(2*np.pi)).flatten()
     
     if_freq = POSSM['if_freq']
     chan_freq = []
