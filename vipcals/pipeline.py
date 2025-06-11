@@ -244,7 +244,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         for pipeline_log in log_list:
             pipeline_log.write('\nGain curve information was not available in the '\
                                + 'file, it has been retrieved from\n' + good_url \
-                               + '\nGC#1 created.\n\n')
+                               + '\n\nGC#1 created.\n\n')
             
         # Move the gain curve file to the target folders
         for path in outpath_list:
@@ -254,7 +254,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         os.system('rm ../tmp/*')        
         
         print('\nGain curve information was not available in the file, it has '\
-          + 'been retrieved from\n' + good_url + '\nGC#1 created.\n')
+          + 'been retrieved from\n' + good_url + '\n\nGC#1 created.\n')
         stats_df['need_gc'] = True
         
     
@@ -788,7 +788,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
     ## Selecting calibrator scan ##
     # If there is no input calibrator
-    if input_calibrator == 'NONE':
+    if input_calibrator ==  None:
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
@@ -938,7 +938,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         stats_df['time_10'] = t7 - t6
         
     # If there is an input calibrator
-    if input_calibrator != 'NONE':
+    if input_calibrator != None:
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
@@ -949,7 +949,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         
         ## Get a list of scans ordered by SNR ##
         
-        scan_list, no_calib_antennas = cali.snr_scan_list_v2(uvdata)
+        scan_list = cali.snr_scan_list_v2(uvdata)
         
         ## Get the scans for the input calibrator ## 
         calibrator_scans = [x for x in scan_list if x.source_name == input_calibrator]
@@ -1160,6 +1160,8 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                                                         target_scans, refant, 
                                                         min_solint = min_solint,
                                                         max_solint = max_solint)
+                
+                solint_list.append(solint) 
 
                 if solint_list[i] != 1:
                     log_list[i].write('\nThe optimal solution interval for the target is '\
@@ -1178,9 +1180,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                 log_list[i].write('\nThe optimal solution interval has been manually selected as '\
                             + str(solint_list[i]) + ' minutes. \n')
                 print('\nThe optimal solution interval has been manually selected as ' \
-                    + str(solint_list[i]) + ' minute. \n') 
-
-            solint_list.append(solint)     
+                    + str(solint_list[i]) + ' minute. \n')     
 
             stats_df.at[i, 'solint'] = solint_list[i]
             stats_df.at[i, 'solint_dict'] = json.dumps(solint_dict)        
@@ -1245,7 +1245,6 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     pr_target_list = [t for t in ff_target_list if t.phaseref != None]
    
     ## NO PHASEREF FRINGE FIT ##
-    
     for i, target in enumerate(no_pr_target_list): 
 
         r =  stats_df.index[stats_df['target'] == target.name][0]
@@ -1800,6 +1799,8 @@ def pipeline(input_dict):
     disk_number = input_dict['disk']
     filepath_list = input_dict['paths']
     target_list = input_dict['targets']
+    if target_list == ['']:
+        target_list = []
     output_directory = input_dict['output_directory']
     # Calibration options
     inp_cal = input_dict['calib']
@@ -1832,6 +1833,7 @@ def pipeline(input_dict):
     ## If calibrate all is selected => load all is also selected
     if calib_all == True:
         load_all == True
+        
 
     ## Check for multiband datasets ##
     # In IDs    
@@ -1840,11 +1842,8 @@ def pipeline(input_dict):
     # If there are multiple IDs:
     if multifreq_id[0] == True:
         for id in multifreq_id[1]:
-            ############################################
-            ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
-            ############################################
+
             t_0 = time.time()
-            stats_df = pd.DataFrame({"target": target_list})
 
             ## Select files to work with
             filepath_list_ID = []
@@ -1882,15 +1881,12 @@ def pipeline(input_dict):
                             calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                             sources = calibs.copy()
                             sources += target_list
-                            sources += [x for x in phase_ref if x != None]
+                            if phase_ref != None:
+                                sources += [x for x in phase_ref]
                         except ValueError:
                             print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                             load_all_id = True
                             sources = [x.name for x in full_source_list]
-
-                # STATS #
-                stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))            
-                stats_df['n_of_freqs'] = len(freq_groups)
 
                 if group[0] > 1e10:
                     klass_1 = str(group[0])[:2] + 'G'
@@ -1915,9 +1911,17 @@ def pipeline(input_dict):
                 if os.path.exists(project_dir) == False:
                     os.system('mkdir ' + project_dir)
 
+
                 # If calibrate all is selected:
                 if calib_all == True:
                     target_list = sources
+
+                ############################################
+                ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
+                ############################################
+                stats_df = pd.DataFrame({"target": target_list})
+                stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))            
+                stats_df['n_of_freqs'] = len(freq_groups)
 
                 # Create subdirectories for the targets and DELETE EXISTING ONES
                 # Also, create the pipeline log file of each target
@@ -1962,11 +1966,7 @@ def pipeline(input_dict):
 
         ## FIRST FREQUENCY ##
 
-        ############################################
-        ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
-        ############################################
         t_0 = time.time()
-        stats_df = pd.DataFrame({"target": target_list})
         
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list, multifreq_if[7])
@@ -1984,15 +1984,12 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != None]
+                    if phase_ref != None:
+                        sources += [x for x in phase_ref]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
                     sources = [x.name for x in full_source_list]
-
-        # STATS #
-        stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
-        stats_df['n_of_freqs'] = 2
 
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
@@ -2014,6 +2011,13 @@ def pipeline(input_dict):
         # If calibrate all is selected:
         if calib_all == True:
             target_list = sources
+
+        ############################################
+        ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
+        ############################################
+        stats_df = pd.DataFrame({"target": target_list})
+        stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
+        stats_df['n_of_freqs'] = 2
 
         # Create subdirectories for the targets and DELETE EXISTING ONES
         # Also, create the pipeline log file of each target
@@ -2049,11 +2053,7 @@ def pipeline(input_dict):
 
         ## SECOND FREQUENCY ##
 
-        ############################################
-        ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
-        ############################################
         t_0 = time.time()
-        stats_df = pd.DataFrame({"target": target_list})
 
         ## Select sources to load ##
         full_source_list = load.get_source_list(filepath_list, multifreq_if[8])
@@ -2070,17 +2070,13 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != None]
+                    if phase_ref != None:
+                        sources += [x for x in phase_ref]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
                     sources = [x.name for x in full_source_list]
 
-         # STATS #
-        stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
-                
-        stats_df['n_of_freqs'] = 2
-        
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
         aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_2
@@ -2101,6 +2097,13 @@ def pipeline(input_dict):
         # If calibrate all is selected:
         if calib_all == True:
             target_list = sources
+
+        ############################################
+        ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
+        ############################################
+        stats_df = pd.DataFrame({"target": target_list})
+        stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
+        stats_df['n_of_freqs'] = 2
 
         # Create subdirectories for the targets and DELETE EXISTING ONES
         # Also, create the pipeline log file of each target
@@ -2137,11 +2140,8 @@ def pipeline(input_dict):
      # If there is only one frequency:  
     if multifreq_id[0] == False and multifreq_if[0] == False:
 
-        ############################################
-        ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
-        ############################################
+
         t_0 = time.time()
-        stats_df = pd.DataFrame({"target": target_list})
         
         klass_1 = multifreq_if[5] + 'G'
         
@@ -2160,15 +2160,12 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != None]
+                    if phase_ref != None:
+                        sources += [x for x in phase_ref]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
                     sources = [x.name for x in full_source_list]
-
-        # STATS #
-        stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
-        stats_df['n_of_freqs'] = 1
 
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
@@ -2190,6 +2187,13 @@ def pipeline(input_dict):
         # If calibrate all is selected:
         if calib_all == True:
             target_list = sources
+
+        ############################################
+        ## KEEP TRACK OF ALL STATS IN A DATAFRAME ##
+        ############################################
+        stats_df = pd.DataFrame({"target": target_list})
+        stats_df['loaded_sources'] =  json.dumps(dict(zip(sources, [x.band_flux for x in full_source_list if x.name in sources])))
+        stats_df['n_of_freqs'] = 1
 
         # Create subdirectories for the targets and DELETE EXISTING ONES
         # Also, create the pipeline log file of each target

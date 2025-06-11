@@ -47,9 +47,9 @@ print = functools.partial(print, flush=True)
 def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, \
              filename_list, log_list, path_list,\
              disk_number, klass = '', seq = 1, bif = 0, eif = 0, \
-             multi_id = False, selfreq = 0, default_refant = 'NONE', \
-             input_calibrator = 'NONE', load_all = False, shift_coords = 'None',
-             flag_edge = 0, phase_ref = ['NONE'], interactive = False, stats_df = None):
+             multi_id = False, selfreq = 0, default_refant = None, \
+             input_calibrator = None, load_all = False, shift_coords = None,
+             flag_edge = 0, phase_ref = [None], interactive = False, stats_df = None):
     """Main workflow of the pipeline 
 
     :param filepath_list: list of paths to the original uvfits/idifits files
@@ -81,21 +81,21 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     :param selfreq: if there are multiple frequency ids, which one to load; defaults to 0
     :type selfreq: int, optional
     :param default_refant: force the pipeline to choose this reference antenna by giving \
-                           its antenna code; defaults to 'NONE'
+                           its antenna code; defaults to None
     :type default_refant: str, optional
     :param input_calibrator: force the pipeline to use this source as calibrator; \
-                             defaults to 'NONE'
+                             defaults to None
     :type input_calibrator: str, optional
     :param load_all: load all sources on the dataset; default = False
     :type load_all: bool, optional
     :param shift_coords: list of new coordinates for the targets, as Astropy SkyCoord \
-                         objects, in case a phase shift was necessary; defaults to 'NONE'
+                         objects, in case a phase shift was necessary; defaults to None
     :type shift_coords: list of SkyCoord
     :param flag_edge: fraction of the total channels to flag at the edge of each IF\
                         ; defaults to 0
     :type flag_edge: float, optional
     :param phase_ref: list of phase calibrator names for phase referencing; \
-                      defaults to ['NONE']
+                      defaults to [None]
     :type phase_ref: list of str, optional
     :param interactive: produce interactive plots; default = False
     :type interactive: bool, optional
@@ -412,7 +412,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     # No shift will be done if the new coordinates are 0h0m0s +0d0m0s, in that case the
     # source will not be altered
     
-    if shift_coords != 'NONE':
+    if shift_coords != None:
         t_shift = time.time()
         disp.write_box(log_list, 'Shifting phase center')
         disp.print_box('Shifting phase center')
@@ -701,7 +701,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.print_box('Reference antenna search')
     print('\nSearch for reference antenna starts...\n')
     
-    if default_refant == 'NONE':
+    if default_refant == None:
         for pipeline_log in log_list:
             pipeline_log.write('\nChoosing reference antenna with all sources.\n')
 
@@ -921,7 +921,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     ## Selecting calibrator scan ##
     # If there is no input calibrator
-    if input_calibrator == 'NONE':
+    if input_calibrator == None:
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
@@ -1071,7 +1071,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         stats_df['time_10'] = t7 - t6
         
     # If there is an input calibrator
-    if input_calibrator != 'NONE':
+    if input_calibrator != None:
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
@@ -1279,12 +1279,12 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
     # If there are no phase reference sources, make the length of the list match the 
     # target list length
-    if phase_ref == ['NONE']:
-        phase_ref = ['NONE'] * len(target_list)
+    if phase_ref == [None]:
+        phase_ref = [None] * len(target_list)
     
     solint_list = []
     for i, target in enumerate(target_list):
-        if phase_ref[i] == 'NONE':
+        if phase_ref[i] == None:
             target_scans = [x for x in scan_list if x.source_name == target]
 
             solint, solint_dict = opti.optimize_solint_mm(uvdata, target, \
@@ -1350,8 +1350,8 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         t.log = log_list[i]
         ff_target_list.append(t)
     
-    no_pr_target_list = [t for t in ff_target_list if t.phaseref == 'NONE']
-    pr_target_list = [t for t in ff_target_list if t.phaseref != 'NONE']
+    no_pr_target_list = [t for t in ff_target_list if t.phaseref == None]
+    pr_target_list = [t for t in ff_target_list if t.phaseref != None]
    
     ## NO PHASEREF FRINGE FIT ##
     
@@ -2058,7 +2058,7 @@ def pipeline(input_dict):
                             calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                             sources = calibs.copy()
                             sources += target_list
-                            sources += [x for x in phase_ref if x != 'NONE']
+                            sources += [x for x in phase_ref]
                         except ValueError:
                             print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                             load_all_id = True
@@ -2158,7 +2158,7 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != 'NONE']
+                    sources += [x for x in phase_ref]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
@@ -2239,7 +2239,8 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != 'NONE']
+                    if phase_ref != None:
+                        sources += [x for x in phase_ref]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
@@ -2326,7 +2327,7 @@ def pipeline(input_dict):
                     calibs = load.find_calibrators(full_source_list, choose='BYCOORD')
                     sources = calibs.copy()
                     sources += target_list
-                    sources += [x for x in phase_ref if x != 'NONE']
+                    sources += [x for x in phase_ref]
                 except ValueError:
                     print("None of the sources was found on the VLBA calibrator list. All sources will be loaded.\n")
                     load_all_id = True
