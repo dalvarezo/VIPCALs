@@ -1,5 +1,4 @@
 import sys
-import time
 import json
 import os
 import glob
@@ -35,7 +34,8 @@ from py_files.ui_manual_window import Ui_manual_window
 from py_files.ui_help_window import Ui_help_window
 from py_files.ui_json_window import Ui_JSON_window
 from py_files.ui_run_window import Ui_run_window
-from py_files.ui_plots_window import Ui_plots_window
+#from py_files.ui_plots_window import Ui_plots_window
+#from py_files.ui_TEST import Ui_manual_window
 
 from io import StringIO
 from PySide6.QtGui import QTextCursor
@@ -94,8 +94,9 @@ class PipelineWorker(QThread):
     def run(self):
         """Runs mock_pipeline.py in a subprocess and streams output."""
         process = subprocess.Popen(
-            ["ParselTongue", "../vipcals/__main__docker.py",
-             "../tmp/temp.json"],
+            #["ParselTongue", "../vipcals/__main__.py",
+            #"../tmp/temp.json"],
+            ["cat", "../tmp/temp.json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -122,7 +123,7 @@ class MainWindow(qtw.QMainWindow, Ui_VIPCALs):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Main Window with Multiple Widgets")
-        self.setupUi(self)
+        self.setupUi(self)      
 
         # Create a QStackedWidget to manage different pages
         self.stack = qtw.QStackedWidget()
@@ -147,6 +148,19 @@ class MainWindow(qtw.QMainWindow, Ui_VIPCALs):
         # Show the main page by default
         self.stack.setCurrentWidget(self.main_page)
         
+        # Set initial size
+        self.setFixedSize(800, 350)
+
+        # Connect page switching to resizing
+        self.stack.currentChanged.connect(self.adjust_size_on_page_change)
+
+    def adjust_size_on_page_change(self, index):
+        current_widget = self.stack.widget(index)
+        if current_widget == self.main_page or current_widget == self.json_page:
+            self.setFixedSize(800, 350)
+        else:
+            self.setFixedSize(800, 550)
+        
         
 class MainPage(qtw.QWidget, Ui_main_window):  
     def __init__(self, main_window):
@@ -155,9 +169,7 @@ class MainPage(qtw.QWidget, Ui_main_window):
         self.setupUi(self)
         
         self.JSON_input_btn.clicked.connect(self.open_json_page)
-        #self.help_btn.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.help_page))
         self.man_input_btn.clicked.connect(self.open_manual_page)
-        #self.exit_btn.clicked.connect(self.main_window.close)
 
     def open_manual_page(self):
         self.main_window.manual_page.should_reset_fields = True
@@ -174,28 +186,52 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.main_window = main_window
         self.setupUi(self)  
 
-        self.should_reset_fields = False  # <- Flag for reset control
+        self.should_reset_fields = False  # Flag for reset control
+        
+        self.target_rows = [(self.target_line, self.addmore_btn)]
+
+        # Define fields
 
         self.fields = {
-            #"disk": self.disk_line,
+            # Basic inputs
+            "userno": 2 ,#self.userno_line,
+            "disk": 1 ,# self.disk_line,
             "paths": self.filepath_line,
-            "output_directory": self.output_line,
             "targets": self.target_line,
-            #"userno": self.userno_line,
+            "output_directory": self.output_line,
+            # Calibration options
             "calib": self.calsour_line,
-            "flag_edge": self.edgeflag_line,
+            "calib_all": self.caliball_chck,
             "phase_ref": self.phasref_line,
-            "refant": self.refant_line,
+            # Loading options
+            "load_all": self.loadall_chck,
+            "freq_sel": self.freqsel_line,
+            "subarray": self.subarray_chck,
             "shifts": self.shift_line,
-            "load_all": self.loadall_line
+            # Reference antenna options
+            "refant": self.refant_line,
+            "refant_list": self.priorant_line,
+            "search_central": self.centrant_chck,
+            "max_scan_refant_search": self.maxrefantscans_line,
+            # Fringe options
+            "solint": self.solint_line,
+            "min_solint": self.minsolint_line,
+            "max_solint": self.maxsolint_line,
+            # Export options            
+            "channel_out": self.chanout_line,
+            "flag_edge": self.edgeflag_line,
+            # Plotting options
+            "interactive": self.interactive_chck
         }
                
-        self.loadall_line.addItems(['False', 'True'])
-        
+        self.chanout_line.addItems(['SINGLE', 'MULTI'])
+
         self.selectfile_btn.clicked.connect(self.get_input_file)
         self.selectdir_btn.clicked.connect(self.get_output_dir)
 
         self.more_options_btn.clicked.connect(self.toggle_moreoptions)
+        
+        self.addmore_btn.clicked.connect(self.add_target_row)
         
         self.continue_button.clicked.connect(self.retrieve_inputs)
         self.continue_button.clicked.connect(self.start_pipeline) 
@@ -217,16 +253,58 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.main_window.run_page.RunPipeline()  # Call the function when the button is clicked
          
     def toggle_moreoptions(self):
-        self.more_options.setVisible(not self.more_options.isVisible())
+        self.calibbox.setVisible(not self.calibbox.isVisible())
+        self.loadbox.setVisible(not self.loadbox.isVisible())
+        self.refantbox.setVisible(not self.refantbox.isVisible())
+        self.fringebox.setVisible(not self.fringebox.isVisible())
+        self.exportbox.setVisible(not self.exportbox.isVisible())
+        self.plotbox.setVisible(not self.plotbox.isVisible())
+        
+    def add_target_row(self):
+        line_edit = qtw.QLineEdit()
+        remove_button = qtw.QPushButton("Remove")
+
+        # Connect button with lambda including dummy argument for clicked signal
+        remove_button.clicked.connect(partial(self.remove_target_row, line_edit))
+
+        self.target_rows.append((line_edit, remove_button))
+        self.refresh_layout()
+
+    def remove_target_row(self, target_line_edit):
+        for i, (line_edit, remove_button) in enumerate(self.target_rows):
+            if line_edit == target_line_edit:
+                # Remove widgets from layout explicitly
+                self.gridLayout_3.removeWidget(line_edit)
+                self.gridLayout_3.removeWidget(remove_button)
+
+                line_edit.deleteLater()
+                remove_button.deleteLater()
+
+                self.target_rows.pop(i)
+                self.refresh_layout()
+                break
+
+    def refresh_layout(self):
+        # Clear and re-add rows to ensure proper layout
+        for i, (line_edit, remove_button) in enumerate(self.target_rows):
+            row_index = 6 + i
+            self.gridLayout_3.addWidget(line_edit, row_index, 1)
+            self.gridLayout_3.addWidget(remove_button, row_index, 2)
+
+
+            # Move "Add" button to the row after the last one
+            #self.gridLayout_3.addWidget(self.addmore_btn, 3 + len(self.target_rows), 0, 1, 2)
+
+
 
     def get_input_file(self):
-        response = qtw.QFileDialog.getOpenFileName(
+        response = qtw.QFileDialog.getOpenFileNames(
             parent=self,
             caption="Select a file",
             #directory=os.getcwd(),
             filter = 'FITS file (*.fits *.uvfits *.idifits)'
         )
-        self.filepath_line.setText(str(response[0]))
+        self.filepath_line.setText(", ".join(response[0]))
 
     def get_output_dir(self):
         response = qtw.QFileDialog.getExistingDirectory(
@@ -241,13 +319,30 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
     def retrieve_inputs(self):
         inputs = {}
         for label, line_edit in self.fields.items():
-            print(label, line_edit)
+            # print(label, line_edit)
             if label == "load_all":
-                inputs[label] = self.loadall_line.currentText() == "True"
+                inputs[label] = self.loadall_chck.isChecked()
+            elif label == "calib_all":
+                inputs[label] = self.caliball_chck.isChecked()
+            elif label == "subarray":
+                inputs[label] = self.subarray_chck.isChecked()
+            elif label == "interactive":
+                inputs[label] = self.interactive_chck.isChecked()
+            elif label == "channel_out":
+                inputs[label] = self.chanout_line.currentText()         
             elif label == "paths":
-                inputs[label] = [line_edit.text()]
+                inputs[label] = line_edit.text().split(', ')
             elif label == "targets":
-                inputs[label] = [t.strip() for t in line_edit.text().replace(",", " ").split() if t.strip()]
+                inputs[label] = [x.text() for x,y in self.target_rows]
+                #inputs[label] = [t.strip() for t in line_edit.text().replace(",", " ").split() if t.strip()]
+            elif label == "max_scan_refant_search":
+                inputs[label] = int(self.maxrefantscans_line.text())
+            elif label == "min_solint":
+                inputs[label] = float(self.minsolint_line.text())
+            elif label == "max_solint":
+                inputs[label] = float(self.maxsolint_line.text())
+            elif line_edit.text() == "":
+                inputs[label] = None
             else:
                 inputs[label] = line_edit.text()
 
@@ -260,14 +355,54 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
     
     def showEvent(self, event):
         if self.should_reset_fields:
-            for label, widget in list(self.fields.items()):
-                if isinstance(widget, qtw.QLineEdit):
-                    widget.clear()
-                elif isinstance(widget, qtw.QComboBox):
-                    widget.setCurrentIndex(0)
-            self.more_options.setVisible(False)
+            self.reset_fields()
+            #for label, widget in list(self.fields.items()):
+            #    if isinstance(widget, qtw.QLineEdit):
+            #        widget.clear()
+            #    elif isinstance(widget, qtw.QComboBox):
+            #        widget.setCurrentIndex(0)
+            self.calibbox.setVisible(False)
+            self.loadbox.setVisible(False)
+            self.refantbox.setVisible(False)
+            self.fringebox.setVisible(False)
+            self.exportbox.setVisible(False)
+            self.plotbox.setVisible(False)
             self.should_reset_fields = False  # Reset the flag after clearing
         super().showEvent(event)
+        
+    def reset_fields(self):
+        # Set default values
+        ## Basic inputs
+        self.userno_line.setText("")
+        self.disk_line.setText("")
+        self.filepath_line.setText("")
+        for line_edit, button in self.target_rows:
+            line_edit.setText("")
+        self.target_line.setText("")
+        self.output_line.setText("")
+        ## Calibration options
+        self.calsour_line.setText("")
+        self.caliball_chck.setChecked(False)
+        self.phasref_line.setText("")
+        ## Loading options
+        self.loadall_chck.setChecked(False)
+        self.freqsel_line.setText("")
+        self.subarray_chck.setChecked(False)
+        self.shift_line.setText("")
+        ## Reference antenna options
+        self.refant_line.setText("")
+        self.priorant_line.setText("")
+        self.centrant_chck.setChecked(True)
+        self.maxrefantscans_line.setText("10")
+        ## Fringe options
+        self.solint_line.setText("")
+        self.minsolint_line.setText("1")
+        self.maxsolint_line.setText("10")
+        ## Export options            
+        self.chanout_line.setCurrentIndex(0)
+        self.edgeflag_line.setText("")
+        ## Plotting options
+        self.interactive_chck.setChecked(True)
         
         
 class JSONWindow(qtw.QWidget, Ui_JSON_window):
