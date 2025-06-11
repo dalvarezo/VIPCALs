@@ -82,11 +82,11 @@ def data_export(path_list, data, target_list, filename_list, \
             split.aparm[1] = 1  # DON't average in frequency, produce multiple channels 
                                 # per IF
     
-        if flag_edge == False:
+        if flag_edge == False or flag_frac == None:
             flag_chann = 0
             no_channels = 0
 
-        if flag_edge == True:
+        else:
             try:
                 no_channels = int(data.table('FQ',1)[0]['total_bandwidth'][0] / \
                             data.table('FQ',1)[0]['ch_width'][0])

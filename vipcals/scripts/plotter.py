@@ -541,12 +541,13 @@ def pickle_possm(wuvdata, path, name, bp = False):
     if bp == False:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
-            POSSM_str =  {str(key): value for key, value in POSSM.items()}
+            POSSM_str = {str(key): np.array(value, dtype=object) for key, value in POSSM.items()}
             np.savez_compressed(f'{path}/{name}_CL{wuvdata.seq}.possm.npz', **POSSM_str)
+
             
 
     if bp == True:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
-            POSSM_str =  {str(key): value for key, value in POSSM.items()}
+            POSSM_str = {str(key): np.array(value, dtype=object) for key, value in POSSM.items()}
             np.savez_compressed(f'{path}/{name}_CL{wuvdata.seq}_BP.possm.npz', **POSSM_str)
