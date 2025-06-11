@@ -946,76 +946,127 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
             return()
         
         ## Get the calibrator scans
-        calibrator_scans = cali.get_calib_scans(uvdata, scan_list, refant)
+        calibrator_scans, no_calib_antennas = cali.get_calib_scans_v2(uvdata, scan_list, refant)
 
         t7 = time.time()
 
         for pipeline_log in log_list:
             if len(calibrator_scans) == 1:
-                scan_i = help.ddhhmmss(calibrator_scans[0].time - calibrator_scans[0].time_interval/2)
-                scan_f = help.ddhhmmss(calibrator_scans[0].time + calibrator_scans[0].time_interval/2)
+                scan_i = help.ddhhmmss(calibrator_scans[0].time - calibrator_scans[0].time_interval / 2)
+                scan_f = help.ddhhmmss(calibrator_scans[0].time + calibrator_scans[0].time_interval / 2)
                 init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
                 fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
+
+                antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                            if a['nosta'] in calibrator_scans[0].calib_antennas[:-1]]
+                flagged_antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                            if a['nosta'] in no_calib_antennas]
                 
-                pipeline_log.write('\nThe chosen scan for calibration is:\n')
-                pipeline_log.write(f'\t{calibrator_scans[0].source_name}\t\t{init_str} - {fin_str}' \
-                                   + '\t\tSNR: ' \
-                                   + '{:.2f}.\n'.format(np.nanmedian(calibrator_scans[0].snr)))
-                pipeline_log.write('SN#1 created.\n')
+                pipeline_log.write(f"\n{'Source:':<12} {calibrator_scans[0].source_name}\t\t")
+                pipeline_log.write(f"\n{'Time:':<12} {init_str} - {fin_str}")
+                pipeline_log.write(f"\n{'Antennas:':<12} {antennas}\t\t")
+                pipeline_log.write(f"\n{'Mean SNR:':<12} {calibrator_scans[0].calib_snr}\n")
+                if len(no_calib_antennas) > 0:
+                    pipeline_log.write(f"\nThere were no fringes with SNR > 5 to antennas: {flagged_antennas},\n")
+                    pipeline_log.write(f"They will be flagged.\n\n")
+                    pipeline_log.write('FG#3 created.\n')
+                pipeline_log.write('\nSN#1 created.\n')
+
+
 
             else:
                 pipeline_log.write('\nThe chosen scans for calibration are:\n')
                 for scn in calibrator_scans:   
-                    scan_i = help.ddhhmmss(scn.time - scn.time_interval/2)
-                    scan_f = help.ddhhmmss(scn.time + scn.time_interval/2)
+                    scan_i = help.ddhhmmss(scn.time - scn.time_interval / 2)
+                    scan_f = help.ddhhmmss(scn.time + scn.time_interval / 2)
                     init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
-                    fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}" 
-                    pipeline_log.write(f'\t{scn.source_name}\t\t{init_str} - {fin_str}' \
-                                    + '\t\tSNR: ' \
-                                    + '{:.2f}.\n'.format(np.nanmedian(scn.snr)))
-                pipeline_log.write('SN#1 created.\n')
+                    fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
+
+                    antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                                if a['nosta'] in scn.calib_antennas[:-1]]
+                    flagged_antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                                if a['nosta'] in no_calib_antennas]
+                    
+                    pipeline_log.write(f"\n{'Source:':<12} {scn.source_name}\t\t")
+                    pipeline_log.write(f"\n{'Time:':<12} {init_str} - {fin_str}")
+                    pipeline_log.write(f"\n{'Antennas:':<12} {antennas}\t\t")
+                    pipeline_log.write(f"\n{'Mean SNR:':<12} {scn.calib_snr}\n")
+                if len(no_calib_antennas) > 0:
+                    pipeline_log.write(f"\nThere were no fringes with SNR > 5 to antennas: {flagged_antennas},\n")
+                    pipeline_log.write(f"They will be flagged.\n\n")
+                    pipeline_log.write('FG#3 created.\n')
+                pipeline_log.write('\nSN#1 created.\n')
 
             pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t7-t6))
 
    
-        if len(calibrator_scans) == 1:
-            scan_i = help.ddhhmmss(calibrator_scans[0].time - calibrator_scans[0].time_interval/2)
-            scan_f = help.ddhhmmss(calibrator_scans[0].time + calibrator_scans[0].time_interval/2)
+        if len(calibrator_scans) == 1:          
+            print('\nThe chosen scan for calibration is:\n')
+            scan_i = help.ddhhmmss(calibrator_scans[0].time - calibrator_scans[0].time_interval / 2)
+            scan_f = help.ddhhmmss(calibrator_scans[0].time + calibrator_scans[0].time_interval / 2)
             init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
             fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
+
+            antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                        if a['nosta'] in calibrator_scans[0].calib_antennas[:-1]]
+            flagged_antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                        if a['nosta'] in no_calib_antennas]
             
-            print('\nThe chosen scan for calibration is:\n')
-            print(f'\t{calibrator_scans[0].source_name}\t\t{init_str} - {fin_str}' \
-                  + '\t\tSNR: ' + '{:.2f}.\n'.format(np.nanmedian(calibrator_scans[0].snr)))
-            print('SN#1 created.\n')
+            print(f"\n{'Source:':<12} {calibrator_scans[0].source_name}")
+            print(f"\n{'Time:':<12} {init_str} - {fin_str}")
+            print(f"\n{'Antennas:':<12} {antennas}")
+            print(f"\n{'Mean SNR:':<12} {calibrator_scans[0].calib_snr}\n")
+            if len(no_calib_antennas) > 0:
+                print(f"\nThere were no fringes with SNR > 5 to antennas: {flagged_antennas},\n")
+                print(f"They will be flagged.\n\n")
+                print('FG#3 created.\n')
+            print('\nSN#1 created.\n')
 
         else:
             print('\nThe chosen scans for calibration are:\n')
-            for scn in calibrator_scans:    
-                scan_i = help.ddhhmmss(scn.time - scn.time_interval/2)
-                scan_f = help.ddhhmmss(scn.time + scn.time_interval/2)
+            for scn in calibrator_scans:
+                scan_i = help.ddhhmmss(scn.time - scn.time_interval / 2)
+                scan_f = help.ddhhmmss(scn.time + scn.time_interval / 2)
                 init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
-                fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}" 
-                print(f'\t{scn.source_name}\t\t{init_str} - {fin_str}' \
-                     + '\t\tSNR: ' + '{:.2f}.\n'.format(np.nanmedian(scn.snr)))
-            print('SN#1 created.\n')
+                fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
+
+                antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                            if a['nosta'] in scn.calib_antennas[:-1]]
+                flagged_antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                            if a['nosta'] in no_calib_antennas]
+                
+                print(f"\n{'Source:':<12} {scn.source_name}")
+                print(f"\n{'Time:':<12} {init_str} - {fin_str}")
+                print(f"\n{'Antennas:':<12} {antennas}")
+                print(f"\n{'Mean SNR:':<12} {scn.calib_snr}\n")
+
+            if len(no_calib_antennas) > 0:
+                print(f"\nThere were no fringes with SNR > 5 to antennas: {flagged_antennas},\n")
+                print(f"They will be flagged.\n\n")
+                print('FG#3 created.\n')
+            print('\nSN#1 created.\n')
 
         print('Execution time: {:.2f} s. \n'.format(t7-t6))
 
+        # NOT ANYMORE
         # Print a warning if the SNR of the brightest calibrator is < 40
-        if np.nanmedian(calibrator_scans[0].snr) < 40:
-            for pipeline_log in log_list:
-                pipeline_log.write('\nWARNING: The brightest scan has a low SNR.\n')
-
-            print('\nWARNING: The brightest scan has a low SNR.\n')
+        #if np.nanmedian(calibrator_scans[0].snr) < 40:
+        #    for pipeline_log in log_list:
+        #        pipeline_log.write('\nWARNING: The brightest scan has a low SNR.\n')
+        #
+        #    print('\nWARNING: The brightest scan has a low SNR.\n')
 
         scan_dict = \
-            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.antennas) for scan in scan_list}
+            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), [sum(inner) / len(inner) for inner in scan.snr], scan.antennas) for scan in scan_list}
         calibscans_dict = \
-            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), np.nanmedian(scan.snr), scan.calib_antennas) for scan in calibrator_scans}
+            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), [sum(inner) / len(inner) for inner in scan.snr], scan.calib_antennas) for scan in calibrator_scans}
 
         stats_df['SNR_scan_list'] = json.dumps(scan_dict)
         stats_df['selected_scans'] = json.dumps(calibscans_dict)
+        if len(no_calib_antennas) > 0:
+            stats_df['antennas_no_calib'] = str(no_calib_antennas)
+        else:
+            stats_df['antennas_no_calib'] = False
         stats_df['calibrator_search'] = 'AUTO'
         stats_df['time_10'] = t7 - t6
         
@@ -1031,7 +1082,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
         ## Get a list of scans ordered by SNR ##
         
-        scan_list = cali.snr_scan_list_v2(uvdata)
+        scan_list, no_calib_antennas = cali.snr_scan_list_v2(uvdata)
         
         ## Get the scans for the input calibrator ## 
         calibrator_scans = [x for x in scan_list if x.source_name == input_calibrator]
@@ -1062,8 +1113,21 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
 
         stats_df['SNR_scan_list'] = json.dumps(scan_dict)
         stats_df['selected_scans'] = json.dumps(calibscans_dict)
+        if len(no_calib_antennas) > 0:
+            stats_df['antennas_no_calib'] = str(no_calib_antennas)
+        else:
+            stats_df['antennas_no_calib'] = False
         stats_df['calibrator_search'] = 'MANUAL'
         stats_df['time_10'] = t7 - t6
+
+    # Counting again the visibilities with the flags
+    expo.data_split(uvdata, target_list, cl_table=4, flagver=3)
+    for i, target in enumerate(target_list):
+        cl4_fg3 = AIPSUVData(target, 'PLOT', uvdata.disk, 4)
+        vis_cl4_fg3 = expo.vis_count(cl4_fg3)
+        stats_df.at[i, 'CL4_vis_FG3'] = int(vis_cl4_fg3)
+        print(f"CL4 visibilities of {target} after flagging: {vis_cl4_fg3}\n")
+        log_list[i].write(f"\nCL4 visibilities of {target} after flagging: {vis_cl4_fg3}\n")
 
     ## Digital sampling correction ##
     disp.write_box(log_list, 'Digital sampling corrections')
@@ -1077,7 +1141,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('\nDigital sampling corrections applied!\nSN#2 and CL#5 created.\n')
 
     # Counting visibilities
-    expo.data_split(uvdata, target_list, cl_table=5, flagver=2)
+    expo.data_split(uvdata, target_list, cl_table=5, flagver=3)
     for i, target in enumerate(target_list):
         cl5 = AIPSUVData(target, 'PLOT', uvdata.disk, 5)
         vis_cl5 = expo.vis_count(cl5)
@@ -1098,7 +1162,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     disp.print_box('Instrumental phase corrections')
     
     inst.manual_phasecal_multi(uvdata, refant, calibrator_scans)
-    
+
     for pipeline_log in log_list:
         pipeline_log.write('\nInstrumental phase correction applied using'\
                         + ' the calibrator(s).\nSN#3 and CL#6 created.\n')
@@ -1106,7 +1170,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
           + '\nSN#3 and CL#6 created.\n')
     
     # Counting visibilities
-    expo.data_split(uvdata, target_list, cl_table=6, flagver=2)
+    expo.data_split(uvdata, target_list, cl_table=6, flagver=3)
     for i, target in enumerate(target_list):
         cl6 = AIPSUVData(target, 'PLOT', uvdata.disk, 6)
         vis_cl6 = expo.vis_count(cl6)
@@ -1136,7 +1200,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('\nBandpass correction applied!\nBP#1 created.\n')
 
     # Counting visibilities
-    expo.data_split(uvdata, target_list, cl_table=6, flagver=2, bpass = True, \
+    expo.data_split(uvdata, target_list, cl_table=6, flagver=3, bpass = True, \
                     keep = True)
     for i, target in enumerate(target_list):
         cl6_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 6)
@@ -1165,7 +1229,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('\nAutocorrelations have been normalized!\nSN#4 and CL#7 created.\n')
 
     # Counting visibilities
-    expo.data_split(uvdata, target_list, cl_table=7, flagver=2, bpass = True)
+    expo.data_split(uvdata, target_list, cl_table=7, flagver=3, bpass = True)
     for i, target in enumerate(target_list):
         cl7_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 7)
         vis_cl7_bp1 = expo.vis_count(cl7_bp1)
@@ -1193,7 +1257,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
     print('\nAmplitude calibration applied!\nSN#5 and CL#8 created.\n')
 
     # Counting visibilities
-    expo.data_split(uvdata, target_list, cl_table=8, flagver=2, bpass = True)
+    expo.data_split(uvdata, target_list, cl_table=8, flagver=3, bpass = True)
     for i, target in enumerate(target_list):
         cl8_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 8)
         vis_cl8_bp1 = expo.vis_count(cl8_bp1)
@@ -1677,7 +1741,7 @@ def calibrate(filepath_list, aips_name, sources, full_source_list, target_list, 
         
     # Counting visibilities
     expo.data_split(uvdata, [t for t in target_list if t not in ignore_list and t not in no_baseline], \
-                    cl_table=9, flagver=2, bpass = True)
+                    cl_table=9, flagver=3, bpass = True)
     
     for i, target in enumerate(target_list):
         r =  stats_df.index[stats_df['target'] == target][0]
