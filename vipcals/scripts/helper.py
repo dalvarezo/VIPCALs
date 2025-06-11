@@ -59,6 +59,7 @@ class Scan():
         self.time_interval = None
         self.antennas = []
         self.calib_antennas = []
+        self.calib_snr = []
     def get_antennas(self, time_to_antennas):
         half_interval = self.time_interval / 2
         time_min = self.time - half_interval
