@@ -90,7 +90,8 @@ def manual_phasecal_multi(data, refant, calib_scans):
         phasecal_fring.inseq = data.seq
         phasecal_fring.refant = refant
         phasecal_fring.docalib = 1    # Apply CL tables
-        phasecal_fring.gainuse = 0    # Apply the latest CL table    
+        phasecal_fring.gainuse = 0    # Apply the latest CL table  
+        phasecal_fring.solint = scan_time_interval * 24 * 60  
         
         phasecal_fring.calsour = AIPSList([calib])
         phasecal_fring.timerang = timer
@@ -101,13 +102,17 @@ def manual_phasecal_multi(data, refant, calib_scans):
         phasecal_fring.aparm[5] = 0    # Solve IFs separatedly
         phasecal_fring.aparm[6] = 2    # Amount of information printed
         phasecal_fring.aparm[7] = 5    # SNR cutoff   
+        phasecal_fring.aparm[9] = 1    # Exhaustive search  
         
         phasecal_fring.dparm[1] = 1    # Number of baseline combinations searched
         phasecal_fring.dparm[2] = 1000    # Delay window (ns)
+        phasecal_fring.dparm[3] = 200    # Delay window (ns)
         phasecal_fring.dparm[8] = 1    # Zero rates after the fit 
         
         phasecal_fring.snver = 3 + n
         
+        # print(vars(phasecal_fring))
+
         phasecal_fring.go()
     
     # If multiple calib scans, merge tables producing SN(3+n+1)
@@ -129,13 +134,26 @@ def manual_phasecal_multi(data, refant, calib_scans):
     # Apply solutions
 
     clcal_apply = AIPSTask('clcal')
+
     clcal_apply.inname = data.name
     clcal_apply.inclass = data.klass
     clcal_apply.indisk = data.disk
     clcal_apply.inseq = data.seq
+
+    # If any of the antennas is flagged in the final SN table, don't touch it
+    bad_antennas = []
+    for s in data.table('SN', 0):
+        if type(s['weight_1']) == float and s['weight_1'] == 0: # single IF
+            bad_antennas.append(-s['antenna_no'])
+        elif sum(s['weight_1']) == 0:
+            bad_antennas.append(-s['antenna_no'])
+
+    if len(list(set(bad_antennas))) > 0:
+        clcal_apply.antennas = AIPSList(list(set(bad_antennas)))
+
     clcal_apply.opcode = 'calp'
     clcal_apply.interpol = '2pt'
-    clcal_apply.snver = 3 + n + 1
+    clcal_apply.snver =  data.table_highver('SN') # The last SN table
     clcal_apply.gainver = 5
     clcal_apply.gainuse = 6
     
