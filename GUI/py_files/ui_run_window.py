@@ -41,7 +41,7 @@ class Ui_run_window(object):
         font = QFont("Courier New")
         
         font.setStyleHint(QFont.Monospace)
-        font.setPointSize(12)
+        font.setPointSize(13)
         self.text_output.setFont(font)
         self.text_output.setFontFamily("Courier New")
 
