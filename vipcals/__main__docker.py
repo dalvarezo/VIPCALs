@@ -146,7 +146,7 @@ for i, entry in enumerate(entry_list):
     if type(input_dict['shifts']) != list and input_dict['shifts'] != 'NONE':
         print('Coordinate shifts have to be given as a list in the input file.\n')
         exit()
-    if type(input_dict['phase_ref']) != list:
+    if type(input_dict['phase_ref']) != list and input_dict['phase_ref'] != None:
         print('Phase reference calibrators have to be given as a list in ' \
         + 'the input file.\n')
         exit()
@@ -160,8 +160,8 @@ for i, entry in enumerate(entry_list):
         exit()
 
     # subarrays has to be True/False
-    if type(input_dict['subarrays']) != bool:
-        print('subarrays option has to be True/False.\n')
+    if type(input_dict['subarray']) != bool:
+        print('subarray option has to be True/False.\n')
         exit()
 
     # Phase reference #
@@ -202,14 +202,15 @@ for i, entry in enumerate(entry_list):
     except AttributeError:
         all_sources_clean = all_sources
 
-    for t in input_dict['targets']:
-        if t not in all_sources_clean:
-            print(t + ' was not found in any of the files provided.\n')
-    if any(x not in all_sources_clean for x in input_dict['targets']):
-        exit()
+    if input_dict['calib_all'] == False:
+        for t in input_dict['targets']:
+            if t not in all_sources_clean:
+                print(t + ' was not found in any of the files provided.\n')
+        if any(x not in all_sources_clean for x in input_dict['targets']):
+            exit()
 
     # Phase reference sources have to be in the file/s
-    if input_dict['phase_ref'] != ['NONE']:
+    if input_dict['phase_ref'] != None:
         for prs in input_dict['phase_ref']:
             if prs == 'NONE':
                 continue
