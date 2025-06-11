@@ -414,7 +414,8 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
 
     if multi_id == True:
         fitld.selfreq = float(selfreq)  
-        fitld.fqtol = 2000
+        # Set tolerance as 5% of the selected frequency
+        fitld.fqtol = float(selfreq) * 5
 
     fitld.datain = symlink_path + '/aux_'
 
