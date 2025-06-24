@@ -8,6 +8,8 @@ from matplotlib import pyplot as plt
 import matplotlib as mpl
 mpl.use('Agg')
 
+from AIPSData import AIPSCat
+
 import Wizardry.AIPSData as wizard
 
 from AIPSTask import AIPSTask, AIPSList
@@ -125,7 +127,7 @@ def possm_plotter(filepath, data, target, \
     data.zap_table('PL', -1)
 
 
-def uvplt_plotter(filepath, data, target, solint = 0.17):
+def uvplt_plotter(filepath, data, target, solint = 0.09):
     """Plot UV coverage for a source to a PostScript file.
 
     Uses the UVPLT task in AIPS to plot the UV coverage of a source. By default it plots 
@@ -138,7 +140,7 @@ def uvplt_plotter(filepath, data, target, solint = 0.17):
     :type data: AIPSUVData
     :param target: target name
     :type target: str
-    :param solint: time averaging interval in minutes; defaults to 0.17 (10 seconds)
+    :param solint: time averaging interval in minutes; defaults to 0.09 (~5 seconds)
     :type solint: float, optional
     """    
     filename = filepath.split('/')[-1]
@@ -189,11 +191,11 @@ def uvplt_plotter(filepath, data, target, solint = 0.17):
 
 
 def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan = 1, \
-                  solint = 0.17):
+                  solint = 0.09):
     """Plot visibilities as a function of time to a PostScript file.
 
     Uses the VPLOT task in AIPS to plot amplitudes and phases of a source as a function 
-    of time. By default it plots one visibility every 10 seconds. Data are also averaged 
+    of time. By default it plots one visibility every ~5 seconds. Data are also averaged 
     in IFs and channels.
     The plot is written into a ps file using the LWPLA task.
 
@@ -212,7 +214,7 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     :type avgif: int, optional
     :param avgchan: average the data in channels, 0 => False, 1 => True; defaults to 1
     :type avgchan: int, optional
-    :param solint: time averaging interval in minutes; defaults to 0.17
+    :param solint: time averaging interval in minutes; defaults to 0.09
     :type solint: float, optional
     """    
     filename = filepath.split('/')[-1]
@@ -289,23 +291,29 @@ def generate_pickle_plots(data, target_list, path_list):
     :param path_list: list of paths of the visibilities
     :type path_list: list of str
     """
+    an_table = data.table('AN', 1)
+    disk = data.disk
+    catalog = AIPSCat(disk)[disk]
+
     here = os.path.dirname(__file__)
     tmp = os.path.abspath(os.path.join(here, "../../tmp"))
     # Apply all calibrations tables to each target
-    max_cl = data.table_highver('CL')
+    
     for i, target in enumerate(target_list):
+        max_cl = max([x for x in catalog if x.name == target], 
+                     key = lambda y: y.get('seq', float('-inf')))['seq']
         name =  path_list[i].split('/')[-1]
         # Generate amp&phas vs freq
         for n in range(max_cl):
             if (n+1) < 7:
                 wuvdata = wizard.AIPSUVData(target, 'PLOT', data.disk, n+1)
-                pickle_possm(wuvdata, tmp, name)
+                pickle_possm(wuvdata, tmp, name, an_table)
             else:
                 wuvdata = wizard.AIPSUVData(target, 'PLOTBP', data.disk, n+1)
-                pickle_possm(wuvdata, tmp, name ,bp=True)
+                pickle_possm(wuvdata, tmp, name, an_table, bp=True)
 
         # Generate amp&phas vs time        
-        pickle_vplot(wuvdata, tmp, name)
+        pickle_vplot(wuvdata, tmp, name, an_table)
 
         # Generate amp&phas vs uvdist
         pickle_radplot(wuvdata, tmp, name)
@@ -332,8 +340,11 @@ def generate_pickle_radplot(data, target_list, path_list):
     here = os.path.dirname(__file__)
     tmp = os.path.abspath(os.path.join(here, "../../tmp"))
     # Apply all calibrations tables to each target
-    max_cl = data.table_highver('CL')
+    disk = data.disk
+    catalog = AIPSCat(disk)[disk]
     for i, target in enumerate(target_list):
+        max_cl = max([x for x in catalog if x.name == target], 
+                key = lambda y: y.get('seq', float('-inf')))['seq']
         name =  path_list[i].split('/')[-1]
         # Generate amp&phas vs freq
         if max_cl < 7:
@@ -468,7 +479,7 @@ def pickle_radplot(wuvdata, path, name):
         pickle.dump(radplot_fig, f)
     plt.close()
 
-def pickle_vplot(wuvdata, path, name):
+def pickle_vplot(wuvdata, path, name, an_table):
     """Generate visibility vs time dicitonaries and compress them into a pickle object.
 
     Produces a dictionary with amplitude, phase, and timestamps of each baseline. This 
@@ -480,7 +491,9 @@ def pickle_vplot(wuvdata, path, name):
     :param path: path were to write the pickle object
     :type path: str
     :param name: name to be given to the file
-    :type wuvdata: str
+    :type name: str
+    :param an_table: table with the antenna information
+    :type an_table: AIPSTable
     """    
     blines = [x.baseline for x in wuvdata]
     blines_unique =  list(set(tuple(x) for x in blines))
@@ -500,11 +513,15 @@ def pickle_vplot(wuvdata, path, name):
         vplot_dict[bl].append(times)
         vplot_dict[bl].append(amps)
         vplot_dict[bl].append(phases)
+
+        vplot_dict['ant_dict'] = {x.nosta: x.anname.strip() for x in an_table}
         
         with open(f'{path}/{name}.vplt.pickle', 'wb') as f:
             pickle.dump(vplot_dict, f)
 
-def pickle_possm(wuvdata, path, name, bp = False):
+
+
+def pickle_possm(wuvdata, path, name, an_table, bp = False):
     """Generate visibility vs freq dicitonaries and compress them into an npz object.
 
     Produces a dictionary with visiblities and frequency information of each baseline. 
@@ -516,8 +533,11 @@ def pickle_possm(wuvdata, path, name, bp = False):
     :param path: path were to write the pickle object
     :type path: str
     :param name: name to be given to the file
-    :type wuvdata: str
+    :type name: str
+    :param an_table: table with the antenna information
+    :type an_table: AIPSTable
     """    
+
     POSSM = {}
     scans = []
 
@@ -533,6 +553,8 @@ def pickle_possm(wuvdata, path, name, bp = False):
                 vis = copy.deepcopy(v.visibility)
                 POSSM[tuple(v.baseline)][m].append(vis)
 
+    POSSM['ant_dict'] = {x.nosta: x.anname.strip() for x in an_table}
+    POSSM['pols'] = list(wuvdata.polarizations)
     POSSM['if_freq'] = wuvdata.table('FQ', 0)[0]['if_freq']
     POSSM['total_bandwidth'] = wuvdata.table('FQ', 0)[0]['total_bandwidth']
     POSSM['ch_width'] = wuvdata.table('FQ', 0)[0]['ch_width']
