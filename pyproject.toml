@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,14 +10,16 @@ authors = [
 ]
 description = "Automated VLBI data calibration pipeline using AIPS"
 readme = "README.md"
-requires-python = ">= 3.1"
+requires-python = "= 3.8.20"
 license = {file = "LICENSE"}
 keywords = ["VLBI", "AIPS", "ParselTongue", "Very Long Baseline Interferometry", "VLBA"]
+dependencies = []
 
+[project.scripts]
+vipcals = "vipcals.GUI.run_GUI:main"
 
-dependencies = [
-    "numpy"
-]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [project.urls]
 repository = "https://gitlab.ia.forth.gr/smile/vipcals"
