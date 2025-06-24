@@ -38,7 +38,7 @@ from py_files.ui_run_window import Ui_run_window
 #from py_files.ui_TEST import Ui_manual_window
 
 from io import StringIO
-from importlib import Path
+from pathlib import Path
 from PySide6.QtGui import QTextCursor
 
 
