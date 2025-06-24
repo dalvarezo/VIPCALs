@@ -55,6 +55,20 @@ def read_args(file):
 
     return dict_list
 
+def is_decimal(string):
+    """Tiny function to check for the format on coordinates
+
+    :param string: any string
+    :type string: str
+    :return: is it decimal
+    :rtype: bool
+    """    
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
+
 def create_default_dict():
     """Create an input dictionary with default inputs.
 
@@ -72,6 +86,8 @@ def create_default_dict():
     default_dict['calib'] = None
     default_dict['calib_all'] =  False
     default_dict['phase_ref'] = None
+    default_dict['time_aver'] = 1    # s
+    default_dict['freq_aver'] = 500  # KHz
     # Loading options
     default_dict['load_all'] = False
     default_dict['freq_sel'] = None
@@ -131,6 +147,16 @@ for i, entry in enumerate(entry_list):
     except ValueError:
         print('Disk number has to be a number.\n')
         exit()
+    try:
+        input_dict['time_aver'] = int(input_dict['time_aver'])
+    except ValueError:
+        print('Threshold for time averaging has to be an integer value in seconds.\n')
+        exit()
+    try:
+        input_dict['freq_aver'] = int(input_dict['freq_aver'])
+    except ValueError:
+        print('Threshold for frequency averaging has to be an integer value in kHz.\n')
+        exit()
 
     # Some inputs need to be given as a list #
     if type(input_dict['paths']) != list:
@@ -175,14 +201,24 @@ for i, entry in enumerate(entry_list):
 
 
         for i, coord in enumerate(input_dict['shifts']):
-            ra = coord[0]
-            dec = coord[1]
-            try:
-                input_dict['shifts'][i] =  SkyCoord(ra, dec, unit = 'deg')
-            except: 
-                print('\nThere was an error while reading the phase-shift coordinates.' \
-                    + ' Please make sure that the input is correct.\n')
-                exit()
+            if coord is not None:
+                parts = coord.split()
+                if len(parts) != 2:
+                    print(f"\nInvalid coordinate format at index {i}: '{coord}'. Expected two values: RA and DEC.\n")
+                    exit()
+
+                ra_str, dec_str = parts
+
+                try:
+                    if is_decimal(ra_str) and is_decimal(dec_str):
+                        # Decimal degrees
+                        input_dict['shifts'][i] = SkyCoord(float(ra_str), float(dec_str), unit='deg')
+                    else:
+                        # Assume sexagesimal
+                        input_dict['shifts'][i] = SkyCoord(ra_str, dec_str)
+                except Exception as e:
+                    print(f"\nError parsing coordinate at index {i}: '{coord}'")
+                    print("Exception:", e)
 
     # Science targets have to be in the file/s
     all_sources = []
@@ -208,11 +244,11 @@ for i, entry in enumerate(entry_list):
     # Phase reference sources have to be in the file/s
     if input_dict['phase_ref'] != None:
         for prs in input_dict['phase_ref']:
-            if prs == 'NONE':
+            if prs == None:
                 continue
             if prs not in all_sources:
                 print(prs + ' was not found in any of the files provided.\n')
-        if any(x not in all_sources for x in input_dict['phase_ref'] if x != 'NONE'):
+        if any(x not in all_sources for x in input_dict['phase_ref'] if x != None):
             exit()
 
     # Load multiple files together:
@@ -250,6 +286,23 @@ for i, entry in enumerate(entry_list):
                 print('The selected reference antenna is not available in the FITS file.'\
                     + ' Please make sure that the input is correct.')
                 exit()
+
+    # Priority antenna list #
+    for filepath in input_dict['paths']:
+        if input_dict['refant_list'] != None:
+            antenna_names = []
+            hdul = fits.open(filepath)
+            non_ascii_antennas = list(hdul['ANTENNA'].data['ANNAME'])
+            hdul.close()
+            for ant in non_ascii_antennas:
+                ant = ant.encode()[:2].decode()
+                antenna_names.append(ant)
+            for a in input_dict['refant_list']:
+                if a not in antenna_names:
+                    print('One or more of the selected priority antennas are not available in the FITS file.'\
+                        + ' Please make sure that the input is correct.\n')
+                    print(f'Available antennas are {antenna_names}')
+                    exit()
 
     # Output directory
     if input_dict['output_directory'] != None:
