@@ -44,7 +44,8 @@ def bp_correction(data, refant, calib_scans):
     bpass.bpassprm[5] = 0  # Divide by channel 0 
                            # (central 75 per cent of channels)
     bpass.bpassprm[9] = 1  # Interpolate over flagged channels
-    bpass.bpassprm[10] = 6  # normalize amplitudes and zero average 
+    if len(calib_scans) == 1:
+        bpass.bpassprm[10] = 6  # normalize amplitudes and zero average 
                             # phase using all channels in power, not
                             # voltage
     bpass.gainuse = 0

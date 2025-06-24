@@ -6,7 +6,7 @@ from scripts.helper import tacop
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
    
-def target_fring_fit(data, refant, target_name,  version, solint = 0, delay_w = 1000,\
+def target_fring_fit(data, refant, priority_refants, target_name,  version, solint = 0, delay_w = 1000,\
                      rate_w = 200, solve_ifs = True):
     """Fringe fit the science target.
 
@@ -21,6 +21,8 @@ def target_fring_fit(data, refant, target_name,  version, solint = 0, delay_w = 
     :type data: AIPSUVData
     :param refant: reference antenna number
     :type refant: int
+    :param priority_refants: list of alternatives to the reference antenna
+    :param priority_refants: list of int
     :param target_name: target name
     :type target_name: str
     :param version: SN version where to write the solutions.
@@ -59,6 +61,7 @@ def target_fring_fit(data, refant, target_name,  version, solint = 0, delay_w = 
     target_fring.aparm[6] = 2    # Amount of information printed
     target_fring.aparm[7] = 5    # SNR cutoff   
     target_fring.aparm[9] = 1    # Exhaustive search
+    target_fring.search = AIPSList(priority_refants)
     
     target_fring.dparm[1] = 1    # Number of baseline combinations searched
     target_fring.dparm[2] = delay_w  # Delay window (ns)
@@ -95,7 +98,7 @@ def fringe_clcal(data, target_list, target_scans, max_ver):
     clcal.inclass = data.klass
     clcal.indisk = data.disk
     clcal.inseq = data.seq
-    clcal.sources = AIPSList([t.name for t in target_list])
+    # clcal.sources = AIPSList([t.name for t in target_list])
     
     clcal.opcode = 'calp'
     clcal.interpol = 'self'

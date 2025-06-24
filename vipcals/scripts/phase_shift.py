@@ -48,7 +48,7 @@ def uv_shift(data, target, new_coord):
         if target == entry['source'].replace(' ',''):
             old_coord = SkyCoord(entry['raepo'], entry['decepo'], unit = 'deg')
 
-    if new_coord == SkyCoord(0, 0, unit = 'deg'):
+    if new_coord == None:
         return(old_coord, old_coord)
 
     shift_1 = np.cos(old_coord.dec.rad) * (new_coord.ra.arcsec - old_coord.ra.arcsec)

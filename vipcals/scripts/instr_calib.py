@@ -58,7 +58,7 @@ def pulse_phasecal(data, refant, cal_scan):
     clcal.go()
 
     
-def manual_phasecal_multi(data, refant, calib_scans):
+def manual_phasecal_multi(data, refant, priority_refants, calib_scans):
     """Correct instrumental phase delay using multiple bright calibrators.
     
     Uses the FRING task to runs a fringe fit on a short scan of the calibrators, 
@@ -71,6 +71,8 @@ def manual_phasecal_multi(data, refant, calib_scans):
     :type data: AIPSUVData
     :param refant: reference antenna number
     :type refant: int
+    :param priority_refants: list of alternatives to the reference antenna
+    :param priority_refants: list of int
     :param calib_scans: list of scans used for the calibration
     :type calib_scans: list of :class:`~vipcals.scripts.helper.FFtarget` object
     """        
@@ -103,6 +105,7 @@ def manual_phasecal_multi(data, refant, calib_scans):
         phasecal_fring.aparm[6] = 2    # Amount of information printed
         phasecal_fring.aparm[7] = 5    # SNR cutoff   
         phasecal_fring.aparm[9] = 1    # Exhaustive search  
+        phasecal_fring.search = AIPSList(priority_refants)
         
         phasecal_fring.dparm[1] = 1    # Number of baseline combinations searched
         phasecal_fring.dparm[2] = 1000    # Delay window (ns)
