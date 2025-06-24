@@ -1009,12 +1009,12 @@ class PossmWindow(qtw.QMainWindow):
             if match:
                 cl_options.append(f"CL{match.group(1)}")
 
-        self.selected_cl = cl_options[-1]  # Default CL version
-
         # Sort CL options numerically (e.g., CL1, CL2, CL10)
         cl_options = sorted(set(cl_options), key=lambda x: int(x[2:]))
 
         self.cl_selector.addItems(cl_options)
+
+        self.selected_cl = cl_options[-1]  # Default CL version
 
         # Set default selection
         if self.selected_cl in cl_options:

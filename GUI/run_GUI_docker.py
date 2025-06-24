@@ -38,6 +38,7 @@ from py_files.ui_run_window import Ui_run_window
 #from py_files.ui_TEST import Ui_manual_window
 
 from io import StringIO
+from importlib import Path
 from PySide6.QtGui import QTextCursor
 
 
@@ -448,19 +449,25 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
 
 
     def get_input_file(self):
+        start_dir = Path("/usr/local/user")
+        if start_dir.exists() == False:
+            start_dir = "/home/"
         response = qtw.QFileDialog.getOpenFileNames(
             parent=self,
             caption="Select a file",
-            #directory=os.getcwd(),
+            directory= start_dir,
             filter = 'FITS file (*.fits *.uvfits *.idifits)'
         )
         self.filepath_line.setText(", ".join(response[0]))
 
     def get_output_dir(self):
+        start_dir = Path("/usr/local/user")
+        if start_dir.exists() == False:
+            start_dir = "/home/"
         response = qtw.QFileDialog.getExistingDirectory(
             parent=self,
-            caption="Select a folder"#,
-            #directory=os.getcwd(),
+            caption="Select a folder",
+            directory=start_dir
             #filter = 'FITS file (*.fits *.uvfits *.idifits)'
         )
         if len(response) > 0:
@@ -510,6 +517,10 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 inputs[label] = int(self.timeaver_line.text())
             elif label == "freq_aver":
                 inputs[label] = int(self.freqaver_line.text())
+            elif label == "userno":
+                inputs[label] = 2
+            elif label == "disk":
+                inputs[label] = 1
 
                 
             elif line_edit.text() == "":
@@ -527,11 +538,6 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
     def showEvent(self, event):
         if self.should_reset_fields:
             self.reset_fields()
-            #for label, widget in list(self.fields.items()):
-            #    if isinstance(widget, qtw.QLineEdit):
-            #        widget.clear()
-            #    elif isinstance(widget, qtw.QComboBox):
-            #        widget.setCurrentIndex(0)
             self.calibbox.setVisible(False)
             self.loadbox.setVisible(False)
             self.refantbox.setVisible(False)
@@ -598,10 +604,13 @@ class JSONWindow(qtw.QWidget, Ui_JSON_window):
 
 
     def get_input_file(self):
+        start_dir = Path("/usr/local/user")
+        if start_dir.exists() == False:
+            start_dir = "/home/"
         response = qtw.QFileDialog.getOpenFileName(
             parent=self,
             caption="Select a file",
-            #directory=os.getcwd(),
+            directory=start_dir,
             filter = 'JSON file (*.json)'
         )
         self.selectfile_line.setText(str(response[0]))
@@ -1015,12 +1024,12 @@ class PossmWindow(qtw.QMainWindow):
             if match:
                 cl_options.append(f"CL{match.group(1)}")
 
-        self.selected_cl = cl_options[-1]  # Default CL version
-
         # Sort CL options numerically (e.g., CL1, CL2, CL10)
         cl_options = sorted(set(cl_options), key=lambda x: int(x[2:]))
 
         self.cl_selector.addItems(cl_options)
+
+        self.selected_cl = cl_options[-1]  # Default CL version
 
         # Set default selection
         if self.selected_cl in cl_options:

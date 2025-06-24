@@ -399,7 +399,7 @@ def load_ty_tables(data, bif, eif):
 
     # Ignore antennas not in the observation
     tsys_ants = []
-    with open('/home/dalvarez/vipcals/tmp/tsys.vlba', 'r') as f:
+    with open(f'{tmp}/tsys.vlba', 'r') as f:
         lines = f.readlines()
         for l in lines:
             if 'Tsys information' in l: 
