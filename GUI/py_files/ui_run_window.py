@@ -22,18 +22,23 @@ class Ui_run_window(object):
     def setupUi(self, run_window):
         if not run_window.objectName():
             run_window.setObjectName(u"run_window")
-        run_window.resize(777, 602)
+        run_window.resize(977, 602)
         self.gridLayout = QGridLayout(run_window)
         self.gridLayout.setObjectName(u"gridLayout")
+
+
+        btn_font = QFont()
+        btn_font.setPointSize(10)
+
         self.return_btn = QPushButton(run_window)
         self.return_btn.setObjectName(u"return_btn")
-
         self.gridLayout.addWidget(self.return_btn, 1, 0, 1, 1)
+        self.return_btn.setFont(btn_font)
 
         self.plots_btn = QPushButton(run_window)
         self.plots_btn.setObjectName(u"plots_btn")
-
         self.gridLayout.addWidget(self.plots_btn, 1, 1, 1, 1)
+        self.plots_btn.setFont(btn_font)
 
         self.text_output = QTextEdit(run_window)
         self.text_output.setObjectName(u"text_output")
@@ -41,7 +46,7 @@ class Ui_run_window(object):
         font = QFont("Courier New")
         
         font.setStyleHint(QFont.Monospace)
-        font.setPointSize(13)
+        font.setPointSize(12)
         self.text_output.setFont(font)
         self.text_output.setFontFamily("Courier New")
 

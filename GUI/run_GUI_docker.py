@@ -82,6 +82,8 @@ class OutputRedirector(StringIO):
             return "orange"
         elif "created" in lower:
             return "green"
+        elif "script run time" in lower:
+            return "green"
         elif "____info" in lower:
             return "lightblue"
         return "white"
@@ -96,6 +98,42 @@ class PipelineWorker(QThread):
         process = subprocess.Popen(
             ["ParselTongue", "../vipcals/__main__docker.py",
             "../tmp/temp.json"],
+            #["cat", "../tmp/temp.json"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,  # Line buffering for real-time output
+            universal_newlines=True
+        )
+
+        # Read stdout line by line
+        for line in iter(process.stdout.readline, ''):
+            self.output_received.emit(line)  # Emit each line immediately
+           
+
+        # Read and emit errors if any
+        for err in iter(process.stderr.readline, ''):
+            self.error_received.emit("\n[ERROR]: " + err)
+
+        process.wait()  # Ensure process finishes
+
+        self.process_finished.emit()  # Notify when done
+        
+        
+class JsonPipelineWorker(QThread):
+    output_received = Signal(str)  # Signal to send stdout
+    error_received = Signal(str)   # Signal to send stderr
+    process_finished = Signal()
+
+    def __init__(self, json_path):
+        super().__init__()
+        self.json_path = json_path
+        
+    def run(self):
+        """Runs mock_pipeline.py in a subprocess and streams output."""
+        process = subprocess.Popen(
+            ["ParselTongue", "../vipcals/__main__.py",
+            self.json_path],
             #["cat", "../tmp/temp.json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -135,6 +173,7 @@ class MainWindow(qtw.QMainWindow, Ui_VIPCALs):
         self.help_page = HelpWindow(self)
         self.manual_page = ManualWindow(self)
         self.run_page = RunWindow(self)
+        self.json_run_page = JsonRunWindow(self)
         # self.plots_page = PlotsWindow(self)
 
         # Add widgets to the stacked widget
@@ -143,23 +182,38 @@ class MainWindow(qtw.QMainWindow, Ui_VIPCALs):
         self.stack.addWidget(self.help_page)
         self.stack.addWidget(self.manual_page)
         self.stack.addWidget(self.run_page)
+        self.stack.addWidget(self.json_run_page)
         # self.stack.addWidget(self.plots_page)
+
+        # Keep track of the plots opened
+        self.canvas_windows = []
 
         # Show the main page by default
         self.stack.setCurrentWidget(self.main_page)
         
         # Set initial size
-        self.setFixedSize(800, 350)
+        self.setMinimumSize(400, 300)
 
         # Connect page switching to resizing
-        self.stack.currentChanged.connect(self.adjust_size_on_page_change)
+        self.stack.currentChanged.connect(self.adjust_mainwindow_size)
 
-    def adjust_size_on_page_change(self, index):
-        current_widget = self.stack.widget(index)
-        if current_widget == self.main_page or current_widget == self.json_page:
-            self.setFixedSize(800, 350)
-        else:
-            self.setFixedSize(800, 550)
+    def adjust_mainwindow_size(self, index):
+        widget = self.stack.widget(index)
+        if hasattr(widget, "suggestedSize"):
+            size = widget.suggestedSize()
+            self.resize(size)
+
+    def register_canvas_window(self, win):
+        self.canvas_windows.append(win)
+
+    def closeEvent(self, event):
+        # Close all open plot windows
+        for win in self.canvas_windows:
+            if win is not None and win.isVisible():
+                win.close()
+        # Clean the tmp directory
+        os.system("rm -r ../tmp/*")
+        event.accept()
         
         
 class MainPage(qtw.QWidget, Ui_main_window):  
@@ -167,16 +221,20 @@ class MainPage(qtw.QWidget, Ui_main_window):
         super().__init__()
         self.main_window = main_window
         self.setupUi(self)
+        self._suggested_size = qtc.QSize(800,323)
         
         self.JSON_input_btn.clicked.connect(self.open_json_page)
         self.man_input_btn.clicked.connect(self.open_manual_page)
+
+    def suggestedSize(self):
+        return self._suggested_size
 
     def open_manual_page(self):
         self.main_window.manual_page.should_reset_fields = True
         self.main_window.stack.setCurrentWidget(self.main_window.manual_page)
 
     def open_json_page(self):
-        self.main_window.json_page.filepath_line.clear()
+        self.main_window.json_page.selectfile_line.clear()
         self.main_window.stack.setCurrentWidget(self.main_window.json_page)
 
         
@@ -185,17 +243,36 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         super().__init__()
         self.main_window = main_window
         self.setupUi(self)  
+        self._suggested_size = qtc.QSize(800,623)
+
+
+        ##########   USER AND DISK ARE HIDDEN IN DOCKER MODE   ##########
+        self.userno_line.setVisible(False)
+        self.userno_lbl.setVisible(False)        
+        self.disk_line.setVisible(False)
+        self.disk_lbl.setVisible(False)
+        #########################################################
+        ##########   FOR NOW SOME OPTIONS ARE HIDDEN   ##########
+        self.calsour_line.setVisible(False)
+        self.calsour_lbl.setVisible(False)        
+        self.freqsel_line.setVisible(False)
+        self.freqsel_lbl.setVisible(False)
+        self.subarray_chck.setVisible(False)
+        self.subarray_lbl.setVisible(False)
+        ##########################################################
 
         self.should_reset_fields = False  # Flag for reset control
         
         self.target_rows = [(self.target_line, self.addmore_btn)]
+        self.phaseref_rows = [(self.phasref_line, self.addmorephasref_btn)]
+        self.shift_rows = [(self.shift_line, self.addmoreshift_btn)]
 
         # Define fields
 
         self.fields = {
             # Basic inputs
-            "userno": self.userno_line,
-            "disk": self.disk_line,
+            "userno": 2,
+            "disk": 1,
             "paths": self.filepath_line,
             "targets": self.target_line,
             "output_directory": self.output_line,
@@ -208,6 +285,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             "freq_sel": self.freqsel_line,
             "subarray": self.subarray_chck,
             "shifts": self.shift_line,
+            "time_aver": self.timeaver_line,
+            "freq_aver": self.freqaver_line,
             # Reference antenna options
             "refant": self.refant_line,
             "refant_list": self.priorant_line,
@@ -232,6 +311,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.more_options_btn.clicked.connect(self.toggle_moreoptions)
         
         self.addmore_btn.clicked.connect(self.add_target_row)
+        self.addmorephasref_btn.clicked.connect(self.add_phaseref_row)
+        self.addmoreshift_btn.clicked.connect(self.add_shift_row)
         
         self.continue_button.clicked.connect(self.retrieve_inputs)
         self.continue_button.clicked.connect(self.start_pipeline) 
@@ -240,9 +321,16 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         
     def start_pipeline(self):
         """Switch to RunWindow and execute pipeline."""
-        # Show run page
-        self.main_window.stack.setCurrentWidget(self.main_window.run_page)  # Show RunWindow
-        self.main_window.run_page.RunPipeline()  # Call the function when the button is clicked
+        if self.interactive_chck.isChecked():
+            # Show run page
+            self.main_window.run_page.hide_buttons()
+            self.main_window.stack.setCurrentWidget(self.main_window.run_page)  # Show RunWindow
+            self.main_window.run_page.RunPipeline(interactive = True)  # Call the function when the button is clicked
+        else:
+            # Show run page
+            self.main_window.run_page.hide_buttons()
+            self.main_window.stack.setCurrentWidget(self.main_window.run_page)  # Show RunWindow
+            self.main_window.run_page.RunPipeline(interactive = False)  # Call the function when the button is clicked
          
     def toggle_moreoptions(self):
         self.calibbox.setVisible(not self.calibbox.isVisible())
@@ -255,6 +343,10 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
     def add_target_row(self):
         line_edit = qtw.QLineEdit()
         remove_button = qtw.QPushButton("Remove")
+        font3 = gtg.QFont()
+        font3.setPointSize(10)
+        font3.setBold(False)
+        remove_button.setFont(font3)
 
         # Connect button with lambda including dummy argument for clicked signal
         remove_button.clicked.connect(partial(self.remove_target_row, line_edit))
@@ -276,12 +368,78 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 self.refresh_layout()
                 break
 
+    def add_phaseref_row(self):
+        line_edit = qtw.QLineEdit()
+        remove_button = qtw.QPushButton("Remove")
+        font3 = gtg.QFont()
+        font3.setPointSize(10)
+        font3.setBold(False)
+        remove_button.setFont(font3)
+
+        # Connect button with lambda including dummy argument for clicked signal
+        remove_button.clicked.connect(partial(self.remove_phaseref_row, line_edit))
+
+        self.phaseref_rows.append((line_edit, remove_button))
+        self.refresh_layout()
+
+    def remove_phaseref_row(self, target_line_edit):
+        for i, (line_edit, remove_button) in enumerate(self.phaseref_rows):
+            if line_edit == target_line_edit:
+                # Remove widgets from layout explicitly
+                self.gridLayout_3.removeWidget(line_edit)
+                self.gridLayout_3.removeWidget(remove_button)
+
+                line_edit.deleteLater()
+                remove_button.deleteLater()
+
+                self.phaseref_rows.pop(i)
+                self.refresh_layout()
+                break
+
+    def add_shift_row(self):
+        line_edit = qtw.QLineEdit()
+        remove_button = qtw.QPushButton("Remove")
+        font3 = gtg.QFont()
+        font3.setPointSize(10)
+        font3.setBold(False)
+        remove_button.setFont(font3)
+
+        # Connect button with lambda including dummy argument for clicked signal
+        remove_button.clicked.connect(partial(self.remove_shift_row, line_edit))
+
+        self.shift_rows.append((line_edit, remove_button))
+        self.refresh_layout()
+
+    def remove_shift_row(self, target_line_edit):
+        for i, (line_edit, remove_button) in enumerate(self.shift_rows):
+            if line_edit == target_line_edit:
+                # Remove widgets from layout explicitly
+                self.gridLayout_3.removeWidget(line_edit)
+                self.gridLayout_3.removeWidget(remove_button)
+
+                line_edit.deleteLater()
+                remove_button.deleteLater()
+
+                self.shift_rows.pop(i)
+                self.refresh_layout()
+                break
+
     def refresh_layout(self):
         # Clear and re-add rows to ensure proper layout
         for i, (line_edit, remove_button) in enumerate(self.target_rows):
             row_index = 6 + i
             self.gridLayout_3.addWidget(line_edit, row_index, 1)
             self.gridLayout_3.addWidget(remove_button, row_index, 2)
+
+        for i, (line_edit, remove_button) in enumerate(self.phaseref_rows):
+            row_index = 2 + i
+            self.gridLayout_4.addWidget(line_edit, row_index, 1)
+            self.gridLayout_4.addWidget(remove_button, row_index, 2)
+
+        for i, (line_edit, remove_button) in enumerate(self.shift_rows):
+            row_index = 5 + i
+            self.gridLayout_5.addWidget(line_edit, row_index, 1)
+            self.gridLayout_5.addWidget(remove_button, row_index, 2)
 
 
             # Move "Add" button to the row after the last one
@@ -328,13 +486,32 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 inputs[label] = line_edit.text().split(', ')
             elif label == "targets":
                 inputs[label] = [x.text() for x,y in self.target_rows]
-                #inputs[label] = [t.strip() for t in line_edit.text().replace(",", " ").split() if t.strip()]
+            elif label == "phase_ref":
+                inputs[label] = [x.text() if x.text() != "" else None for x,y in self.phaseref_rows]
+                if inputs[label] == [None]:
+                    inputs[label] = None
+            elif label == "shifts":
+                inputs[label] = [x.text() if x.text() != "" else None for x,y in self.shift_rows]
+                if inputs[label] == [None]:
+                    inputs[label] = None
+
+            elif label == "refant_list":
+                if self.priorant_line.text() == "":
+                    inputs[label] = None
+                else:
+                    inputs[label] = [code.upper() for code in re.split(r'\s*,\s*', self.priorant_line.text().strip()) if code]
             elif label == "max_scan_refant_search":
                 inputs[label] = int(self.maxrefantscans_line.text())
             elif label == "min_solint":
                 inputs[label] = float(self.minsolint_line.text())
             elif label == "max_solint":
                 inputs[label] = float(self.maxsolint_line.text())
+            elif label == "time_aver":
+                inputs[label] = int(self.timeaver_line.text())
+            elif label == "freq_aver":
+                inputs[label] = int(self.freqaver_line.text())
+
+                
             elif line_edit.text() == "":
                 inputs[label] = None
             else:
@@ -383,6 +560,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.freqsel_line.setText("")
         self.subarray_chck.setChecked(False)
         self.shift_line.setText("")
+        self.timeaver_line.setText("1")
+        self.freqaver_line.setText("500")
         ## Reference antenna options
         self.refant_line.setText("")
         self.priorant_line.setText("")
@@ -398,16 +577,26 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         ## Plotting options
         self.interactive_chck.setChecked(True)
         
+    def suggestedSize(self):
+        return self._suggested_size
         
 class JSONWindow(qtw.QWidget, Ui_JSON_window):
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
-        self.setupUi(self)       
+        self.setupUi(self)      
+
+        self._suggested_size = qtc.QSize(800,323) 
 
         self.selectfile_btn.clicked.connect(self.get_input_file)
+        
+        self.continue_button.clicked.connect(self.start_pipeline) 
         self.return_button.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.main_page))        
-   
+       
+    def suggestedSize(self):
+        return self._suggested_size
+
+
     def get_input_file(self):
         response = qtw.QFileDialog.getOpenFileName(
             parent=self,
@@ -415,7 +604,14 @@ class JSONWindow(qtw.QWidget, Ui_JSON_window):
             #directory=os.getcwd(),
             filter = 'JSON file (*.json)'
         )
-        self.filepath_line.setText(str(response[0]))
+        self.selectfile_line.setText(str(response[0]))
+        
+    def start_pipeline(self):
+        """Switch to RunWindow and execute pipeline."""
+        # Show run page
+        self.main_window.json_run_page.hide_buttons()
+        self.main_window.stack.setCurrentWidget(self.main_window.json_run_page)  # Show RunWindow
+        self.main_window.json_run_page.RunJsonPipeline(self.selectfile_line.text())  # Call the function when the button is clicked
         
 class HelpWindow(qtw.QWidget, Ui_help_window):
     def __init__(self, main_window):
@@ -431,14 +627,9 @@ class RunWindow(qtw.QWidget, Ui_run_window):
         self.main_window = main_window
         self.setupUi(self)
 
+        self._suggested_size = qtc.QSize(900,623) 
+
         self.text_output.setReadOnly(True)
-        #self.text_output.setStyleSheet("""
-        #    QTextEdit {
-        #        background-color: black;
-        #        color: white;
-        #        font-size: 13pt;
-        #    }
-        #""")
 
         sys.stdout = OutputRedirector(self.text_output)  # Redirect stdout
 
@@ -450,16 +641,21 @@ class RunWindow(qtw.QWidget, Ui_run_window):
 
         self.worker = None  # Placeholder for pipeline worker
 
-    def RunPipeline(self):
+    def RunPipeline(self, interactive):
         """Starts the subprocess in a separate thread for live output."""
         self.text_output.clear()  # Clear previous logs
+
+        self.interactive = interactive
 
         # Create worker thread
         self.worker = PipelineWorker()
         self.worker.output_received.connect(self.append_colored_output)
         self.worker.error_received.connect(self.append_colored_output)   # Live error update
-        self.worker.process_finished.connect(self.prepare_plot_window)  # Show buttons when finished
-        self.worker.process_finished.connect(self.show_buttons)  # Show buttons when finished
+        if self.interactive == True: 
+            self.worker.process_finished.connect(self.prepare_plot_window) 
+            self.worker.process_finished.connect(self.show_buttons)  # Show buttons when finished
+        else:
+            self.worker.process_finished.connect(self.show_return_button)  # Show buttons when finished
 
         self.worker.start()  # Start pipeline process
 
@@ -467,6 +663,15 @@ class RunWindow(qtw.QWidget, Ui_run_window):
         """Show plots and return buttons after process finishes."""
         self.plots_btn.setVisible(True)
         self.return_btn.setVisible(True)
+    
+    def show_return_button(self):
+        """Show return button after process finishes."""
+        self.return_btn.setVisible(True)
+    
+    def hide_buttons(self):
+        """Hide plots and return buttons after process finishes."""
+        self.plots_btn.setVisible(False)
+        self.return_btn.setVisible(False)
     
     def prepare_plot_window(self):
         # Get list of targets from the /vipcals/tmp directory
@@ -503,7 +708,90 @@ class RunWindow(qtw.QWidget, Ui_run_window):
         self.text_output.setTextCursor(cursor)
         self.text_output.ensureCursorVisible()
 
+    def suggestedSize(self):
+        return self._suggested_size
 
+
+class JsonRunWindow(qtw.QWidget, Ui_run_window):
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+        self.setupUi(self)
+
+        self.text_output.setReadOnly(True)
+
+        sys.stdout = OutputRedirector(self.text_output)  # Redirect stdout
+
+        self.plots_btn.setVisible(False)
+        self.return_btn.setVisible(False)
+
+        self.plots_btn.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.plots_page))
+        self.return_btn.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.json_page))
+
+        self.worker = None  # Placeholder for pipeline worker
+
+
+    def RunJsonPipeline(self, json_path):
+        """Starts the subprocess in a separate thread for live output."""
+        self.text_output.clear()  # Clear previous logs
+
+        # Create worker thread
+        self.worker = JsonPipelineWorker(json_path)
+        self.worker.output_received.connect(self.append_colored_output)
+        self.worker.error_received.connect(self.append_colored_output)   # Live error update
+        self.worker.process_finished.connect(self.prepare_plot_window)  # Show buttons when finished
+        self.worker.process_finished.connect(self.show_return_button)  # Show buttons when finished
+
+        self.worker.start()  # Start pipeline process
+
+    def show_buttons(self):
+        """Show plots and return buttons after process finishes."""
+        self.plots_btn.setVisible(True)
+        self.return_btn.setVisible(True)
+        
+    def hide_buttons(self):
+        """Hide plots and return buttons after process finishes."""
+        self.plots_btn.setVisible(False)
+        self.return_btn.setVisible(False)
+    
+    def show_return_button(self):
+        """Show return button after process finishes."""
+        self.return_btn.setVisible(True)
+    
+    def prepare_plot_window(self):
+        # Get list of targets from the /vipcals/tmp directory
+        pattern = pattern = re.compile(r'^(.*?_\d+G)_')
+        target_list = set()
+
+        for filename in os.listdir('../tmp/'):
+            match = pattern.match(filename)
+            if match:
+                target_list.add(match.group(1))
+
+        target_list = sorted(target_list)
+        
+        # Create a new PlotsWindow with this target list
+        self.main_window.plots_page = PlotsWindow(self.main_window, target_list)
+        self.main_window.stack.addWidget(self.main_window.plots_page)
+
+    def append_colored_output(self, text):
+        if not text:
+            return
+
+        # Get color from static method
+        color = OutputRedirector.get_color_static(text)
+
+        # Set up formatting
+        fmt = gtg.QTextCharFormat()
+        fmt.setForeground(gtg.QColor(color))
+
+        # Insert plain text
+        cursor = self.text_output.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        cursor.setCharFormat(fmt)
+        cursor.insertText(text)  # <- This preserves \n exactly as they are
+        self.text_output.setTextCursor(cursor)
+        self.text_output.ensureCursorVisible()
 
 
 class PlotsWindow(qtw.QWidget):
@@ -553,10 +841,12 @@ class PlotsWindow(qtw.QWidget):
             for j in range(4):
                 button = qtw.QPushButton(button_texts[j])
                 button.setSizePolicy(qtw.QSizePolicy.Expanding, qtw.QSizePolicy.Expanding)
+                
                 group_layout.addWidget(button, j//2, j%2, 1, 1)
                 button_dict[target].append(button)
 
             group_box.setLayout(group_layout)
+            group_box.setMinimumHeight(200)  
             scroll_layout.addWidget(group_box)
 
         scroll_content.setLayout(scroll_layout)
@@ -579,25 +869,29 @@ class PlotsWindow(qtw.QWidget):
         return_btn.clicked.connect(lambda: self.main_window.stack.setCurrentWidget(self.main_window.run_page))
         self.gridLayout.addWidget(return_btn, 2, 0, 1, 1)
 
-        self.verticalSpacer = qtw.QSpacerItem(20, 40, qtw.QSizePolicy.Policy.Minimum, qtw.QSizePolicy.Policy.Expanding)
-        self.gridLayout.addItem(self.verticalSpacer, 1, 0, 1, 2)
+        scroll_layout.addStretch(1)  # Add vertical stretch at bottom of scroll area content
+
 
 
     def openVplotCanvas(self, target):
         canvas = VplotWindow(target)
         self.canvas_window.append(canvas)
+        self.main_window.register_canvas_window(canvas)
         canvas.show()
     def openPossmCanvas(self, target):
         canvas = PossmWindow(target)
         self.canvas_window.append(canvas)
+        self.main_window.register_canvas_window(canvas)
         canvas.show()
     def openRadplotCanvas(self, target):
         canvas = RadplotWindow(target)
         self.canvas_window.append(canvas)
+        self.main_window.register_canvas_window(canvas)
         canvas.show()
     def openUvplotCanvas(self, target):
         canvas = UvplotWindow(target)
         self.canvas_window.append(canvas)
+        self.main_window.register_canvas_window(canvas)
         canvas.show()
         
        
@@ -656,7 +950,7 @@ class VplotWindow(qtw.QMainWindow):
 
     def update_baseline_selection(self, text):
         """Update selected baseline and replot."""
-        ant1, ant2 = map(int, text.split('-'))  # ← cast to integers
+        ant1, ant2 = map(int, text.split('-'))  # cast to integers
         self.selected_baseline = (ant1, ant2)
         self.current_index = self.plot_keys.index(self.selected_baseline)
         self.plot_data()
@@ -693,7 +987,7 @@ class PossmWindow(qtw.QMainWindow):
 
         self.setWindowTitle("POSSM")
         self.target = target
-        self.selected_cl = "CL9"  # Default CL version
+
         self.current_plot_index = 0  # Track the current plot index
         self.selected_baseline = None
 
@@ -721,6 +1015,7 @@ class PossmWindow(qtw.QMainWindow):
             if match:
                 cl_options.append(f"CL{match.group(1)}")
 
+        self.selected_cl = cl_options[-1]  # Default CL version
 
         # Sort CL options numerically (e.g., CL1, CL2, CL10)
         cl_options = sorted(set(cl_options), key=lambda x: int(x[2:]))
@@ -738,12 +1033,24 @@ class PossmWindow(qtw.QMainWindow):
         controls_layout.addWidget(self.cl_selector)
 
 
-        # Baseline Selector
+        # --- Baseline Selector ---
         self.bl_selector = qtw.QComboBox()
         self.bl_selector.currentTextChanged.connect(self.update_baseline_selection)
         controls_layout.addWidget(self.bl_selector)
 
-        # Previous and Next Buttons
+        # --- Polarization Selector ---
+        self.current_pol = 'L'  # Default pol index
+        self.pol_selector = qtw.QComboBox()
+        self.pol_selector.currentIndexChanged.connect(self.update_pol_selection)
+        controls_layout.addWidget(self.pol_selector)
+
+        # --- Scan Selector ---
+        self.current_scan = 0  # Default scan index
+        self.scan_selector = qtw.QComboBox()
+        self.scan_selector.currentIndexChanged.connect(self.update_scan_selection)
+        controls_layout.addWidget(self.scan_selector)
+
+        # --- Previous and Next Buttons ---
         self.prev_button = qtw.QPushButton("Previous")
         self.prev_button.clicked.connect(self.show_previous_plot)
         controls_layout.addWidget(self.prev_button)
@@ -769,6 +1076,14 @@ class PossmWindow(qtw.QMainWindow):
         """Update the selected CL version and reload data."""
         self.selected_cl = new_cl
         self.load_possm_data()
+        self.plot_data()
+
+    def update_scan_selection(self, index):
+        self.current_scan = index
+        self.plot_data()
+
+    def update_pol_selection(self, pol):
+        self.current_pol = pol
         self.plot_data()
 
     def update_baseline_selection(self, text):
@@ -856,6 +1171,25 @@ class PossmWindow(qtw.QMainWindow):
                 self.bl_selector.setCurrentText(f"{self.selected_baseline[0]}-{self.selected_baseline[1]}")
                 self.current_plot_index = self.plot_keys.index(self.selected_baseline)
 
+            # Populate scan selector
+            self.scan_selector.clear()
+            if self.selected_baseline in self.possm_data:
+                num_scans = len(self.possm_data[self.selected_baseline])
+                for i in range(num_scans):
+                    self.scan_selector.addItem(f"Scan {i+1}")
+                self.current_scan = 0
+                self.scan_selector.setCurrentIndex(self.current_scan)
+
+            # Populate pol selector
+            self.pol_selector.clear()
+            if self.selected_baseline in self.possm_data:
+                pols = self.possm_data['pols']
+                for i, p in enumerate(pols):
+                    self.pol_selector.addItem(f"{p}")
+                self.current_pol = 0
+                self.pol_selector.setCurrentIndex(self.current_pol)
+
+
         except FileNotFoundError:
             qtw.QMessageBox.warning(self, "File not found", f"Could not find file: {filename}")
             self.possm_data = {}
@@ -872,13 +1206,14 @@ class PossmWindow(qtw.QMainWindow):
             return
 
         # Get current baseline and scan
-        scan = 0  # For now, this is static. Make dynamic later if needed.
-
+        scan = self.current_scan  # For now, this is static. Make dynamic later if needed.
+        pol = self.current_pol
         # --- NEW PLOT DRAWING ---
         self.figure.clear()  # Clear old plot
 
         with np.errstate(divide='ignore', invalid='ignore'):
-            interactive_possm(self.possm_data, self.selected_baseline, scan=0, possm_fig=self.figure)
+            interactive_possm(self.possm_data, self.selected_baseline, 
+                              polarization = pol ,scan=scan, possm_fig=self.figure)
 
         self.canvas.draw()
 
@@ -1049,13 +1384,21 @@ class UvplotWindow(qtw.QMainWindow):
 
         self.canvas.draw()
 
-def interactive_possm(POSSM, bline, scan, possm_fig):
+def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
     n = scan
     bl = bline
+    pol = polarization #POSSM['pols'].tolist().index(polarization)
 
-    reals = np.array(POSSM[bl][n])[:, :, :, :, 0]
-    imags = np.array(POSSM[bl][n])[:, :, :, :, 1]
-    weights = np.array(POSSM[bl][n])[:, :, :, :, 2]
+    # Indexing goes like:
+    # POSSM[baseline][scan][time, IF, channel, polarization, visibility]
+    if len(POSSM['pols'].tolist()) < 2:
+        reals = np.array(POSSM[bl][n])[:, :, :, :, 0]
+        imags = np.array(POSSM[bl][n])[:, :, :, :, 1]
+        weights = np.array(POSSM[bl][n])[:, :, :, :, 2]
+    else:
+        reals = np.array(POSSM[bl][n])[:, :, :, pol, 0]
+        imags = np.array(POSSM[bl][n])[:, :, :, pol, 1]
+        weights = np.array(POSSM[bl][n])[:, :, :, pol, 2]
 
     # Compute sums
     weighted_reals = reals * weights
@@ -1098,7 +1441,11 @@ def interactive_possm(POSSM, bline, scan, possm_fig):
         axes_bottom[i].plot(chan_freq[start:end], amps[start:end], color="g",  mec = 'c', mfc='c', marker="+", markersize = 12, )
         axes_top[i].hlines(y = 0, xmin =  chan_freq[start], xmax = chan_freq[end-1], color = 'y')
         axes_top[i].set_ylim(-180,180)
-        axes_bottom[i].set_ylim(0, np.nanmax(amps) * 1.10)
+        if np.all(np.isnan(amps)):
+            # Skip plotting or set default limits
+            axes_bottom[i].set_ylim(0, 1) 
+        else:
+            axes_bottom[i].set_ylim(np.nanmin(amps)*0.90, np.nanmax(amps) * 1.10)
         axes_top[i].tick_params(labelbottom=False)
         axes_top[i].spines['bottom'].set_color('yellow')
         axes_top[i].spines['top'].set_color('yellow')
@@ -1119,7 +1466,10 @@ def interactive_possm(POSSM, bline, scan, possm_fig):
     axes_bottom[0].set_ylabel('Amplitude (Jy)', fontsize = 15)
     plt.style.use('dark_background')
 
-    possm_fig.suptitle(f"Baseline {bl[0]}-{bl[1]}", fontsize=20)
+    a1 = POSSM['ant_dict'].item()[bl[0]]
+    a2 = POSSM['ant_dict'].item()[bl[1]]
+    # possm_fig.suptitle(f"Baseline {bl[0]}-{bl[1]}", fontsize=20)
+    possm_fig.suptitle(f"{bl[0]}.{a1} - {bl[1]}.{a2}", fontsize=20)
     possm_fig.supxlabel("Frequency (GHz)", fontsize = 16)
     possm_fig.subplots_adjust(wspace=0, hspace = 0)  # No horizontal spacing
 
@@ -1130,16 +1480,18 @@ def interactive_vplot(vplot, bline, vplot_fig):
             times = vplot[bl][0]
             amps = vplot[bl][1]
             phases = vplot[bl][2]
-
+            a1 = vplot['ant_dict'][bl[0]]
+            a2 = vplot['ant_dict'][bl[1]]
             axes = vplot_fig.subplots(2, 1,  sharex=True) 
+
             vplot_fig.suptitle('Amp&Phase - Time')
-            vplot_fig.suptitle(f"Baseline {bl[0]}-{bl[1]}", fontsize=20)
+            vplot_fig.suptitle(f"{bl[0]}.{a1} - {bl[1]}.{a2}", fontsize=20)
 
             # First subplot 
             axes[0].scatter(times, amps, label='Amplitude', marker = '.',
                             s = 2, c = 'lime')
             axes[0].set_ylabel('Amplitude (JY)')
-            axes[0].set_ylim(bottom = 0, top = 1.15* max(amps))
+            axes[0].set_ylim(bottom = 0.85*min(amps), top = 1.15* max(amps))
 
             # Second subplot 
             axes[1].scatter(times, phases, label='Phase', marker = '.',

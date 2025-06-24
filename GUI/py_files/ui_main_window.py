@@ -23,7 +23,7 @@ class Ui_main_window(object):
     def setupUi(self, main_window):
         if not main_window.objectName():
             main_window.setObjectName(u"main_window")
-        main_window.resize(800, 208)
+        #main_window.resize(800, 208)
         self.gridLayout = QGridLayout(main_window)
         self.gridLayout.setObjectName(u"gridLayout")
         self.groupBox = QGroupBox(main_window)

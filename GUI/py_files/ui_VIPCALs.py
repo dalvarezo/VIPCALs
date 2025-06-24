@@ -24,8 +24,8 @@ class Ui_VIPCALs(object):
             VIPCALs.setObjectName(u"VIPCALs")
 
         # Set initial window size with 1:3 aspect ratio (height:width)
-        initial_width = 900
-        initial_height = int(initial_width / 3.33)
+        initial_width = 800
+        initial_height = 323
         VIPCALs.resize(initial_width, initial_height)
         
         self.centralwidget = QWidget(VIPCALs)
