@@ -455,8 +455,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         response = qtw.QFileDialog.getOpenFileNames(
             parent=self,
             caption="Select a file",
-            dir= start_dir,
-            filter = 'FITS file (*.fits *.uvfits *.idifits)'
+            dir= str(start_dir),
+            filter = 'FITS file (*.fits *.uvfits *.idifits);;All files (*)'
         )
         self.filepath_line.setText(", ".join(response[0]))
 
@@ -467,7 +467,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         response = qtw.QFileDialog.getExistingDirectory(
             parent=self,
             caption="Select a folder",
-            dir=start_dir
+            dir=str(start_dir)
             #filter = 'FITS file (*.fits *.uvfits *.idifits)'
         )
         if len(response) > 0:
@@ -610,7 +610,7 @@ class JSONWindow(qtw.QWidget, Ui_JSON_window):
         response = qtw.QFileDialog.getOpenFileName(
             parent=self,
             caption="Select a file",
-            dir=start_dir,
+            dir=str(start_dir),
             filter = 'JSON file (*.json)'
         )
         self.selectfile_line.setText(str(response[0]))

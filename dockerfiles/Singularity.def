@@ -68,9 +68,15 @@ From: ubuntu:22.04
     vipcals /opt/vipcals
 
 %runscript
+    #!/bin/bash
+
+    # Load Conda environment
     source /opt/conda/etc/profile.d/conda.sh
     conda activate pyside62
+
+    # Source AIPS environment 
     source /usr/local/aips/LOGIN.SH
+
+    # Run the GUI
     cd /usr/local/aips/aips/vipcals/GUI
     exec python3 run_GUI_docker.py
-

@@ -446,7 +446,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             parent=self,
             caption="Select a file",
             #directory=os.getcwd(),
-            filter = 'FITS file (*.fits *.uvfits *.idifits)'
+            filter = 'FITS file (*.fits *.uvfits *.idifits);;All files (*)'
         )
         self.filepath_line.setText(", ".join(response[0]))
 
