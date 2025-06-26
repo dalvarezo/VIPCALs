@@ -35,15 +35,15 @@ def set_name(path, source, klass):
     :rtype: str
     """    
     hdul = fits.open(path)
-    obs = hdul[0].header['OBSERVER']
-    if '/' in hdul[0].header['DATE-OBS']:
-        date = hdul[0].header['DATE-OBS'].split('/')
+    obs = hdul['UV_DATA'].header['OBSCODE'].strip()
+    if '/' in hdul['UV_DATA'].header['DATE-OBS']:
+        date = hdul['UV_DATA'].header['DATE-OBS'].split('/')
         if int(date[2]) > 90:
             date_obs = '19' + date[2] + '-' + date[1] + '-' + date[0]
         else:
             date_obs = '20' + date[2] + '-' + date[1] + '-' + date[0]
-    if '-' in hdul[0].header['DATE-OBS']:
-        date_obs = hdul[0].header['DATE-OBS']
+    if '-' in hdul['UV_DATA'].header['DATE-OBS']:
+        date_obs = hdul['UV_DATA'].header['DATE-OBS']
     hdul.close()
     freq = int(klass.strip('G'))
     if freq < 1:
@@ -83,7 +83,7 @@ def get_source_list(file_path_list, freq = 0):
         hdul = fits.open(file_path)
         for elements in Table(hdul['SOURCE'].data):
             a = Source()
-            a.name = elements['SOURCE']
+            a.name = elements['SOURCE'].strip()
             try:
                 a.ra = elements['RAOBS']
                 a.dec = elements['DECOBS']

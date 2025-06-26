@@ -83,7 +83,7 @@ def write_info(data, filepath_list, log_list, sources, stats_df = 'None'):
         if freq < 1e9:
             log.write('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
 
-        log.write('\nLoaded sources: ' + str(list(set(sources))) + '\n')
+        log.write('\nLoaded sources: ' + str([x.strip() for x in set(sources)]) + '\n')
 
         if type(stats_df) == pd.core.frame.DataFrame:
             stats_df['files'] = str([x.split('/')[-1] for x in filepath_list])
@@ -121,4 +121,4 @@ def print_info(data, filepath_list, sources):
     if freq < 1e9:
         print('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
 
-    print('\nLoaded sources: ' + str(list(set(sources))) + '\n')
+    print('\nLoaded sources: ' + str([x.strip() for x in set(sources)]) + '\n')

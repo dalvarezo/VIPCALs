@@ -70,6 +70,9 @@ def ty_smooth(data, tmin = 0, tmax = 1000, time_interv = 15, max_dev = 250):
 
     # Copy FG1 to FG2
     tacop(data, 'FG', 1, 2)
+
+    # TEST
+    bad_antennas += [1, 12, 4]
     
     # Apply antennas flags 
     if len(bad_antennas) > 0:

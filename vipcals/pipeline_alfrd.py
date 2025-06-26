@@ -40,6 +40,7 @@ import scripts.export_data as expo
 import scripts.phase_shift as shft
 
 from AIPSData import AIPSUVData, AIPSCat
+import Wizardry.AIPSData as wizard
 
 import functools
 print = functools.partial(print, flush=True)
@@ -344,71 +345,32 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     if [1, 'AIPS FG'] not in uvdata.tables:
         try:
             retrieved_urls = tabl.load_fg_tables(uvdata)
-        except help.NoTablesError:
-            # If the pipeline finds no tables, stops here
-            print("No vlba.cal tables were found online. The pipeline will stop here.\n")
             for pipeline_log in log_list:
-                pipeline_log.write("\nNo vlba.cal tables were found online. The pipeline will stop here.\n")
-            ######################################
-            ######### SEND INFO TO ALFRD #########
-            ######################################
-            for i, target in enumerate(target_list):
-                cols = ['TARGET', 'FILES', 'PROJECT', 'BAND', 'SIZE(GB)', 'TIME(s)', \
-                        'TSYS_%_FLAGGED', 'REFANT', 'REFANT_SNR', 'GOOD/TOTAL', \
-                        'INITIAL_VIS', 'FINAL_VIS']
-                    
-                values = [target, str([x.split('/')[-1] for x in filepath_list]), \
-                        stats_df['project'][i], uvdata.klass, \
-                        stats_df['total_size'][i]/1024**3, time.time(), \
-                        'NOTABLES', \
-                        'NOTABLES', 'NOTABLES', \
-                        'NOTABLES', \
-                        0, 0]
-                    
-                new_row = pd.DataFrame([values], columns = cols)
+                for good_url in retrieved_urls:
+                    pipeline_log.write('Flag information was not available in the file, ' \
+                                        + 'it has been retrieved from ' + good_url + '\n')
+                pipeline_log.write('FG#1 created.\n')
 
-                # Normalize both DataFrames for comparison
-                for col in ['TARGET', 'PROJECT', 'BAND']:
-                    lf.df_sheet[col] = lf.df_sheet[col].astype(str).str.strip()
-                    new_row[col] = new_row[col].astype(str).str.strip()
+            # Move the flag file to the target folders
+            for path in outpath_list:
+                os.system('cp ../tmp/flags.vlba ' + path + '/TABLES/flags.vlba')
 
-                # Remove existing matching row
-                lf.df_sheet = lf.df_sheet[~(
-                    (lf.df_sheet['TARGET'] == new_row.at[0, 'TARGET']) &
-                    (lf.df_sheet['PROJECT'] == new_row.at[0, 'PROJECT']) &
-                    (lf.df_sheet['BAND'] == new_row.at[0, 'BAND'])
-                )]
-
-                # Append the new row
-                lf.df_sheet = pd.concat([lf.df_sheet, new_row], ignore_index=True)
-
-            # Sort the entire sheet by TARGET before updating
-            lf.df_sheet = lf.df_sheet.sort_values(by='TARGET').reset_index(drop=True)
-
-            # Update the sheet
-            lf.update_sheet(count=1, failed=0, csvfile='df_sheet.csv')
+            # Clean the tmp directory
+            os.system('rm ../tmp/*.vlba')
             
-            
-            return(1)
-        
-        for pipeline_log in log_list:
-            for good_url in retrieved_urls:
-                pipeline_log.write('Flag information was not available in the file, ' \
-                                    + 'it has been retrieved from ' + good_url + '\n')
-            pipeline_log.write('FG#1 created.\n')
+            print('Flag information was not available in the file, ' \
+                            + 'it has been retrieved from\n' + good_url + '\n')
+            print('FG#1 created.\n')
+            stats_df['need_fg'] = True
+            stats_df['vlbacal_files'] = str(retrieved_urls)
 
-        # Move the flag file to the target folders
-        for path in outpath_list:
-            os.system('cp ../tmp/flags.vlba ' + path + '/TABLES/flags.vlba')
-
-        # Clean the tmp directory
-        os.system('rm ../tmp/*.vlba')
-
-        print('Flag information was not available in the file, ' \
-                        + 'it has been retrieved from\n' + good_url + '\n')
-        print('FG#1 created.\n')
-        stats_df['need_fg'] = True
-        stats_df['vlbacal_files'] = str(retrieved_urls)
+        except help.NoTablesError:
+            # If the pipeline finds no tables, gives a wrning but continues
+            print("No vlba.cal tables were found online. No initial flags will be applied.\n")
+            for pipeline_log in log_list:
+                pipeline_log.write("\nNo vlba.cal tables were found online. No initial flags will be applied.\n")
+            stats_df['need_fg'] = True
+            stats_df['vlbacal_files'] = None
 
     if missing_tables == True:
         t1 = time.time()
@@ -489,13 +451,17 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     seq = uvdata.seq
     
     t_avg = time.time()
-    ## If the time resolution is < 1s, average the dataset in time 
-    ## (unless other value is given)
-    try:
-        time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'][0])
-    except TypeError: # Single IF datasets
-        time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'])
-        
+        ## If the time resolution is < 2s, average the dataset in time 
+        ## (unless other value is given)
+    if [1, 'AIPS CQ'] in uvdata.tables:
+        try:
+            time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'][0])
+        except TypeError: # Single IF datasets
+            time_resol = float(uvdata.table('CQ', 1)[0]['time_avg'])
+    else:
+        wuvdata = wizard.AIPSUVData(uvdata.name, uvdata.klass, uvdata.disk, uvdata.seq)
+        time_resol = float(round(min([x.inttim for x  in wuvdata]), 2))
+            
     if time_resol < time_aver:
         avgdata = AIPSUVData(aips_name[:9] + '_AT', uvdata.klass, disk_number, seq)
         if avgdata.exists() == True:
@@ -514,7 +480,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                             + '{:.2f}'.format(time_resol) \
                             + 's. It has been averaged to 2s.\n')
         print('\nThe time resolution was {:.2f}'.format(time_resol) \
-            + f's. It has been averaged to {time_aver}s.\n')
+            + f's. It has been averaged to {time_aver}s.')
         is_data_avg = True
         stats_df['time_avg'] = True
         stats_df['old_timesamp'] = time_resol
@@ -528,12 +494,23 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             
     ## If the channel bandwidth is smaller than 0.5 MHz, average the dataset 
     ## in frequency up to 0.5 MHz per channel (unless other value is given)
-    try:
-        ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'][0])
-        no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'][0])
-    except TypeError: # Single IF datasets
-        ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'])
-        no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'])
+    if [1, 'AIPS CQ'] in uvdata.tables:
+        try:
+            ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'][0])
+            no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'][0])
+        except TypeError: # Single IF datasets
+            ch_width = float(uvdata.table('CQ', 1)[0]['chan_bw'])
+            no_chan = int(uvdata.table('CQ', 1)[0]['no_chan'])
+        
+    else:
+        try:
+            ch_width = float(uvdata.table('FQ', 1)[0]['ch_width'][0])
+            total_width = float(uvdata.table('FQ', 1)[0]['total_bandwidth'][0])
+            no_chan = int(total_width/ch_width)
+        except TypeError: # Single IF datasets
+            ch_width = float(uvdata.table('FQ', 1)[0]['ch_width'])
+            total_width = float(uvdata.table('FQ', 1)[0]['total_bandwidth'])
+            no_chan = int(total_width/ch_width)
         
     if ch_width < freq_aver*1000:
         if is_data_avg == False:
@@ -866,13 +843,36 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     disp.write_box(log_list, 'Earth orientation parameters corrections')
     disp.print_box('Earth orientation parameters corrections')
 
-    eopc.eop_correct(uvdata)
+    with fits.open(filepath_list[0]) as hdul:
+        try:
+            if hdul[0].header['CORRELAT'].strip() == 'SFXC':
+                for pipeline_log in log_list:
+                    pipeline_log.write('\nEarth orientation parameter corrections cannot '\
+                                    + 'be applied for non-DiFX correlators.\n'\
+                                    + 'CL#3 will be copied from CL#2.\n')
+                    print('\nEarth orientation parameter corrections cannot be ' \
+                                    + 'applied for non-DiFX correlators.\n'\
+                                    + 'CL#3 will be copied from CL#2.\n')
+                    help.tacop(uvdata, 'CL', 2, 3)
+            else:
+                eopc.eop_correct(uvdata)
 
-    for pipeline_log in log_list:
-        pipeline_log.write('\nEarth orientation parameter corrections applied!\n'\
-                        + 'CL#3 created.\n')
-    print('\nEarth orientation parameter corrections applied!\nCL#3 created.\n')
-    os.system('rm -rf ../tmp/usno*')
+                for pipeline_log in log_list:
+                    pipeline_log.write('\nEarth orientation parameter corrections applied!\n'\
+                                    + 'CL#3 created.\n')
+                print('\nEarth orientation parameter corrections applied!\nCL#3 created.\n')
+                os.system('rm -rf ../tmp/usno*')
+
+        except KeyError:
+            eopc.eop_correct(uvdata)
+
+            for pipeline_log in log_list:
+                pipeline_log.write('\nEarth orientation parameter corrections applied!\n'\
+                                + 'CL#3 created.\n')
+            print('\nEarth orientation parameter corrections applied!\nCL#3 created.\n')
+            os.system('rm -rf ../tmp/usno*')
+
+
 
     # Counting visibilities
     expo.data_split(uvdata, target_list, cl_table=3, flagver=2)
@@ -2089,7 +2089,7 @@ def pipeline(input_dict):
 
                 # Define AIPS name
                 with fits.open(filepath_list_ID[0]) as hdul:
-                    aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_1
+                    aips_name = hdul['UV_DATA'].header['OBSCODE'] # + '_' + klass_1
 
                 ## Check if the AIPS catalogue name is too long, and rename ##
                 # 12 is the maximum length for a file name in AIPS
@@ -2101,7 +2101,7 @@ def pipeline(input_dict):
                     aips_name_short = name[:size_name] + '_' + suffix
 
                 # Check if project directory already exists, if not, create one
-                project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+                project_dir = output_directory + '/' + hdul['UV_DATA'].header['OBSCODE']
                 if os.path.exists(project_dir) == False:
                     os.system('mkdir ' + project_dir)
 
@@ -2188,7 +2188,7 @@ def pipeline(input_dict):
 
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
-        aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_1
+        aips_name = hdul['UV_DATA'].header['OBSCODE'] # + '_' + klass_1
 
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -2199,7 +2199,7 @@ def pipeline(input_dict):
             aips_name_short = name[:size_name] + '_' + suffix
 
         # Check if project directory already exists, if not, create one
-        project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+        project_dir = output_directory + '/' + hdul['UV_DATA'].header['OBSCODE']
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 
@@ -2275,7 +2275,7 @@ def pipeline(input_dict):
 
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
-        aips_name = hdul[0].header['OBSERVER'] # + '_' + klass_2
+        aips_name = hdul['UV_DATA'].header['OBSCODE'] # + '_' + klass_2
         
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -2286,7 +2286,7 @@ def pipeline(input_dict):
             aips_name_short = name[:size_name] + '_' + suffix
 
         # Check if project directory already exists, if not, create one
-        project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+        project_dir = output_directory + '/' + hdul['UV_DATA'].header['OBSCODE']
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 
@@ -2366,7 +2366,7 @@ def pipeline(input_dict):
 
         # Define AIPS name
         hdul = fits.open(filepath_list[0])
-        aips_name = hdul[0].header['OBSERVER'] 
+        aips_name = hdul['UV_DATA'].header['OBSCODE'] 
         
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -2377,7 +2377,7 @@ def pipeline(input_dict):
             aips_name_short = name[:size_name] + '_' + suffix
 
         # Check if project directory already exists, if not, create one
-        project_dir = output_directory + '/' + hdul[0].header['OBSERVER']
+        project_dir = output_directory + '/' + hdul['UV_DATA'].header['OBSCODE']
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 

@@ -258,14 +258,17 @@ for i, entry in enumerate(entry_list):
     # Similar date (+-3 days)
         obs_dates = []
         for j, path in enumerate(input_dict['paths'],1):
-            for fmt in ("%d/%m/%y", "%Y-%m-%d"):
+            for fmt in ("%d/%m/%y", "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"):
                 try:
-                    #print(globals()[f"hdul_{j}"][0].header['DATE-OBS'])
-                    dt = datetime.strptime(globals()[f"hdul_{j}"][0].header['DATE-OBS'], fmt)
+                    globals()[f"hdul_{j}"] = fits.open(path)
+                    # print([h.name for h in globals()[f"hdul_{j}"]])
+                    dt = datetime.strptime(globals()[f"hdul_{j}"]['UV_DATA'].header['DATE-OBS'], fmt)
                     YYYY, MM, DD = dt.year, dt.month, dt.day
                     obs_dates.append(datetime(YYYY, MM, DD).toordinal())
                 except ValueError:
-                    continue
+                    continue                
+            globals()[f"hdul_{j}"].close()
+
                 
         if (max(obs_dates) - min(obs_dates)) > 2:
             print('\nWARNING! There are more than 2 days between observations.\n')

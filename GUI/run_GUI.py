@@ -554,7 +554,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.freqsel_line.setText("")
         self.subarray_chck.setChecked(False)
         self.shift_line.setText("")
-        self.timeaver_line.setText("1")
+        self.timeaver_line.setText("2")
         self.freqaver_line.setText("500")
         ## Reference antenna options
         self.refant_line.setText("")
@@ -714,6 +714,8 @@ class JsonRunWindow(qtw.QWidget, Ui_run_window):
 
         self.text_output.setReadOnly(True)
 
+        self._suggested_size = qtc.QSize(900,623) 
+
         sys.stdout = OutputRedirector(self.text_output)  # Redirect stdout
 
         self.plots_btn.setVisible(False)
@@ -786,6 +788,9 @@ class JsonRunWindow(qtw.QWidget, Ui_run_window):
         cursor.insertText(text)  # <- This preserves \n exactly as they are
         self.text_output.setTextCursor(cursor)
         self.text_output.ensureCursorVisible()
+
+    def suggestedSize(self):
+        return self._suggested_size
 
 
 class PlotsWindow(qtw.QWidget):
