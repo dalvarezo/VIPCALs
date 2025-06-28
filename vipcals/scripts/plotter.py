@@ -15,6 +15,8 @@ import Wizardry.AIPSData as wizard
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
 
+tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+
 def possm_plotter(filepath, data, target, \
                   gainuse, bpver = 0, flagver = 0, \
                   flag_edge = False, flag_frac = 0.1):
@@ -44,7 +46,7 @@ def possm_plotter(filepath, data, target, \
     :type flag_frac: float, optional
     """    
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
     
     filename = filepath.split('/')[-1]
     
@@ -296,7 +298,7 @@ def generate_pickle_plots(data, target_list, path_list):
     catalog = AIPSCat(disk)[disk]
 
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
     # Apply all calibrations tables to each target
     
     for i, target in enumerate(target_list):
@@ -338,7 +340,7 @@ def generate_pickle_radplot(data, target_list, path_list):
     :type path_list: list of str
     """
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
     # Apply all calibrations tables to each target
     disk = data.disk
     catalog = AIPSCat(disk)[disk]

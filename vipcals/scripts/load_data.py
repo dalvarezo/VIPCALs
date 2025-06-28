@@ -353,8 +353,7 @@ def is_it_multifreq_if(file_path):
 
 def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = '', \
               seq = 1, bif = 0, eif = 0, l_a = False, 
-              symlink_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                          "../../tmp"))):
+              symlink_path = os.path.expanduser("~/.vipcals/tmp")):
     """Load data from a uvfits/idifits file.
 
     :param file_path_list: list of paths of the uvfits/idifts files

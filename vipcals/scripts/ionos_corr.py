@@ -7,6 +7,8 @@ from AIPSTask import AIPSTask
 
 AIPSTask.msgkill = -8
 
+tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+
 def ionos_correct(data):
     """Ionospheric delay calibration.
 
@@ -56,7 +58,7 @@ def old_tecor(data):
     :rtype: list of str
     """
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
 
     YYYY = int(data.header.date_obs[:4])
     MM = int(data.header.date_obs[5:7])
@@ -150,7 +152,7 @@ def new_tecor(data):
     :rtype: list of str
     """
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
 
     YYYY = int(data.header.date_obs[:4])
     MM = int(data.header.date_obs[5:7])

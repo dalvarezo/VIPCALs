@@ -4,22 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "VIPCALs"
-version = "0.1"
+version = "0.2.0"
 authors = [
     {name = "Diego Álvarez-Ortega", email = "dalvarez@physics.uoc.gr"}
 ]
 description = "Automated VLBI data calibration pipeline using AIPS"
 readme = "README.md"
-requires-python = "= 3.8.20"
+requires-python = "==3.8.20"
 license = {file = "LICENSE"}
 keywords = ["VLBI", "AIPS", "ParselTongue", "Very Long Baseline Interferometry", "VLBA"]
 dependencies = []
 
 [project.scripts]
-vipcals = "vipcals.GUI.run_GUI:main"
+vipcals = "GUI.run_GUI:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
-[project.urls]
-repository = "https://gitlab.ia.forth.gr/smile/vipcals"
+[tool.setuptools]
+include-package-data = true
+
+
+#[tool.setuptools]
+#packages = ["GUI", "GUI.py_files", "vipcals", "vipcals.scripts"]
+
+#[project.urls]
+#repository = "https://gitlab.ia.forth.gr/smile/vipcals"

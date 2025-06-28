@@ -38,6 +38,8 @@ import Wizardry.AIPSData as wizard
 import functools
 print = functools.partial(print, flush=True)
 
+tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+
 def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list, 
               sources, load_all, full_source_list, disk_number, aips_name, klass, 
               multi_id, selfreq, bif, eif, default_refant, default_refant_list, 
@@ -220,10 +222,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
         # Move the temperature file to the target folders
         for path in outpath_list:
-            os.system('cp ../tmp/tsys.vlba ' + path + '/TABLES/tsys.vlba')
+            os.system(f'cp {tmp_dir}/tsys.vlba {path}/TABLES/tsys.vlba')
 
         # Clean the tmp directory
-        os.system('rm ../tmp/*.vlba')
+        os.system(f'rm {tmp_dir}/*.vlba')
    
         print('\nSystem temperatures were not available in the ' \
                                   + 'file, they have been retrieved from \n' \
@@ -252,10 +254,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             
         # Move the gain curve file to the target folders
         for path in outpath_list:
-            os.system('cp ../tmp/gaincurves.vlba ' + path + '/TABLES/gaincurves.vlba')
+            os.system(f'cp {tmp_dir}/gaincurves.vlba {path}/TABLES/gaincurves.vlba')
     
         # Clean the tmp directory
-        os.system('rm ../tmp/*.vlba')        
+        os.system(f'rm {tmp_dir}/*.vlba')        
         
         print('\nGain curve information was not available in the file, it has '\
           + 'been retrieved from\n' + good_url + '\n\nGC#1 created.\n')
@@ -273,10 +275,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
             # Move the flag file to the target folders
             for path in outpath_list:
-                os.system('cp ../tmp/flags.vlba ' + path + '/TABLES/flags.vlba')
+                os.system(f'cp {tmp_dir}/flags.vlba {path}/TABLES/flags.vlba')
 
             # Clean the tmp directory
-            os.system('rm ../tmp/*.vlba')
+            os.system(f'rm {tmp_dir}/*.vlba')
             
             print('Flag information was not available in the file, ' \
                             + 'it has been retrieved from\n' + good_url + '\n')
@@ -734,7 +736,8 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         for pipeline_log in log_list:
             pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t4-t3))
         print('Execution time: {:.2f} s. \n'.format(t4-t3))
-        os.system('rm -rf ../tmp/jplg*')
+        os.system(f'rm -rf {tmp_dir}/jplg*')
+        os.system(f'rm -rf {tmp_dir}/codg*')
 
         stats_df['iono_files'] = str(files)
         stats_df['time_7'] = t4 - t3
@@ -788,7 +791,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                     pipeline_log.write('\nEarth orientation parameter corrections applied!\n'\
                                     + 'CL#3 created.\n')
                 print('\nEarth orientation parameter corrections applied!\nCL#3 created.\n')
-                os.system('rm -rf ../tmp/usno*')
+                os.system(f'rm -rf {tmp_dir}/usno*')
 
         except KeyError:
             eopc.eop_correct(uvdata)
@@ -797,7 +800,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                 pipeline_log.write('\nEarth orientation parameter corrections applied!\n'\
                                 + 'CL#3 created.\n')
             print('\nEarth orientation parameter corrections applied!\nCL#3 created.\n')
-            os.system('rm -rf ../tmp/usno*')
+            os.system(f'rm -rf {tmp_dir}/usno*')
 
 
 
@@ -815,7 +818,6 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     for pipeline_log in log_list:
         pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t5-t4))
     print('Execution time: {:.2f} s. \n'.format(t5-t4))
-    #os.system('rm -rf ../tmp/usno_finals.erp')
 
     stats_df['time_8'] = t5 - t4
 
@@ -1692,7 +1694,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         for i, path in enumerate(outpath_list):
             target_name = path.split('/')[-1]
             plot_size = sum(
-                f.stat().st_size for f in Path('../tmp/').rglob('*')
+                f.stat().st_size for f in Path(tmp_dir).rglob('*')
                 if f.is_file() and target_name in f.name)
             
             stats_df.at[i, 'int_plot_size_mb'] = plot_size / 1024**2
@@ -1791,7 +1793,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     for i, target in enumerate(target_list):
         if target not in ignore_list and target not in no_baseline:
             target_name = outpath_list[i].split('/')[-1]
-            fig = pickle.load(open(f'../tmp/{target_name}.radplot.pickle', 'rb'))
+            fig = pickle.load(open(f'{tmp_dir}/{target_name}.radplot.pickle', 'rb'))
             # Keep the color scheme in black and white, for consistency with other plots
             for ax in fig.get_axes():
                 for line in ax.get_lines():
@@ -1859,7 +1861,9 @@ def pipeline(input_dict):
     :type input_dict: _type_
     """    
     # Read logo
-    ascii_logo = open('../GUI/ascii_logo_string.txt', 'r').read()
+    CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+    ASCII_PATH = os.path.join(CURRENT_DIR, "..", "GUI" ,"ascii_logo_string.txt")
+    ascii_logo = open(ASCII_PATH, 'r').read()
 
     # Read the input dictionary
     AIPS.userno = input_dict['userno']
@@ -1897,7 +1901,7 @@ def pipeline(input_dict):
 
 
     ## Clean tmp directory ##
-    os.system('rm ../tmp/*')
+    os.system(f'rm {tmp_dir}/*')
 
     ## If calibrate all is selected => load all is also selected
     if calib_all == True:

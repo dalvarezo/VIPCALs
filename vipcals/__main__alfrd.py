@@ -121,7 +121,9 @@ entry_list = read_args(args.file)
 
 ## Print ASCII art ##
 
-ascii_logo = open('../GUI/ascii_logo_string.txt', 'r').read()
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+ASCII_PATH = os.path.join(CURRENT_DIR, "..", "GUI" ,"ascii_logo_string.txt")
+ascii_logo = open(ASCII_PATH, 'r').read()
 print(ascii_logo)
 
 # Iterate over every entry on the input file

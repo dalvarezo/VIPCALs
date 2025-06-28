@@ -4,6 +4,8 @@ from AIPSTask import AIPSTask
 
 AIPSTask.msgkill = -8
 
+tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+
 def eop_correct(data):
     """Earth orientation parameters correction.
     
@@ -15,7 +17,7 @@ def eop_correct(data):
     :type data: AIPSUVData
     """    
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
 
     if os.path.exists('../../tmp/usno_finals_bis.erp') == False:
         curl_command = 'curl -su anonymous:daip@nrao.edu --ftp-ssl ' \

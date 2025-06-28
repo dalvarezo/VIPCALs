@@ -16,6 +16,8 @@ from scripts.helper import GC_entry
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
 
+tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+
 def load_ty_tables(data, bif, eif):
     """Retrieve and load TY tables from an external server.
 
@@ -45,7 +47,7 @@ def load_ty_tables(data, bif, eif):
     :rtype: list of str
     """    
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
 
     # Obtain cal.vlba file
     YY = int(data.header.date_obs[2:4])
@@ -436,7 +438,7 @@ def load_fg_tables(data):
     :rtype: list of str
     """    
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
 
     # Obtain cal.vlba file
     YY = int(data.header.date_obs[2:4])
@@ -722,7 +724,7 @@ def load_gc_tables(data, ant_list = ['all']):
     :type log: file
     """
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
 
     # Read data
     good_url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/vlba_gains.key'
@@ -941,7 +943,7 @@ def ty_tsm_vlog(data, bif, eif, table_paths):
     :type table_pahts: list of str
     """ 
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
     for path in table_paths:
         vlog = AIPSTask('VLOG')
         vlog.inname = data.name
@@ -1016,7 +1018,7 @@ def fg_tsm_vlog(data, table_paths):
     :type table_pahts: list of str
     """    
     here = os.path.dirname(__file__)
-    tmp = os.path.abspath(os.path.join(here, "../../tmp"))
+    tmp = tmp_dir
     for path in table_paths:
         vlog = AIPSTask('VLOG')
         vlog.inname = data.name

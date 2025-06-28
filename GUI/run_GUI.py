@@ -17,8 +17,6 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 plt.style.use('dark_background')
 
-
-
 from PySide6 import QtCore as qtc
 from PySide6.QtCore import QThread, Signal
 from PySide6 import QtWidgets as qtw
@@ -28,17 +26,22 @@ import numpy as np
 
 from functools import partial
 
-from py_files.ui_VIPCALs import Ui_VIPCALs
-from py_files.ui_main_window import Ui_main_window
-from py_files.ui_manual_window import Ui_manual_window
-from py_files.ui_help_window import Ui_help_window
-from py_files.ui_json_window import Ui_JSON_window
-from py_files.ui_run_window import Ui_run_window
+from GUI.py_files.ui_VIPCALs import Ui_VIPCALs
+from GUI.py_files.ui_main_window import Ui_main_window
+from GUI.py_files.ui_manual_window import Ui_manual_window
+from GUI.py_files.ui_help_window import Ui_help_window
+from GUI.py_files.ui_json_window import Ui_JSON_window
+from GUI.py_files.ui_run_window import Ui_run_window
 #from py_files.ui_plots_window import Ui_plots_window
 #from py_files.ui_TEST import Ui_manual_window
 
 from io import StringIO
 from PySide6.QtGui import QTextCursor
+
+
+tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+os.makedirs(tmp_dir, exist_ok=True)
+tmp_file = os.path.join(tmp_dir, "temp.json")
 
 
 
@@ -94,10 +97,13 @@ class PipelineWorker(QThread):
     process_finished = Signal()
 
     def run(self):
-        """Runs mock_pipeline.py in a subprocess and streams output."""
+        """Runs the pipeline in a subprocess and streams output."""
+        CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+        MAIN_PATH = os.path.join(CURRENT_DIR, "..", "vipcals", "__main__.py")
+
         process = subprocess.Popen(
-            ["ParselTongue", "../vipcals/__main__.py",
-            "../tmp/temp.json"],
+            ["ParselTongue", MAIN_PATH,
+            tmp_file],
             #["cat", "../tmp/temp.json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -212,7 +218,7 @@ class MainWindow(qtw.QMainWindow, Ui_VIPCALs):
             if win is not None and win.isVisible():
                 win.close()
         # Clean the tmp directory
-        os.system("rm -r ../tmp/*")
+        os.system(f"rm -r {tmp_dir}/*")
         event.accept()
         
         
@@ -513,7 +519,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
 
         # Save inputs as JSON
         json_inputs = json.dumps(inputs)
-        with open('../tmp/temp.json', 'w') as f:
+
+        with open(tmp_file, 'w') as f:
             f.write(json_inputs)
 
         print(f"Inputs: {inputs}")
@@ -672,7 +679,7 @@ class RunWindow(qtw.QWidget, Ui_run_window):
         pattern = pattern = re.compile(r'^(.*?_\d+G)_')
         target_list = set()
 
-        for filename in os.listdir('../tmp/'):
+        for filename in os.listdir(tmp_dir):
             match = pattern.match(filename)
             if match:
                 target_list.add(match.group(1))
@@ -759,7 +766,7 @@ class JsonRunWindow(qtw.QWidget, Ui_run_window):
         pattern = pattern = re.compile(r'^(.*?_\d+G)_')
         target_list = set()
 
-        for filename in os.listdir('../tmp/'):
+        for filename in os.listdir(tmp_dir):
             match = pattern.match(filename)
             if match:
                 target_list.add(match.group(1))
@@ -902,7 +909,7 @@ class VplotWindow(qtw.QMainWindow):
         self.target = target
 
         # Load the VPLOT data
-        file = glob.glob(f'../tmp/{self.target}*.vplt.pickle')
+        file = glob.glob(f'{tmp_dir}/{self.target}*.vplt.pickle')
         self.loaded_vplot_data = pickle.load(open(file[0], 'rb'))
         self.plot_keys = sorted([key for key in self.loaded_vplot_data.keys() if isinstance(key, tuple)])
         self.current_index = 0
@@ -1009,7 +1016,7 @@ class PossmWindow(qtw.QMainWindow):
         pattern = re.compile(rf"{re.escape(self.target)}.*_CL(\d+)(?:_[^.]*)?\.possm\.npz$")
         cl_options = []
 
-        for file in glob.glob(f"../tmp/{self.target}_*.possm.npz"):
+        for file in glob.glob(f"{tmp_dir}/{self.target}_*.possm.npz"):
             match = pattern.search(file.split("/")[-1])
             if match:
                 cl_options.append(f"CL{match.group(1)}")
@@ -1126,7 +1133,7 @@ class PossmWindow(qtw.QMainWindow):
 
         # Filter files that match both the current target and CL version
         filenames = [
-            file for file in os.listdir('../tmp')
+            file for file in os.listdir(tmp_dir)
             if file.startswith(target_prefix) and f"_{cl_label}" in file and file.endswith('.possm.npz')
         ]
 
@@ -1138,7 +1145,7 @@ class PossmWindow(qtw.QMainWindow):
             self.selected_baseline = None
             return
 
-        filename = f'../tmp/{filenames[0]}'
+        filename = f'{tmp_dir}/{filenames[0]}'
         self.possm_data = {}
 
         try:
@@ -1247,7 +1254,7 @@ class RadplotWindow(qtw.QMainWindow):
 
     def plot_data(self):
         # Load the pickled figure
-        file = glob.glob(f'../tmp/{self.target}*.radplot.pickle')
+        file = glob.glob(f'{tmp_dir}/{self.target}*.radplot.pickle')
         loaded_figure = pickle.load(open(file[0], 'rb'))
         original_axes = loaded_figure.get_axes()
 
@@ -1324,7 +1331,7 @@ class UvplotWindow(qtw.QMainWindow):
 
     def plot_data(self):
         # Load the pickled figure
-        file = glob.glob(f'../tmp/{self.target}*.uvplt.pickle')
+        file = glob.glob(f'{tmp_dir}/{self.target}*.uvplt.pickle')
         loaded_figure = pickle.load(open(file[0], 'rb'))
         original_axes = loaded_figure.get_axes()
 
@@ -1524,7 +1531,9 @@ def apply_dark_theme(app):
     app.setStyle("Fusion")  # Optional, but works well with palettes
   
 # Run the Application
-if __name__ == "__main__":
+#if __name__ == "__main__":
+def main():
+    
     if not qtw.QApplication.instance():
         app = qtw.QApplication(sys.argv)
         apply_dark_theme(app)
