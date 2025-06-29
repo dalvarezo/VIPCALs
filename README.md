@@ -78,11 +78,9 @@ Support for other arrays is in development.
 
 You can now launch VIPCALs with:
 
-> 
-> 
-> ``` bash
-> vipcals
-> ```
+    ``` bash
+    vipcals
+    ```
 
 ### Docker Installation
 
