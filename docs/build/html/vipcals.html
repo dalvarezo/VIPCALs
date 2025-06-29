@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vipcals package &mdash; VIPCALs 0.2 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> VIPCALs
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">vipcals package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#vipcals-pipeline-module">vipcals.pipeline module</a></li>
+<li><a class="reference internal" href="#module-vipcals">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">VIPCALs</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">vipcals package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/vipcals.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="vipcals-package">
+<h1>vipcals package<a class="headerlink" href="#vipcals-package" title="Permalink to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="vipcals.scripts.html">vipcals.scripts package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.accor">vipcals.scripts.accor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.accor.autocorr_correct"><code class="docutils literal notranslate"><span class="pre">autocorr_correct()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.accor.sampling_correct"><code class="docutils literal notranslate"><span class="pre">sampling_correct()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.amp_cal">vipcals.scripts.amp_cal module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.amp_cal.amp_cal"><code class="docutils literal notranslate"><span class="pre">amp_cal()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.bandpass">vipcals.scripts.bandpass module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.bandpass.bp_correction"><code class="docutils literal notranslate"><span class="pre">bp_correction()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.calib_choose">vipcals.scripts.calib_choose module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.calib_choose.flag_antennas_v2"><code class="docutils literal notranslate"><span class="pre">flag_antennas_v2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.calib_choose.get_calib_scans"><code class="docutils literal notranslate"><span class="pre">get_calib_scans()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.calib_choose.get_calib_scans_v2"><code class="docutils literal notranslate"><span class="pre">get_calib_scans_v2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.calib_choose.snr_fring"><code class="docutils literal notranslate"><span class="pre">snr_fring()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.calib_choose.snr_scan_list_v2"><code class="docutils literal notranslate"><span class="pre">snr_scan_list_v2()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.display">vipcals.scripts.display module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.display.print_box"><code class="docutils literal notranslate"><span class="pre">print_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.display.print_info"><code class="docutils literal notranslate"><span class="pre">print_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.display.write_box"><code class="docutils literal notranslate"><span class="pre">write_box()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.display.write_info"><code class="docutils literal notranslate"><span class="pre">write_info()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.eop_corr">vipcals.scripts.eop_corr module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.eop_corr.eop_correct"><code class="docutils literal notranslate"><span class="pre">eop_correct()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.fringe_fit">vipcals.scripts.fringe_fit module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.fringe_fit.assess_fringe_fit"><code class="docutils literal notranslate"><span class="pre">assess_fringe_fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.fringe_fit.fringe_clcal"><code class="docutils literal notranslate"><span class="pre">fringe_clcal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.fringe_fit.fringe_phaseref_clcal"><code class="docutils literal notranslate"><span class="pre">fringe_phaseref_clcal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.fringe_fit.target_fring_fit"><code class="docutils literal notranslate"><span class="pre">target_fring_fit()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.instr_calib">vipcals.scripts.instr_calib module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.instr_calib.manual_phasecal_multi"><code class="docutils literal notranslate"><span class="pre">manual_phasecal_multi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.instr_calib.pulse_phasecal"><code class="docutils literal notranslate"><span class="pre">pulse_phasecal()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.ionos_corr">vipcals.scripts.ionos_corr module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.ionos_corr.ionos_correct"><code class="docutils literal notranslate"><span class="pre">ionos_correct()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.ionos_corr.new_tecor"><code class="docutils literal notranslate"><span class="pre">new_tecor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.ionos_corr.old_tecor"><code class="docutils literal notranslate"><span class="pre">old_tecor()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#vipcals-scripts-load-data-module">vipcals.scripts.load_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.load_tables">vipcals.scripts.load_tables module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.load_tables.fg_tsm_vlog"><code class="docutils literal notranslate"><span class="pre">fg_tsm_vlog()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.load_tables.load_fg_tables"><code class="docutils literal notranslate"><span class="pre">load_fg_tables()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.load_tables.load_gc_tables"><code class="docutils literal notranslate"><span class="pre">load_gc_tables()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.load_tables.load_ty_tables"><code class="docutils literal notranslate"><span class="pre">load_ty_tables()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.load_tables.remove_ascii_antname"><code class="docutils literal notranslate"><span class="pre">remove_ascii_antname()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.load_tables.remove_ascii_poltype"><code class="docutils literal notranslate"><span class="pre">remove_ascii_poltype()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.load_tables.ty_tsm_vlog"><code class="docutils literal notranslate"><span class="pre">ty_tsm_vlog()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.optimize_solint">vipcals.scripts.optimize_solint module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.optimize_solint.optimize_solint_cm"><code class="docutils literal notranslate"><span class="pre">optimize_solint_cm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.optimize_solint.optimize_solint_mm"><code class="docutils literal notranslate"><span class="pre">optimize_solint_mm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.optimize_solint.snr_fring_optimiz"><code class="docutils literal notranslate"><span class="pre">snr_fring_optimiz()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.pang_corr">vipcals.scripts.pang_corr module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.pang_corr.pang_corr"><code class="docutils literal notranslate"><span class="pre">pang_corr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#vipcals-scripts-plotter-module">vipcals.scripts.plotter module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.refant_choose">vipcals.scripts.refant_choose module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.refant_choose.get_flagged_antennas"><code class="docutils literal notranslate"><span class="pre">get_flagged_antennas()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.refant_choose.index_visibility_antennas"><code class="docutils literal notranslate"><span class="pre">index_visibility_antennas()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.refant_choose.is_flagged_scan"><code class="docutils literal notranslate"><span class="pre">is_flagged_scan()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.refant_choose.refant_choose_snr"><code class="docutils literal notranslate"><span class="pre">refant_choose_snr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.refant_choose.refant_fring"><code class="docutils literal notranslate"><span class="pre">refant_fring()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.refant_choose.refant_kring"><code class="docutils literal notranslate"><span class="pre">refant_kring()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts.ty_smooth">vipcals.scripts.ty_smooth module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.ty_smooth.ty_assess"><code class="docutils literal notranslate"><span class="pre">ty_assess()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="vipcals.scripts.html#vipcals.scripts.ty_smooth.ty_smooth"><code class="docutils literal notranslate"><span class="pre">ty_smooth()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vipcals.scripts.html#module-vipcals.scripts">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="vipcals-pipeline-module">
+<h2>vipcals.pipeline module<a class="headerlink" href="#vipcals-pipeline-module" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-vipcals">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-vipcals" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Diego Alvarez-Ortega.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

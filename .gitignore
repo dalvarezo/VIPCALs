@@ -1,7 +1,6 @@
 __pycache__
 .vscode
 ptongue
-docs
 AIPS.py
 AIPSTask.py
 AIPSData.py
@@ -25,5 +24,4 @@ vipcals/vipcals100*
 vipcals/test*
 input_*
 GUI/ui_files/
-build/
 dockerfiles/

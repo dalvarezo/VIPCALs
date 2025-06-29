@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIPCALs &mdash; VIPCALs 0.2 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="#" class="icon icon-home"> VIPCALs
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">VIPCALs</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#requirements">Requirements</a></li>
+<li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#manual-installation">Manual Installation</a></li>
+<li><a class="reference internal" href="#docker-installation">Docker Installation</a></li>
+<li><a class="reference internal" href="#singularity-installation">Singularity Installation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#usage">Usage</a><ul>
+<li><a class="reference internal" href="#manual-input">Manual Input</a></li>
+<li><a class="reference internal" href="#json-input">JSON Input</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#outputs">Outputs</a></li>
+<li><a class="reference internal" href="#acknowledgements">Acknowledgements</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">VIPCALs</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">VIPCALs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="vipcals">
+<h1>VIPCALs<a class="headerlink" href="#vipcals" title="Permalink to this heading"></a></h1>
+<p>VLBI Pipeline for automated data Calibration using AIPS (in the SMILE framework)</p>
+<nav class="contents local" id="contents">
+<p class="topic-title">Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#overview" id="id1">Overview</a></p></li>
+<li><p><a class="reference internal" href="#requirements" id="id2">Requirements</a></p></li>
+<li><p><a class="reference internal" href="#installation" id="id3">Installation</a></p>
+<ul>
+<li><p><a class="reference internal" href="#manual-installation" id="id4">Manual Installation</a></p></li>
+<li><p><a class="reference internal" href="#docker-installation" id="id5">Docker Installation</a></p></li>
+<li><p><a class="reference internal" href="#singularity-installation" id="id6">Singularity Installation</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#usage" id="id7">Usage</a></p>
+<ul>
+<li><p><a class="reference internal" href="#manual-input" id="id8">Manual Input</a></p></li>
+<li><p><a class="reference internal" href="#json-input" id="id9">JSON Input</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#outputs" id="id10">Outputs</a></p></li>
+<li><p><a class="reference internal" href="#acknowledgements" id="id11">Acknowledgements</a></p></li>
+</ul>
+</nav>
+<section id="overview">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Overview</a><a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p>VIPCALs is a fully automated calibration pipeline for Very Long Baseline Interferometry (VLBI) data.
+It was developed as part of the SMILE (Search for Milli-Lenses) project to process thousands of datasets without human intervention.</p>
+<p>Built on <strong>ParselTongue</strong> (a Python interface to AIPS), the pipeline offers a minimalistic interface and produces fully calibrated datasets.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The current version supports <strong>continuum calibration of VLBA data</strong>. Support for other arrays is in development.</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="requirements">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Requirements</a><a class="headerlink" href="#requirements" title="Permalink to this heading"></a></h2>
+<p><strong>Manual installation:</strong></p>
+<ul class="simple">
+<li><p>AIPS 31DEC24</p></li>
+<li><p>conda</p></li>
+</ul>
+<p><strong>Docker installation:</strong></p>
+<ul class="simple">
+<li><p>docker</p></li>
+<li><p>sudo privileges</p></li>
+</ul>
+<p><strong>Singularity installation:</strong></p>
+<ul class="simple">
+<li><p>singularity</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="installation">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Installation</a><a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
+<section id="manual-installation">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Manual Installation</a><a class="headerlink" href="#manual-installation" title="Permalink to this heading"></a></h3>
+<ol class="arabic">
+<li><p>Clone the repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://gitlab.ia.forth.gr/smile/vipcals.git
+</pre></div>
+</div>
+</li>
+<li><p>Create the conda environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>vipcals
+conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>vipcalsenv.yml
+</pre></div>
+</div>
+</li>
+<li><p>Activate the conda environment and install with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>pyside62
+pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+</li>
+</ol>
+<p>You can now launch VIPCALs with:</p>
+<blockquote>
+<div><div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>vipcals
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<section id="docker-installation">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Docker Installation</a><a class="headerlink" href="#docker-installation" title="Permalink to this heading"></a></h3>
+<ol class="arabic">
+<li><p>Clone the repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://gitlab.ia.forth.gr/smile/vipcals.git
+</pre></div>
+</div>
+</li>
+<li><p>Build the Docker container:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>vipcals<span class="w"> </span>./vipcals/dockerfiles/
+</pre></div>
+</div>
+</li>
+<li><p>Run it:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--rm<span class="w"> </span>--net<span class="o">=</span>host<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">DISPLAY</span><span class="o">=</span><span class="nv">$DISPLAY</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--env<span class="w"> </span><span class="nv">QT_X11_NO_MITSHM</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--volume<span class="w"> </span>/tmp/.X11-unix:/tmp/.X11-unix<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span>/your_directory/:/usr/local/user<span class="w"> </span>vipcals
+</pre></div>
+</div>
+<p>where <cite>/your_directory/</cite> has to be replaced with the local directory containing your data.</p>
+</li>
+</ol>
+</section>
+<section id="singularity-installation">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">Singularity Installation</a><a class="headerlink" href="#singularity-installation" title="Permalink to this heading"></a></h3>
+<ol class="arabic">
+<li><p>Clone the repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://gitlab.ia.forth.gr/smile/vipcals.git
+</pre></div>
+</div>
+</li>
+<li><p>Build the Singularity image:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>vipcals/dockerfiles
+singularity<span class="w"> </span>build<span class="w"> </span>vipcals.sif<span class="w"> </span>./Singularity.def
+</pre></div>
+</div>
+</li>
+<li><p>Run the image:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>run<span class="w"> </span>--overlay<span class="w"> </span>/tmp/<span class="w"> </span>vipcals.sif
+</pre></div>
+</div>
+</li>
+</ol>
+<p>The singularity image <em>vipcals.sif</em> can be also moved/copied into any other directory.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="usage">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Usage</a><a class="headerlink" href="#usage" title="Permalink to this heading"></a></h2>
+<p>Upon opening the pipeline, you will be presented with two modes:</p>
+<section id="manual-input">
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">Manual Input</a><a class="headerlink" href="#manual-input" title="Permalink to this heading"></a></h3>
+<p>This mode allows calibration of a single observation (which may include multiple files) and lets you inspect the results via interactive plots.</p>
+<p><strong>Minimum Required Inputs</strong></p>
+<ul class="simple">
+<li><p><em>User number</em>: AIPS user number <em>(manual installation only)</em></p></li>
+<li><p><em>Disk number</em>: AIPS disk number <em>(manual installation only)</em></p></li>
+<li><p><em>Filepath</em>: file(s) to calibrate</p></li>
+<li><p><em>Output directory</em>: directory for output products</p></li>
+<li><p><em>Target</em>: name(s) of science target(s) to calibrate</p></li>
+</ul>
+<p><strong>Additional Options</strong></p>
+<ul>
+<li><p><strong>Calibration Options</strong></p>
+<ul class="simple">
+<li><p><em>Calibrate all</em>: calibrate all sources (default: only science target(s))</p></li>
+<li><p><em>Phase ref calibrator</em>: define specific source(s) to use as phase reference calibrator(s)</p></li>
+</ul>
+</li>
+<li><p><strong>Loading Options</strong></p>
+<ul class="simple">
+<li><p><em>Load all sources</em>: load all sources (default: only science target(s) + 3 tentative calibrators)</p></li>
+<li><p><em>Time average threshold</em>: minimum integration time in seconds. If the data have a shorter time sampling, it will be averaged in time up to this value (0 to disable)</p></li>
+<li><p><em>Freq. average threshold</em>: minimum channel width in kHz. If the data have narrower channels, they will be averaged in frequency up to this value (0 to disable)</p></li>
+<li><p><em>Phase center shift</em>: give coordinates to shift the phase center of each target if more accurate positions are available.
+Format: <cite>“175.858625 18.577322”</cite> or <cite>“11h43m26.07s +18d34m38.36s”</cite></p></li>
+</ul>
+</li>
+<li><p><strong>Reference Antenna Options</strong></p>
+<ul class="simple">
+<li><p><em>Reference antenna</em>: fixed reference antenna (e.g., <cite>“LA”</cite>)</p></li>
+<li><p><em>Piority antennas</em>:  list of preferred antennas to be used as reference antenna (e.g., <cite>“LA”</cite>, <cite>“FD”</cite>, <cite>“EB”</cite>)</p></li>
+<li><p><em>Search central antennas</em>: prioritize central array antennas (VLBA only)</p></li>
+<li><p><em>Maximum scans</em>: maximum number of scans per source to use in the automatic reference antenna search  <em>(default: 10)</em></p></li>
+</ul>
+</li>
+<li><p><strong>Fringe Fit Options</strong></p>
+<ul class="simple">
+<li><p><em>Fixed solution interval</em>: fixed solution interval in minutes</p></li>
+<li><p><em>Minimum solution interval</em>: minimum allowed interval (in minutes) when searching for the optimal solution interval</p></li>
+<li><p><em>Maximum solution interval</em>: maximum allowed interval (in minutes) when searching for the optimal solution interval</p></li>
+</ul>
+</li>
+<li><p><strong>Export Options</strong></p>
+<ul>
+<li><p><em>Channel out</em>:</p>
+<ul class="simple">
+<li><p><cite>SINGLE</cite>: before exporting, average in frequency to 1 channel per IF</p></li>
+<li><p><cite>MULTI</cite>: export all channels</p></li>
+</ul>
+</li>
+<li><p><em>Edge flagging</em>: when exporting:</p>
+<p>If &lt; 1: flag that fraction of edge channels at the beginning/end of each IF</p>
+<p>If ≥ 1 and integer: flag that number of edge channels at the beginning/end of each IF</p>
+</li>
+</ul>
+</li>
+<li><p><strong>Plotting Options</strong></p>
+<ul class="simple">
+<li><p><em>Interactive plots</em>: enable GUI plots (manual mode only)</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Generating these plots can consume lots of time and storage. It is advised to disable them for large datasets.
+Static <cite>.ps</cite> and <cite>.pdf</cite> plots are always saved in the output directory.</p>
+</div>
+</li>
+</ul>
+</section>
+<section id="json-input">
+<h3><a class="toc-backref" href="#id9" role="doc-backlink">JSON Input</a><a class="headerlink" href="#json-input" title="Permalink to this heading"></a></h3>
+<p>For batch processing, inputs can be supplied via a JSON file. All parameters mirror the manual input described above.</p>
+<p><strong>Minimum JSON Fields</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Type</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>userno</p></td>
+<td><p>int</p></td>
+</tr>
+<tr class="row-odd"><td><p>disk</p></td>
+<td><p>int</p></td>
+</tr>
+<tr class="row-even"><td><p>paths</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-odd"><td><p>targets</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-even"><td><p>output_directory</p></td>
+<td><p>str</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Optional JSON Fields</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Type</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>calib_all</p></td>
+<td><p>bool</p></td>
+</tr>
+<tr class="row-odd"><td><p>phase_ref</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-even"><td><p>load_all</p></td>
+<td><p>bool</p></td>
+</tr>
+<tr class="row-odd"><td><p>time_aver</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-even"><td><p>freq_aver</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>shifts</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-even"><td><p>refant</p></td>
+<td><p>str</p></td>
+</tr>
+<tr class="row-odd"><td><p>refant_list</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-even"><td><p>search_central</p></td>
+<td><p>bool</p></td>
+</tr>
+<tr class="row-odd"><td><p>max_scan_refant_search</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-even"><td><p>solint</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>min_solint</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-even"><td><p>max_solint</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>channel_out</p></td>
+<td><p>str (“SINGLE” or “MULTI”)</p></td>
+</tr>
+<tr class="row-even"><td><p>flag_Edge</p></td>
+<td><p>float</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;userno&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;disk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;/data/pipeline_test_sample/diego/BR235/BR235M/VLBA_BR235M_br235m_BIN0_SRC0_0_210726T164755.idifits&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;targets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;1611+179&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;1428+254&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;1443+188&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;output_directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/home/dalvarez/vipcals/vipcals/101_200&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;refant_list&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;LA&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;FD&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;userno&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;disk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;/data/pipeline_test_sample/felix/BR235/BR235O/VLBA_BR235O_br235o_BIN0_SRC0_0_210217T213934.idifits&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;targets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;0912+237&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;output_directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/home/dalvarez/vipcals/vipcals/101_200&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;shifts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;138.72500917 23.53151889&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note that sources and coordinates in the <em>“phase_ref”</em> and <em>“shifts”</em> fields have to be given in the same order as the sources in the <em>“targets”</em> field. If there is any source where those options should not apply, then it can be skipped by giving a null value:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;userno&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;disk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;/data/pipeline_test_sample/felix/BR235/BR235O/VLBA_BR235O_br235o_BIN0_SRC0_0_210217T213934.idifits&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;targets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;0737+171&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;0912+237&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;phase_ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;0740+155&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">null</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">&quot;output_directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/home/dalvarez/vipcals/vipcals/101_200&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;shifts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;138.72500917 23.53151889&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="outputs">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Outputs</a><a class="headerlink" href="#outputs" title="Permalink to this heading"></a></h2>
+<p>Below is a representative structure of the output directory produced by the pipeline:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>EA075/
+├── J1159+2914_EA075_22G_2024-03-13/
+│   ├── PLOTS/
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_CL1_POSSM.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_CL9_POSSM.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_UVPLT.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_VPLOT.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_RADPLOT.pdf
+│   │
+│   ├── TABLES/
+│   │   ├ flags.vlba
+│   │   ├ gaincurves.vlba
+│   │   ├ tsys.vlba
+│   │   ├ 1159+2914_EA075_22G_2024-03-13.caltab.uvfits
+│   │
+│   ├ 1159+2914_EA075_22G_2024-03-13.stats.csv
+│   ├ 1159+2914_EA075_22G_2024-03-13.uvfits
+│   ├ 1159+2914_EA075_22G_2024-03-13_AIPSlog.txt
+│   ├ 1159+2914_EA075_22G_2024-03-13_scansum.txt
+│   ├ 1159+2914_EA075_22G_2024-03-13_VIPCALslog.txt
+│
+│
+├── J1143+1834_EA075_22G_2024-03-13/
+│   ├──
+:   :
+:   :
+</pre></div>
+</div>
+<p>For each calibrated source, there is a directory that contains:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><em>*.stats.csv</em>: metadata on the observation and the calibration process in csv format</p></li>
+<li><p><em>*.uvfits</em>: calibrated fits file</p></li>
+<li><p><em>*_AIPSlog.txt</em>: output produced by AIPS after each step</p></li>
+<li><p><em>*_scansum.txt</em>: summary of the observation including scan list and frequency setup</p></li>
+<li><p><em>*_VIPCALslog.txt</em>: human-readable summary of the calibration produced by VIPCALs</p></li>
+</ul>
+</div></blockquote>
+<p>The pipeline also generates the following plots inside the <em>/PLOTS/</em> folder:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><em>*_CL1_POSSM.ps</em>: uncalibrated visibilities vs frequency</p></li>
+<li><p><em>*_CL9_POSSM.ps</em>: calibrated visibilities vs frequency</p></li>
+<li><p><em>*UVPLT.ps</em>: UV coverage of the calibrated observation</p></li>
+<li><p><em>*VPLOT.ps</em>: calibrated visibilities vs time</p></li>
+<li><p><em>*RADPLOT.pdf</em>: calibrated visibilities vs uv-distance</p></li>
+</ul>
+</div></blockquote>
+<p>and the following tables in the <em>/TABLES/</em> folder:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><em>flags.vlba</em>: initial flags of the observation (if not included in the file)</p></li>
+<li><p><em>gaincurves.vlba</em>: gain curves of each antenna (if not included in the file)</p></li>
+<li><p><em>tsys.vlba</em>: antenna system temperatures (if not included in the file)</p></li>
+<li><p><em>*.caltab.uvfits</em>: AIPS tables used during the calibration</p></li>
+</ul>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="acknowledgements">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Acknowledgements</a><a class="headerlink" href="#acknowledgements" title="Permalink to this heading"></a></h2>
+<p>This work is supported by the European Research Council (ERC) under the Horizon ERC Grants 2021 programme under grant agreement No. 101040021.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Diego Alvarez-Ortega.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

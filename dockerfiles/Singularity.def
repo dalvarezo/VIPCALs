@@ -36,20 +36,7 @@ From: ubuntu:22.04
     cp /opt/pyside62.yml /usr/local/aips/
     chown aips:aips /usr/local/aips/pyside62.yml
 
-    # Setup pip cache/temp directory for the aips user in /home/aips/.cache (or /cache if preferred)
-    mkdir -p /home/aips/tmp /home/aips/pipcache
-    chown -R aips:aips /home/aips/tmp /home/aips/pipcache
-
-    # Use a heredoc to run pip with temporary/cache dirs as the aips user
-    su - aips <<EOF
-    export TMPDIR=/home/aips/tmp
-    export PIP_CACHE_DIR=/home/aips/pipcache
-    source /opt/conda/etc/profile.d/conda.sh
-    conda init bash
-    conda env create -f /usr/local/aips/pyside62.yml --no-default-packages
-    echo 'conda activate pyside62' >> ~/.bashrc
-    EOF
-
+    su - aips -c "source /opt/conda/etc/profile.d/conda.sh && conda init bash && conda env create -f /usr/local/aips/pyside62.yml && echo 'conda activate pyside62' >> ~/.bashrc"
     
     # Create AIPS DISK
 
