@@ -196,11 +196,19 @@ def get_calib_scans_v2(data, ordered_scan_list, refant):
     best_scans = {}
 
     for s in scan_list:
-        for ant, snr in zip(s.antennas, [sum(inner) / len(inner) for inner in s.snr]):  
-            if ant == refant:
-                continue     
-            if ant not in best_scans or snr > best_scans[ant][1]:
-                best_scans[ant] = (s, snr)
+        try: 
+            _ = len(s.snr[0])>1
+            for ant, snr in zip(s.antennas, [sum(inner) / len(inner) for inner in s.snr]):  
+                if ant == refant:
+                    continue     
+                if ant not in best_scans or snr > best_scans[ant][1]:
+                    best_scans[ant] = (s, snr)
+        except TypeError: # Single IF
+            for ant, snr in zip(s.antennas, s.snr):  
+                if ant == refant:
+                    continue     
+                if ant not in best_scans or snr > best_scans[ant][1]:
+                    best_scans[ant] = (s, snr)
 
     # Remove antennas that did not reach 5 of SNR
     no_calib_antennas = [ant for ant in best_scans if best_scans[ant][1] < 5 

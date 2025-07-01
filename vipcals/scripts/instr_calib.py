@@ -148,7 +148,7 @@ def manual_phasecal_multi(data, refant, priority_refants, calib_scans):
     for s in data.table('SN', 0):
         if type(s['weight_1']) == float and s['weight_1'] == 0: # single IF
             bad_antennas.append(-s['antenna_no'])
-        elif sum(s['weight_1']) == 0:
+        elif type(s['weight_1']) == list and sum(s['weight_1']) == 0:
             bad_antennas.append(-s['antenna_no'])
 
     if len(list(set(bad_antennas))) > 0:

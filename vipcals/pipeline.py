@@ -880,6 +880,13 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
         t7 = time.time()
 
+        # This needs to be managed better
+        if len(calibrator_scans) == 0:
+            print("\n\nNo suitable calibrators were found, the pipeline will end now\n\n")
+            for pipeline_log in log_list:
+                pipeline_log.write("\n\nNo suitable calibrators were found, the pipeline will end now\n\n")
+                return()
+
         for pipeline_log in log_list:
             if len(calibrator_scans) == 1:
                 scan_i = help.ddhhmmss(calibrator_scans[0].time - calibrator_scans[0].time_interval / 2)
@@ -977,19 +984,16 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             print('\nSN#1 created.\n')
 
         print('Execution time: {:.2f} s. \n'.format(t7-t6))
-
-        # NOT ANYMORE
-        # Print a warning if the SNR of the brightest calibrator is < 40
-        #if np.nanmedian(calibrator_scans[0].snr) < 40:
-        #    for pipeline_log in log_list:
-        #        pipeline_log.write('\nWARNING: The brightest scan has a low SNR.\n')
-        #
-        #    print('\nWARNING: The brightest scan has a low SNR.\n')
-
-        scan_dict = \
-            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), [sum(inner) / len(inner) for inner in scan.snr], scan.antennas) for scan in scan_list}
-        calibscans_dict = \
-            {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), [sum(inner) / len(inner) for inner in scan.snr], scan.calib_antennas) for scan in calibrator_scans}
+        try:
+            scan_dict = \
+                {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), [sum(inner) / len(inner) for inner in scan.snr], scan.antennas) for scan in scan_list}
+            calibscans_dict = \
+                {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), [sum(inner) / len(inner) for inner in scan.snr], scan.calib_antennas) for scan in calibrator_scans}
+        except TypeError: # Single IF
+            scan_dict = \
+                {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), scan.snr, scan.antennas) for scan in scan_list}
+            calibscans_dict = \
+                {scan.time: (scan.source_name, inst.ddhhmmss(scan.time).tolist(), scan.snr, scan.calib_antennas) for scan in calibrator_scans}
 
         stats_df['SNR_scan_list'] = json.dumps(scan_dict)
         stats_df['selected_scans'] = json.dumps(calibscans_dict)
