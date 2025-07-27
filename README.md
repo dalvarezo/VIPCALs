@@ -165,6 +165,8 @@ multiple files) and lets you inspect the results via interactive plots.
     
       - *Load all sources*: load all sources (default: only science
         target(s) + 3 tentative calibrators)
+      - *Load amp. calibration tables*: load external tables with system 
+        temperatures and gain curves in AIPS ANTAB format.
       - *Time average threshold*: minimum integration time in seconds.
         If the data have a shorter time sampling, it will be averaged in
         time up to this value (0 to disable)
@@ -191,6 +193,8 @@ multiple files) and lets you inspect the results via interactive plots.
 
   - **Fringe Fit Options**
     
+      - *Signal-to-noise threshold*: minimum SNR accepted during the 
+        FFT step of the fringe fit on the science target
       - *Fixed solution interval*: fixed solution interval in minutes
       - *Minimum solution interval*: minimum allowed interval (in
         minutes) when searching for the optimal solution interval
@@ -244,6 +248,7 @@ parameters mirror the manual input described above.
 | calib\_all                | bool                      |
 | phase\_ref                | list of str               |
 | load\_all                 | bool                      |
+| load\_tables              | str                       |
 | time\_aver                | float                     |
 | freq\_aver                | float                     |
 | shifts                    | list of str               |
@@ -251,6 +256,7 @@ parameters mirror the manual input described above.
 | refant\_list              | list of str               |
 | search\_central           | bool                      |
 | max\_scan\_refant\_search | float                     |
+| fringe\_snr               | float                     |
 | solint                    | float                     |
 | min\_solint               | float                     |
 | max\_solint               | float                     |
