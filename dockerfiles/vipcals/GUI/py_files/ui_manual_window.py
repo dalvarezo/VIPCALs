@@ -366,60 +366,80 @@ class Ui_manual_window(object):
         sizePolicy3.setHeightForWidth(self.freqsel_lbl.sizePolicy().hasHeightForWidth())
         self.freqsel_lbl.setSizePolicy(sizePolicy3)
         self.freqsel_lbl.setFont(font1)
+        self.gridLayout_5.addWidget(self.freqsel_lbl, 2, 0, 1, 1)
+        self.freqsel_line = QLineEdit(self.load_bottom)
+        self.freqsel_line.setObjectName(u"freqsel_line")
+        self.gridLayout_5.addWidget(self.freqsel_line, 2, 1, 1, 2)
 
-        self.gridLayout_5.addWidget(self.freqsel_lbl, 1, 0, 1, 1)
 
+        # Load all check button
         self.loadall_lbl = QLabel(self.load_bottom)
         self.loadall_lbl.setObjectName(u"loadall_lbl")
         self.loadall_lbl.setFont(font1)
-
         self.gridLayout_5.addWidget(self.loadall_lbl, 0, 0, 1, 1)
+        self.loadall_chck = QCheckBox(self.load_bottom)
+        self.loadall_chck.setObjectName(u"loadall_chck")
+        self.gridLayout_5.addWidget(self.loadall_chck, 0, 1, 1, 2)
+
+        # Load tables button
+        self.loadtables_lbl = QLabel(self.load_bottom)
+        self.loadtables_lbl.setObjectName(u"loadtables_lbl")
+        self.loadtables_lbl.setFont(font1)
+        self.gridLayout_5.addWidget(self.loadtables_lbl, 1, 0, 1, 1)
+        self.loadtables_line = QLineEdit(self.load_bottom)
+        self.loadtables_line.setObjectName(u"loadtables_line")
+        self.gridLayout_5.addWidget(self.loadtables_line, 1, 1, 1, 1)
+        self.loadtables_btn = QPushButton(self.load_bottom)
+        self.loadtables_btn.setObjectName(u"loadtables_btn")
+        self.loadtables_btn.setFont(font3)
+        self.loadtables_btn.setSizePolicy(sizePolicy_btn)
+        self.gridLayout_5.addWidget(self.loadtables_btn, 1, 2, 1, 1)
 
         self.subarray_chck = QCheckBox(self.load_bottom)
         self.subarray_chck.setObjectName(u"subarray_chck")
         self.subarray_chck.setFont(font3)
 
-        self.gridLayout_5.addWidget(self.subarray_chck, 2, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.subarray_chck, 3, 1, 1, 1)
 
         self.subarray_lbl = QLabel(self.load_bottom)
         self.subarray_lbl.setObjectName(u"subarray_lbl")
         self.subarray_lbl.setFont(font1)
 
-        self.gridLayout_5.addWidget(self.subarray_lbl, 2, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.subarray_lbl, 3, 0, 1, 1)
 
         self.timeaver_lbl = QLabel(self.load_bottom)
         self.timeaver_lbl.setObjectName(u"timeaver_lbl")
         self.timeaver_lbl.setFont(font1)
 
-        self.gridLayout_5.addWidget(self.timeaver_lbl, 3, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.timeaver_lbl, 4, 0, 1, 1)
 
         self.timeaver_line = QLineEdit(self.load_bottom)
         self.timeaver_line.setObjectName(u"timeaver_line")
 
-        self.gridLayout_5.addWidget(self.timeaver_line, 3, 1, 1, 2)
+        self.gridLayout_5.addWidget(self.timeaver_line, 4, 1, 1, 2)
 
 
         self.freqaver_lbl = QLabel(self.load_bottom)
         self.freqaver_lbl.setObjectName(u"freqaver_lbl")
         self.freqaver_lbl.setFont(font1)
 
-        self.gridLayout_5.addWidget(self.freqaver_lbl, 4, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.freqaver_lbl, 5, 0, 1, 1)
 
         self.freqaver_line = QLineEdit(self.load_bottom)
         self.freqaver_line.setObjectName(u"freqaver_line")
 
-        self.gridLayout_5.addWidget(self.freqaver_line, 4, 1, 1, 2)
+        self.gridLayout_5.addWidget(self.freqaver_line, 5, 1, 1, 2)
 
         self.shift_lbl = QLabel(self.load_bottom)
         self.shift_lbl.setObjectName(u"shift_lbl")
         self.shift_lbl.setFont(font1)
 
-        self.gridLayout_5.addWidget(self.shift_lbl, 5, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.shift_lbl, 6, 0, 1, 1)
 
         self.shift_line = QLineEdit(self.load_bottom)
         self.shift_line.setObjectName(u"shift_line")
 
-        self.gridLayout_5.addWidget(self.shift_line, 5, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.shift_line, 6, 1, 1, 1)
 
         self.addmoreshift_btn = QPushButton(self.load_bottom)
         self.addmoreshift_btn.setObjectName(u"addmoreshift_btn")
@@ -427,19 +447,7 @@ class Ui_manual_window(object):
 
         self.addmoreshift_btn.setSizePolicy(sizePolicy_btn)
 
-        self.gridLayout_5.addWidget(self.addmoreshift_btn, 5, 2, 1, 1)
-
-
-
-        self.loadall_chck = QCheckBox(self.load_bottom)
-        self.loadall_chck.setObjectName(u"loadall_chck")
-
-        self.gridLayout_5.addWidget(self.loadall_chck, 0, 1, 1, 2)
-
-        self.freqsel_line = QLineEdit(self.load_bottom)
-        self.freqsel_line.setObjectName(u"freqsel_line")
-
-        self.gridLayout_5.addWidget(self.freqsel_line, 1, 1, 1, 2)
+        self.gridLayout_5.addWidget(self.addmoreshift_btn, 6, 2, 1, 1)
 
 
         self.gridLayout_5.setColumnStretch(0, 4)
@@ -593,41 +601,50 @@ class Ui_manual_window(object):
 
         self.fringe_bottom = QWidget(self.fringebox)
         self.fringe_bottom.setObjectName(u"fringe_bottom")
+
         self.gridLayout_7 = QGridLayout(self.fringe_bottom)
         self.gridLayout_7.setObjectName(u"gridLayout_7")
         self.gridLayout_7.setVerticalSpacing(10)
+
+
+        self.snr_line = QLineEdit(self.fringe_bottom)
+        self.snr_line.setObjectName(u"snr_line")
+        self.gridLayout_7.addWidget(self.snr_line, 0, 1, 1, 2)
+        self.snr_lbl = QLabel(self.fringe_bottom)
+        self.snr_lbl.setObjectName(u"snr_lbl")
+        self.snr_lbl.setFont(font1)
+        self.gridLayout_7.addWidget(self.snr_lbl, 0, 0, 1, 1)
+
+
         self.solint_line = QLineEdit(self.fringe_bottom)
         self.solint_line.setObjectName(u"solint_line")
-
-        self.gridLayout_7.addWidget(self.solint_line, 0, 1, 1, 2)
-
+        self.gridLayout_7.addWidget(self.solint_line, 1, 1, 1, 2)
         self.solint_lbl = QLabel(self.fringe_bottom)
         self.solint_lbl.setObjectName(u"solint_lbl")
         self.solint_lbl.setFont(font1)
-
-        self.gridLayout_7.addWidget(self.solint_lbl, 0, 0, 1, 1)
+        self.gridLayout_7.addWidget(self.solint_lbl, 1, 0, 1, 1)
 
         self.minsolint_lbl = QLabel(self.fringe_bottom)
         self.minsolint_lbl.setObjectName(u"minsolint_lbl")
         self.minsolint_lbl.setFont(font1)
 
-        self.gridLayout_7.addWidget(self.minsolint_lbl, 1, 0, 1, 1)
+        self.gridLayout_7.addWidget(self.minsolint_lbl, 2, 0, 1, 1)
 
         self.minsolint_line = QLineEdit(self.fringe_bottom)
         self.minsolint_line.setObjectName(u"minsolint_line")
 
-        self.gridLayout_7.addWidget(self.minsolint_line, 1, 1, 1, 2)
+        self.gridLayout_7.addWidget(self.minsolint_line, 2, 1, 1, 2)
 
         self.maxsolint_line = QLineEdit(self.fringe_bottom)
         self.maxsolint_line.setObjectName(u"maxsolint_line")
 
-        self.gridLayout_7.addWidget(self.maxsolint_line, 2, 1, 1, 2)
+        self.gridLayout_7.addWidget(self.maxsolint_line, 3, 1, 1, 2)
 
         self.maxsolint_lbl = QLabel(self.fringe_bottom)
         self.maxsolint_lbl.setObjectName(u"maxsolint_lbl")
         self.maxsolint_lbl.setFont(font1)
 
-        self.gridLayout_7.addWidget(self.maxsolint_lbl, 2, 0, 1, 1)
+        self.gridLayout_7.addWidget(self.maxsolint_lbl, 3, 0, 1, 1)
 
         #self.gridLayout_7.setColumnStretch(0, 3)
         #self.gridLayout_7.setColumnStretch(1, 8)
@@ -809,6 +826,13 @@ class Ui_manual_window(object):
         self.addmorephasref_btn.setText(QCoreApplication.translate("manual_window", u"             Add more             ", None))
         self.loadbox.setTitle("")
         self.load_label.setText(QCoreApplication.translate("manual_window", u"LOAD OPTIONS", None))
+
+
+        self.loadtables_lbl.setText(QCoreApplication.translate("manual_window", u"Load amp. calibration tables", None))
+        
+        
+        
+        self.loadtables_btn.setText(QCoreApplication.translate("manual_window", u"          Select file          ", None))
         self.freqsel_lbl.setText(QCoreApplication.translate("manual_window", u"Frequency selection", None))
         self.loadall_lbl.setText(QCoreApplication.translate("manual_window", u"Load all sources", None))
         self.subarray_chck.setText("")
@@ -827,6 +851,7 @@ class Ui_manual_window(object):
         self.maxrefantscans_lbl.setText(QCoreApplication.translate("manual_window", u"Maximum scans", None))
         self.fringebox.setTitle("")
         self.fringe_label.setText(QCoreApplication.translate("manual_window", u"FRINGE FIT OPTIONS", None))
+        self.snr_lbl.setText(QCoreApplication.translate("manual_window", u"Signal-to-noise threshold", None))
         self.solint_lbl.setText(QCoreApplication.translate("manual_window", u"Fixed solution interval", None))
         self.minsolint_lbl.setText(QCoreApplication.translate("manual_window", u"Min. solution interval", None))
         self.maxsolint_lbl.setText(QCoreApplication.translate("manual_window", u"Max. solution interval", None))

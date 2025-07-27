@@ -397,6 +397,7 @@ def load_ty_tables(data, bif, eif):
     antab.inclass = data.klass
     antab.indisk = data.disk
     antab.inseq = data.seq
+    antab.tyver = 1
     antab.calin = f'{tmp}/tsys.vlba'
 
     # Ignore antennas not in the observation
@@ -826,6 +827,30 @@ def load_gc_tables(data, ant_list = ['all']):
     
     antab.go()
 
+def load_external_antab(data, filepath):
+    """Load amplitude calibration information from an external file
+
+    Load Tsys and gain curve information from an external file. This information has to
+    be on an ANTAB format readable by AIPS
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param filepath: path to an ANTAB file
+    :type filepath: str
+    """
+
+    # Run ANTAB
+    antab = AIPSTask('antab')
+    antab.inname = data.name
+    antab.inclass = data.klass
+    antab.indisk = data.disk
+    antab.inseq = data.seq
+    antab.calin = f'{filepath}'
+    antab.tyver = 1
+    antab.gcver = 1
+    
+    antab.go()
+
 def remove_ascii_antname(data, filepath):
     """Remove non-ASCII characters from antenna names.
 
@@ -962,6 +987,13 @@ def ty_tsm_vlog(data, bif, eif, table_paths):
 
     tsys_file = open(f"{tmp}/tsys.vlba", "r")
     tsys_list = tsys_file.read().split('\n')
+
+    # Adjust for multiple polarizations:
+    if len(data.polarizations) == 2:
+        if bif != 1 and bif != 0:
+            bif = bif + (bif-1)
+        eif = eif*2
+
     # If multi-if dataset:
     if bif == 0 and eif != 0:
         final_list = tsys_list

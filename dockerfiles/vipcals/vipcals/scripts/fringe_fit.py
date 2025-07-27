@@ -6,7 +6,8 @@ from scripts.helper import tacop
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
    
-def target_fring_fit(data, refant, priority_refants, target_name,  version, solint = 0, delay_w = 1000,\
+def target_fring_fit(data, refant, priority_refants, target_name,  version, snr_cutoff,
+                     solint, delay_w = 1000,\
                      rate_w = 200, solve_ifs = True):
     """Fringe fit the science target.
 
@@ -27,9 +28,11 @@ def target_fring_fit(data, refant, priority_refants, target_name,  version, soli
     :type target_name: str
     :param version: SN version where to write the solutions.
     :type version: int
+    :param snr_cutoff: S/N threshold for the FFT stage
+    :type snr_cutoff: float
     :param solint: solution interval in minutes, if 0 => solint = 10 min, \
-                   if > scan  => solint = scan; defaults to 0
-    :type solint: int, optional
+                   if > scan  => solint = scan
+    :type solint: int
     :param delay_w: delay window in ns in which the search is performed; defaults to 1000\
     :type delay_w: int, optional
     :param rate_w: rate window in hz in which the search is performed; defaults to 200 \
@@ -53,15 +56,17 @@ def target_fring_fit(data, refant, priority_refants, target_name,  version, soli
 
     target_fring.aparm[1] = 2    # At least 2 antennas per solution
 
+    # target_fring.aparm[3] = 1  # Average RR and LL
+
     if solve_ifs == True:
         target_fring.aparm[5] = 0    # Solve IFs separately
     else:
         target_fring.aparm[5] = 1    # Solve all IFs together
 
     target_fring.aparm[6] = 2    # Amount of information printed
-    target_fring.aparm[7] = 5    # SNR cutoff   
+    target_fring.aparm[7] = snr_cutoff    # SNR cutoff   
     target_fring.aparm[9] = 1    # Exhaustive search
-    target_fring.search = AIPSList(priority_refants)
+    target_fring.search = AIPSList(priority_refants[:10])
     
     target_fring.dparm[1] = 1    # Number of baseline combinations searched
     target_fring.dparm[2] = delay_w  # Delay window (ns)

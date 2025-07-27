@@ -115,7 +115,7 @@ def possm_plotter(filepath, data, target, \
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
     outpath = filepath +  '/PLOTS/' + filename + '_CL' + str(gainuse) + '_POSSM.ps'
-    if len(outpath) > 114:
+    if len(outpath) >= 114:
         lwpla.outfile = f'{tmp}/CL{gainuse}.ps'
     else:    
         lwpla.outfile = outpath

@@ -1,5 +1,7 @@
 from scripts.helper import ddhhmmss, tacop
 
+import numpy as np
+
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
 
@@ -78,45 +80,119 @@ def manual_phasecal_multi(data, refant, priority_refants, calib_scans):
     """        
 
     for n, scan in enumerate(calib_scans):
-        calib = scan.source_name
-        scan_time = scan.time
-        scan_time_interval = scan.time_interval
-        init_time = ddhhmmss(scan_time - 0.9*scan_time_interval/2)
-        final_time = ddhhmmss(scan_time + 0.9*scan_time_interval/2)
-        timer = [None] + init_time.tolist() + final_time.tolist()
-        
-        phasecal_fring = AIPSTask('fring')
-        phasecal_fring.inname = data.name
-        phasecal_fring.inclass = data.klass
-        phasecal_fring.indisk = data.disk
-        phasecal_fring.inseq = data.seq
-        phasecal_fring.refant = refant
-        phasecal_fring.docalib = 1    # Apply CL tables
-        phasecal_fring.gainuse = 0    # Apply the latest CL table  
-        phasecal_fring.solint = scan_time_interval * 24 * 60  
-        
-        phasecal_fring.calsour = AIPSList([calib])
-        phasecal_fring.timerang = timer
-        
-        phasecal_fring.antennas = AIPSList(scan.calib_antennas)
+        # Try to calibrate only the antennas for that scan
+        try:
+            calib = scan.source_name
+            scan_time = scan.time
+            scan_time_interval = scan.time_interval
+            init_time = ddhhmmss(scan_time - 1.1*scan_time_interval/2)
+            final_time = ddhhmmss(scan_time + 1.1*scan_time_interval/2)
+            timer = [None] + init_time.tolist() + final_time.tolist()
+            
+            phasecal_fring = AIPSTask('fring')
+            phasecal_fring.inname = data.name
+            phasecal_fring.inclass = data.klass
+            phasecal_fring.indisk = data.disk
+            phasecal_fring.inseq = data.seq
+            phasecal_fring.refant = refant
+            phasecal_fring.docalib = 1    # Apply CL tables
+            phasecal_fring.gainuse = 0    # Apply the latest CL table  
+            phasecal_fring.solint = scan_time_interval * 24 * 60  
+            
+            phasecal_fring.calsour = AIPSList([calib])
+            phasecal_fring.timerang = timer
+            
+            phasecal_fring.antennas = AIPSList(scan.calib_antennas)
 
-        phasecal_fring.aparm[1] = 2    # At least 2 antennas per solution
-        phasecal_fring.aparm[5] = 0    # Solve IFs separatedly
-        phasecal_fring.aparm[6] = 2    # Amount of information printed
-        phasecal_fring.aparm[7] = 5    # SNR cutoff   
-        phasecal_fring.aparm[9] = 1    # Exhaustive search  
-        phasecal_fring.search = AIPSList(priority_refants)
-        
-        phasecal_fring.dparm[1] = 1    # Number of baseline combinations searched
-        phasecal_fring.dparm[2] = 1000    # Delay window (ns)
-        phasecal_fring.dparm[3] = 200    # Delay window (ns)
-        phasecal_fring.dparm[8] = 1    # Zero rates after the fit 
-        
-        phasecal_fring.snver = 3 + n
-        
-        # print(vars(phasecal_fring))
+            phasecal_fring.aparm[1] = 2    # At least 2 antennas per solution
+            phasecal_fring.aparm[5] = 0    # Solve IFs separatedly
+            phasecal_fring.aparm[6] = 2    # Amount of information printed
+            phasecal_fring.aparm[7] = 5    # SNR cutoff   
+            phasecal_fring.aparm[9] = 1    # Exhaustive search  
+            phasecal_fring.search = AIPSList(priority_refants[:10])
+            
+            phasecal_fring.dparm[1] = 1    # Number of baseline combinations searched
+            phasecal_fring.dparm[2] = 1000    # Delay window (ns)
+            phasecal_fring.dparm[3] = 200    # Delay window (ns)
+            phasecal_fring.dparm[8] = 1    # Zero rates after the fit 
+            
+            phasecal_fring.snver = 3 + n
+            
+            # print(vars(phasecal_fring))
 
-        phasecal_fring.go()
+            phasecal_fring.go()
+
+        except RuntimeError:
+            # Check if the fringe fit failed completely
+            sn_table = data.table('SN', 3 + n)
+
+            if np.sum([x['weight_1'] for x in sn_table]) == 0:
+
+                # Try again with all antennas
+                data.zap_table('SN', 3+n)
+
+                phasecal_fring = AIPSTask('fring')
+                phasecal_fring.inname = data.name
+                phasecal_fring.inclass = data.klass
+                phasecal_fring.indisk = data.disk
+                phasecal_fring.inseq = data.seq
+                phasecal_fring.refant = refant
+                phasecal_fring.docalib = 1    # Apply CL tables
+                phasecal_fring.gainuse = 0    # Apply the latest CL table  
+                phasecal_fring.solint = scan_time_interval * 24 * 60  
+                
+                phasecal_fring.calsour = AIPSList([calib])
+                phasecal_fring.timerang = timer
+
+                phasecal_fring.aparm[1] = 2    # At least 2 antennas per solution
+                phasecal_fring.aparm[5] = 0    # Solve IFs separatedly
+                phasecal_fring.aparm[6] = 2    # Amount of information printed
+                phasecal_fring.aparm[7] = 5    # SNR cutoff   
+                phasecal_fring.aparm[9] = 1    # Exhaustive search  
+                phasecal_fring.search = AIPSList(priority_refants[:10])
+                
+                phasecal_fring.dparm[1] = 1    # Number of baseline combinations searched
+                phasecal_fring.dparm[2] = 1000    # Delay window (ns)
+                phasecal_fring.dparm[3] = 200    # Delay window (ns)
+                phasecal_fring.dparm[8] = 1    # Zero rates after the fit 
+                
+                phasecal_fring.snver = 3 + n
+                
+                # print(vars(phasecal_fring))
+
+                phasecal_fring.go()
+
+
+                # Flag results from antennas not corresponding to this scan
+
+                sn_table = data.table('SN', 3 + n)
+                del_rows = [r for r,s in enumerate(sn_table) if s.antenna_no not in scan.calib_antennas + [refant]]
+
+                for row in del_rows:
+
+                    tabed = AIPSTask('TABED')
+                    tabed.inname = data.name
+                    tabed.inclass = data.klass
+                    tabed.indisk = data.disk
+                    tabed.inseq = data.seq
+                    tabed.inext = 'SN'
+                    tabed.invers = 3+n
+                    
+                    tabed.outname = data.name
+                    tabed.outclass = data.klass
+                    tabed.outdisk = data.disk
+                    tabed.outseq = data.seq
+                    tabed.outvers = 3+n
+                    
+                    tabed.optype = 'DELE'
+                    
+                    tabed.bcount = row  # 1st row to modify
+                    tabed.ecount = row  # Last row to modify
+                                
+                    tabed.go()
+
+            else:
+                raise RuntimeError("The instrumental calibration fringe fit has failed.")
     
     # If multiple calib scans, merge tables producing SN(3+n+1)
     

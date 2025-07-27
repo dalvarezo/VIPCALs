@@ -34,8 +34,6 @@ from py_files.ui_manual_window import Ui_manual_window
 from py_files.ui_help_window import Ui_help_window
 from py_files.ui_json_window import Ui_JSON_window
 from py_files.ui_run_window import Ui_run_window
-#from py_files.ui_plots_window import Ui_plots_window
-#from py_files.ui_TEST import Ui_manual_window
 
 from io import StringIO
 from pathlib import Path
@@ -86,8 +84,14 @@ class OutputRedirector(StringIO):
             return "orange"
         elif "created" in lower:
             return "green"
-        elif "script run time" in lower:
+        elif "pipeline run" in lower:
             return "green"
+        elif "fringe fit successful for" in lower:
+            return "green"
+        elif "there were not enough solutions" in lower:
+            return "orange"
+        elif "fringe fit failed for all possible solutions. data" in lower:
+            return "orange"
         elif "____info" in lower:
             return "lightblue"
         return "white"
@@ -118,9 +122,14 @@ class PipelineWorker(QThread):
             self.output_received.emit(line)  # Emit each line immediately
            
 
-        # Read and emit errors if any
-        for err in iter(process.stderr.readline, ''):
-            self.error_received.emit("\n[ERROR]: " + err)
+        # Read stderr first but only emit if process fails
+        stderr_output = process.stderr.read()
+
+        process.wait()  # Wait for completion
+
+        if process.returncode != 0 and stderr_output:
+            for err_line in stderr_output.splitlines():
+                self.error_received.emit(f"\n[ERROR]: {err_line}")
 
         process.wait()  # Ensure process finishes
 
@@ -138,8 +147,10 @@ class JsonPipelineWorker(QThread):
         
     def run(self):
         """Runs mock_pipeline.py in a subprocess and streams output."""
+        CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+        MAIN_PATH = os.path.join(CURRENT_DIR, "..", "vipcals", "__main__.py")
         process = subprocess.Popen(
-            ["ParselTongue", "../vipcals/__main__.py",
+            ["ParselTongue", MAIN_PATH,
             self.json_path],
             #["cat", "../tmp/temp.json"],
             stdout=subprocess.PIPE,
@@ -154,9 +165,14 @@ class JsonPipelineWorker(QThread):
             self.output_received.emit(line)  # Emit each line immediately
            
 
-        # Read and emit errors if any
-        for err in iter(process.stderr.readline, ''):
-            self.error_received.emit("\n[ERROR]: " + err)
+        # Read stderr first but only emit if process fails
+        stderr_output = process.stderr.read()
+
+        process.wait()  # Wait for completion
+
+        if process.returncode != 0 and stderr_output:
+            for err_line in stderr_output.splitlines():
+                self.error_received.emit(f"\n[ERROR]: {err_line}")
 
         process.wait()  # Ensure process finishes
 
@@ -289,6 +305,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             "phase_ref": self.phasref_line,
             # Loading options
             "load_all": self.loadall_chck,
+            "load_tables": self.loadtables_line,
             "freq_sel": self.freqsel_line,
             "subarray": self.subarray_chck,
             "shifts": self.shift_line,
@@ -301,6 +318,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             "max_scan_refant_search": self.maxrefantscans_line,
             # Fringe options
             "solint": self.solint_line,
+            "fringe_snr": self.snr_line,
             "min_solint": self.minsolint_line,
             "max_solint": self.maxsolint_line,
             # Export options            
@@ -314,6 +332,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
 
         self.selectfile_btn.clicked.connect(self.get_input_file)
         self.selectdir_btn.clicked.connect(self.get_output_dir)
+        self.loadtables_btn.clicked.connect(self.get_antab_file)
 
         self.more_options_btn.clicked.connect(self.toggle_moreoptions)
         
@@ -466,6 +485,15 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         )
         self.filepath_line.setText(", ".join(response[0]))
 
+    def get_antab_file(self):
+        response = qtw.QFileDialog.getOpenFileName(
+            parent=self,
+            caption="Select a file",
+            #directory=os.getcwd(),
+            #filter = 'FITS file (*.fits *.uvfits *.idifits);;All files (*)'
+        )
+        self.loadtables_line.setText(response[0])
+
     def get_output_dir(self):
         start_dir = Path("/usr/local/user")
         if start_dir.exists() == False:
@@ -523,6 +551,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 inputs[label] = int(self.timeaver_line.text())
             elif label == "freq_aver":
                 inputs[label] = int(self.freqaver_line.text())
+            elif label == "fringe_snr":
+                inputs[label] = float(self.snr_line.text())
             elif label == "userno":
                 inputs[label] = 2
             elif label == "disk":
@@ -570,6 +600,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.phasref_line.setText("")
         ## Loading options
         self.loadall_chck.setChecked(False)
+        self.loadtables_line.setText("")
         self.freqsel_line.setText("")
         self.subarray_chck.setChecked(False)
         self.shift_line.setText("")
@@ -581,6 +612,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.centrant_chck.setChecked(True)
         self.maxrefantscans_line.setText("10")
         ## Fringe options
+        self.snr_line.setText("5")
         self.solint_line.setText("")
         self.minsolint_line.setText("1")
         self.maxsolint_line.setText("10")
@@ -1482,6 +1514,12 @@ def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
         axes_top[i].tick_params(labelleft=False)
         axes_bottom[i].tick_params(labelleft=False)
 
+    # Rotate xtick labels so they overlap a bit less
+    for ax in axes_bottom:
+        for label in ax.get_xticklabels():
+            label.set_rotation(45)
+            label.set_ha('right')
+
     
     axes_top[0].set_ylabel('Phase (Degrees)', fontsize = 15)
     axes_bottom[0].set_ylabel('Amplitude (Jy)', fontsize = 15)
@@ -1492,6 +1530,7 @@ def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
     # possm_fig.suptitle(f"Baseline {bl[0]}-{bl[1]}", fontsize=20)
     possm_fig.suptitle(f"{bl[0]}.{a1} - {bl[1]}.{a2}", fontsize=20)
     possm_fig.supxlabel("Frequency (GHz)", fontsize = 16)
+    possm_fig.subplots_adjust(bottom=0.18)
     possm_fig.subplots_adjust(wspace=0, hspace = 0)  # No horizontal spacing
 
     return(possm_fig)

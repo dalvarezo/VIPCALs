@@ -91,6 +91,7 @@ def create_default_dict():
     default_dict['freq_aver'] = 500  # KHz
     # Loading options
     default_dict['load_all'] = False
+    default_dict['load_tables'] = None
     default_dict['freq_sel'] = None
     default_dict['subarray'] = False
     default_dict['shifts'] = None
@@ -100,6 +101,7 @@ def create_default_dict():
     default_dict['search_central'] = True
     default_dict['max_scan_refant_search'] = 10
     # Fringe options
+    default_dict['fringe_snr'] = 5
     default_dict['solint'] = None
     default_dict['min_solint'] = 1
     default_dict['max_solint'] = 10
@@ -277,6 +279,41 @@ for i, entry in enumerate(entry_list):
 
         if len(obs_dates) == 0:
             raise ValueError("Incorrect date format")
+        
+    # Some parameters in the header need to be equal in order to concatenate
+        n_channels = []
+        n_ifs = []
+        n_stokes = []
+        ref_channels = []
+        ref_freqs = []
+        band_freqs = []
+        obs_freqs = []
+        for j, path in enumerate(input_dict['paths'],1):
+            globals()[f"hdul_{j}"] = fits.open(path)
+            n_channels.append(globals()[f"hdul_{j}"]["FREQUENCY"].header['NO_CHAN'])
+            n_ifs.append(globals()[f"hdul_{j}"]["FREQUENCY"].header['NO_BAND'])
+            n_stokes.append(globals()[f"hdul_{j}"]["FREQUENCY"].header['NO_STKD'])
+            ref_channels.append(globals()[f"hdul_{j}"]["FREQUENCY"].header['REF_PIXL'])
+            ref_freqs.append(globals()[f"hdul_{j}"]["FREQUENCY"].header['REF_FREQ'])
+            band_freqs.append(globals()[f"hdul_{j}"]['FREQUENCY'].data[:]['BANDFREQ'])
+            obs_freqs.append(sorted(map(tuple, band_freqs[-1]+ref_freqs[-1])))
+            
+            globals()[f"hdul_{j}"].close()
+
+        for field in [n_channels, n_ifs, n_stokes, ref_channels, list(set(map(tuple, obs_freqs)))]:
+            if len(set(field)) != 1:
+                print("\nThe FREQUENCY header of the different files is not compatible. The files could not be concatenated.\n")
+
+                # Header
+                print(f"{'File':<35}{'Channels':<10}{'IFs':<6}{'Stokes':<8}{'Obs Frequencies':<80}{'Ref Channel':<12}")
+
+                # Data rows
+                for j, path in enumerate(input_dict['paths']):
+                    filename = path.split('/')[-1]
+                    obs_freq_str = str(obs_freqs[j])
+                    print(f"{filename:<35}{n_channels[j]:<10}{n_ifs[j]:<6}{n_stokes[j]:<8}{obs_freq_str:<80}{ref_channels[j]:<12}")
+                            
+                exit()
     
     # Reference antenna #
     for filepath in input_dict['paths']:

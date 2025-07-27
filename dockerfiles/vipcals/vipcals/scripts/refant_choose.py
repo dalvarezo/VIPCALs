@@ -125,12 +125,19 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
 
     # Maximum number of scans observed
     max_scan_no = np.max([len(antennas_dict[x].scans_obs) for x in antennas_dict])
+
     # Print a warning if no antennas was available in all scans
     if max_scan_no < len(scan_list):
         for pipeline_log in log_list:
             pipeline_log.write('\nWARNING: No antenna was available for all scans\n')
         print('\nWARNING: No antenna was available for all scans\n')
 
+    # If there are antennas available in all scans, drop the rest
+    else:
+        bad_antennas = [x for x in antennas_dict if len(antennas_dict[x].scans_obs) < len(scan_list)]
+        for element in list(set(bad_antennas)):
+            del antennas_dict[element]
+            
     # Drop antennas if not available on the targets scans
     target_ids = [x.id for x in full_source_list if x.name in target_list]
     target_scans = [x for x in scan_list if x.source_id in target_ids]
@@ -147,10 +154,6 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
     else:
         for element in list(set(bad_antennas)):
             del antennas_dict[element]
-
-    ## If at this stage there are no antennas, raise Error
-    #if len(antennas_dict) == 0:
-    #    raise ValueError("No antennas are available on all target sources scans.")
 
     # Define the dictionary with the antennas
     snr_dict = {}
@@ -280,7 +283,8 @@ def refant_fring(data, refant, selected_scans, delay_w = 1000, \
         
         refant_fring.snver = 0       # One more than the highest existing version
         
-        # print(vars(refant_fring))
+        #print(vars(refant_fring))
+        #exit()
         refant_fring.flagver = -1
 
         refant_fring.go()

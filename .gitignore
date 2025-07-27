@@ -24,3 +24,5 @@ vipcals/vipcals100*
 vipcals/test*
 input_*
 GUI/ui_files/
+/build/
+VIPCALs.egg-info/

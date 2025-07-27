@@ -157,6 +157,7 @@ This mode allows calibration of a single observation (which may include multiple
 - **Loading Options**
 
   - *Load all sources*: load all sources (default: only science target(s) + 3 tentative calibrators)
+  - *Load amp. calibration tables*: load external tables with system temperatures and gain curves in AIPS ANTAB format.
   - *Time average threshold*: minimum integration time in seconds. If the data have a shorter time sampling, it will be averaged in time up to this value (0 to disable)
   - *Freq. average threshold*: minimum channel width in kHz. If the data have narrower channels, they will be averaged in frequency up to this value (0 to disable)
   - *Phase center shift*: give coordinates to shift the phase center of each target if more accurate positions are available.
@@ -171,6 +172,7 @@ This mode allows calibration of a single observation (which may include multiple
 
 - **Fringe Fit Options**
 
+  - *Signal-to-noise threshold*: minimum SNR accepted during the FFT step of the fringe fit on the science target
   - *Fixed solution interval*: fixed solution interval in minutes
   - *Minimum solution interval*: minimum allowed interval (in minutes) when searching for the optimal solution interval
   - *Maximum solution interval*: maximum allowed interval (in minutes) when searching for the optimal solution interval
@@ -227,6 +229,8 @@ For batch processing, inputs can be supplied via a JSON file. All parameters mir
 +---------------------------+----------------------------+
 | load_all                  | bool                       |
 +---------------------------+----------------------------+
+| load_tables               | str                        |
++---------------------------+----------------------------+
 | time_aver                 | float                      |
 +---------------------------+----------------------------+
 | freq_aver                 | float                      |
@@ -241,6 +245,8 @@ For batch processing, inputs can be supplied via a JSON file. All parameters mir
 +---------------------------+----------------------------+
 | max_scan_refant_search    | float                      |
 +---------------------------+----------------------------+
+| fringe_snr                | float                      |
++---------------------------+----------------------------+
 | solint                    | float                      |
 +---------------------------+----------------------------+
 | min_solint                | float                      |
@@ -249,7 +255,7 @@ For batch processing, inputs can be supplied via a JSON file. All parameters mir
 +---------------------------+----------------------------+
 | channel_out               | str ("SINGLE" or "MULTI")  |
 +---------------------------+----------------------------+
-| flag_Edge                 | float                      |
+| flag_edge                 | float                      |
 +---------------------------+----------------------------+
 
 **Examples**
@@ -360,4 +366,3 @@ Acknowledgements
 ----------------
 
 This work is supported by the European Research Council (ERC) under the Horizon ERC Grants 2021 programme under grant agreement No. 101040021.
-

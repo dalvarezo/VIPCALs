@@ -8,7 +8,7 @@ from scripts.helper import NoScansError
 from scripts.helper import Scan
 from scripts.helper import tacop
     
-def snr_fring(data, refant, delay_w = 1000, rate_w = 200):
+def snr_fring(data, refant, priority_refants, delay_w = 1000, rate_w = 200):
     """Short fringe fit (only FFT) to select a bright calibrator.
     
     Fringe fit of all sources using FRING task in AIPS. It solves for delays 
@@ -24,6 +24,8 @@ def snr_fring(data, refant, delay_w = 1000, rate_w = 200):
     :type data: AIPSUVData
     :param refant: reference antenna number
     :type refant: int
+    :param priority_refants: list of alternatives to the reference antenna
+    :param priority_refants: list of int
     :param delay_w: delay window in ns in which the search is performed; 
         defaults to 1000
     :type delay_w: int, optional
@@ -48,6 +50,8 @@ def snr_fring(data, refant, delay_w = 1000, rate_w = 200):
     snr_fring.aparm[5] = 0    # Solve each IF separately
     snr_fring.aparm[6] = 2    # Amount of information printed
     snr_fring.aparm[7] = 5    # SNR cutoff   
+    snr_fring.aparm[9] = 1    # Exhaustive search
+    snr_fring.search = AIPSList(priority_refants[:10])
     
     snr_fring.dparm[1] = 1    # Number of baseline combinations searched
     snr_fring.dparm[2] = delay_w   # Delay window (ns) 0 => Full Nyquist range

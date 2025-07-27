@@ -19,11 +19,10 @@ def eop_correct(data):
     here = os.path.dirname(__file__)
     tmp = tmp_dir
 
-    if os.path.exists('../../tmp/usno_finals_bis.erp') == False:
-        curl_command = 'curl -su anonymous:daip@nrao.edu --ftp-ssl ' \
-        + 'ftp://gdc.cddis.eosdis.nasa.gov/vlbi/gsfc/ancillary/' \
-        + 'solve_apriori/usno_finals.erp > ' + tmp + '/usno_finals_bis.erp'
-        os.system(curl_command)
+    curl_command = 'curl -su anonymous:daip@nrao.edu --ftp-ssl ' \
+    + 'ftp://gdc.cddis.eosdis.nasa.gov/vlbi/gsfc/ancillary/' \
+    + 'solve_apriori/usno_finals.erp > ' + tmp + '/usno_finals_bis.erp'
+    os.system(curl_command)
     
     clcor = AIPSTask('clcor')
     clcor.inname = data.name
