@@ -1078,7 +1078,7 @@ class PossmWindow(qtw.QMainWindow):
         controls_layout.addWidget(self.bl_selector)
 
         # --- Polarization Selector ---
-        self.current_pol = 'L'  # Default pol index
+        self.current_pol = 0  # Default pol index
         self.pol_selector = qtw.QComboBox()
         self.pol_selector.currentIndexChanged.connect(self.update_pol_selection)
         controls_layout.addWidget(self.pol_selector)
@@ -1245,7 +1245,7 @@ class PossmWindow(qtw.QMainWindow):
             return
 
         # Get current baseline and scan
-        scan = self.current_scan  # For now, this is static. Make dynamic later if needed.
+        scan = self.current_scan  
         pol = self.current_pol
         # --- NEW PLOT DRAWING ---
         self.figure.clear()  # Clear old plot
@@ -1442,7 +1442,7 @@ def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
     # Compute sums
     weighted_reals = reals * weights
     weighted_imags = imags * weights
-    sum_weights = np.sum(weights, axis=0)  # Shape: [?, ?, ?]
+    sum_weights = np.sum(weights, axis=0)  
 
     weighted_reals = np.array(weighted_reals, dtype=float)
     weighted_imags = np.array(weighted_imags, dtype=float)

@@ -1092,7 +1092,7 @@ class PossmWindow(qtw.QMainWindow):
         controls_layout.addWidget(self.bl_selector)
 
         # --- Polarization Selector ---
-        self.current_pol = 'L'  # Default pol index
+        self.current_pol = 0  # Default pol index
         self.pol_selector = qtw.QComboBox()
         self.pol_selector.currentIndexChanged.connect(self.update_pol_selection)
         controls_layout.addWidget(self.pol_selector)
