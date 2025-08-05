@@ -297,6 +297,64 @@ def group_ids(id):
     else:
         return( [(id, id, [0,0] )])
 
+def group_ids_v2(id):
+    if isinstance(id, np.float64):
+        return [(id, id, [0, 0])]
+    # Ensure input is a list or array
+    id = list(id)
+    groups = []
+    current_group = [0]
+    for i in range(1, len(id)):
+        if abs(id[i] - id[i - 1]) > 1e9:
+            groups.append(current_group)
+            current_group = [i]
+        else:
+            current_group.append(i)
+    groups.append(current_group)
+    overall_min = min(id)
+    result = []
+    for group in groups:
+        group_min = min(id[i] for i in group)
+        result.append((group_min, overall_min, [min(group), max(group)]))
+    return result
+    
+def are_sources_in_id(file_path_list, loaded_id, sources):
+    """_summary_
+
+    Args:
+        file_path_list (_type_): _description_
+        id (_type_): _description_
+        sources (_type_): _description_
+    """   
+    missingso = [] 
+    with fits.open(file_path_list[0]) as hdul:
+        # Get sources_id
+        if type(hdul['SOURCE'].data['SOURCE'][0]) == str: 
+            sources_id = [x['ID_NO.'] for x in hdul['SOURCE'].data 
+                        if x['SOURCE'].split('\x00', 1)[0].strip() in sources]
+        else:
+            sources_id = [x['ID_NO.'] for x in hdul['SOURCE'].data 
+                      if x['SOURCE'].decode('latin-1', errors='ignore').split('\x00', 1)[0].strip() in sources]
+        
+        for i in range(len(hdul['FREQUENCY'].data['FREQID'])):
+            fid = hdul['FREQUENCY'].data['FREQID'][i]
+            freq = np.floor(hdul['SOURCE'].data['RESTFREQ'][0] \
+                            + hdul['FREQUENCY'].data['BANDFREQ'][i])
+
+            if np.all(freq == np.array(loaded_id)):
+                for sid in sources_id:
+                    uv_data = hdul['UV_DATA'].data
+                    exists = np.any((uv_data['SOURCE'] == sid) & (uv_data['FREQID'] == fid)) 
+                    if exists == False:
+                        if type(hdul['SOURCE'].data['SOURCE'][0]) == str: 
+                            missingso = [x['SOURCE'].split('\x00', 1)[0].strip() for x in hdul['SOURCE'].data 
+                                        if x['ID_NO.'] == sid]
+                        else:
+                            missingso = [x['SOURCE'].decode('latin-1', errors='ignore').split('\x00', 1)[0].strip() for x in hdul['SOURCE'].data 
+                                        if x['ID_NO.'] == sid]                            
+                        break
+
+    return(missingso)
 
 def is_it_multifreq_if(file_path):
     """Check if the file contains multiple bands splitted in IFs.

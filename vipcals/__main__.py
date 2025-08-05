@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 import string
+import numpy as np
 from datetime import datetime
 
 from astropy.io import fits
@@ -292,8 +293,17 @@ for i, entry in enumerate(entry_list):
             n_stokes.append(globals()[f"hdul_{j}"]["FREQUENCY"].header['NO_STKD'])
             ref_channels.append(globals()[f"hdul_{j}"]["FREQUENCY"].header['REF_PIXL'])
             ref_freqs.append(globals()[f"hdul_{j}"]["FREQUENCY"].header['REF_FREQ'])
-            band_freqs.append(globals()[f"hdul_{j}"]['FREQUENCY'].data[:]['BANDFREQ'])
-            obs_freqs.append(sorted(map(tuple, band_freqs[-1]+ref_freqs[-1])))
+
+            band = np.atleast_1d(globals()[f"hdul_{j}"]['FREQUENCY'].data[:]['BANDFREQ'])  # Safe for both float and array
+            band_freqs.append(band)
+                
+            freqs = band + ref_freqs[-1]
+
+            # If more than 1 IF
+            if freqs.ndim > 1:
+                obs_freqs.append(sorted(map(tuple, freqs)))
+            else:
+                obs_freqs.append(sorted(freqs.tolist()))
             
             globals()[f"hdul_{j}"].close()
 

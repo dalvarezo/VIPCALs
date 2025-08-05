@@ -4,7 +4,7 @@ from AIPSTask import AIPSTask, AIPSList
 
 AIPSTask.msgkill = -8
   
-def ty_smooth(data, tmin = 0, tmax = 1000, time_interv = 15, max_dev = 250):
+def ty_smooth(data, tmin = 0, tmax = 1500, time_interv = 15, max_dev = 250):
     """Smooth/filter system temperature tables.
     
     Flag TSys values below tmin and above tmax using the TYSMO task in AIPS. Also 
@@ -135,7 +135,7 @@ def ty_assess(data):
 
     tsys_dict= {}
     for key in ant_dict:
-        name = [x.anname for x in data.table('AN', 1) if x.nosta == key][0]
+        name = [str(x.nosta) + '-' + x.anname for x in data.table('AN', 1) if x.nosta == key][0]
         tsys_dict[key] = (name, ant_dict[key][0], ant_dict[key][1])
     
     return(original_points, flagged_points, tsys_dict)

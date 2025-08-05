@@ -92,9 +92,8 @@ class Ui_main_window(object):
     def retranslateUi(self, main_window):
         main_window.setWindowTitle(QCoreApplication.translate("main_window", u"VIPCALs", None))
         self.groupBox.setTitle("")
-        #self.label.setText(QCoreApplication.translate("main_window", u"VIPCALs v0.2", None))
         self.label.setText("<span style='font-size:48pt; font-weight:bold; color: color:#AAAAAA;'>VIPCALs</span>"
-                   "<br><span style='font-size:20pt; color:#AAAAAA;'>v0.3</span>")
+                   "<br><span style='font-size:20pt; color:#AAAAAA;'>v0.3.1</span>")
 
         self.man_input_btn.setText(QCoreApplication.translate("main_window", u"Manual input", None))
         self.JSON_input_btn.setText(QCoreApplication.translate("main_window", u"JSON input", None))

@@ -83,14 +83,15 @@ def write_info(data, filepath_list, log_list, sources, stats_df = 'None'):
         if freq < 1e9:
             log.write('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
 
-        log.write('\nLoaded sources: ' + str([x.strip() for x in set(sources)]) + '\n')
-
+        log.write('\nLoaded sources: ' + str([x.strip() for x in set(sources)]))
+        log.write(f'\nAvailable antennas: {data.antennas}\n')
         if type(stats_df) == pd.core.frame.DataFrame:
             stats_df['files'] = str([x.split('/')[-1] for x in filepath_list])
             stats_df['total_size'] = total_size
             stats_df['project'] = data.header['observer']
             stats_df['obs_date'] = data.header['date_obs']
             stats_df['frequency'] = np.round(freq/1e9,6)
+            stats_df['antennas'] = str(data.antennas)
 
 
 def print_info(data, filepath_list, sources):
@@ -121,4 +122,5 @@ def print_info(data, filepath_list, sources):
     if freq < 1e9:
         print('\nFrequency: ' + str(np.round(freq/1e6,2)) + ' MHz')
 
-    print('\nLoaded sources: ' + str([x.strip() for x in set(sources)]) + '\n')
+    print('\nLoaded sources: ' + str([x.strip() for x in set(sources)]))
+    print(f'\nAvailable antennas: {data.antennas}\n')

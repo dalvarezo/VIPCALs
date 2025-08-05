@@ -55,6 +55,7 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
         a.name = ant['anname'].strip()
         a.id = ant['nosta']
         a.coords = np.array(ant['stabxyz'])
+        a.set_codename()
         antennas_dict[a.id] = a
 
     # Remove antennas with no TY or GC information
@@ -135,6 +136,12 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
     # If there are antennas available in all scans, drop the rest
     else:
         bad_antennas = [x for x in antennas_dict if len(antennas_dict[x].scans_obs) < len(scan_list)]
+        if len(bad_antennas) > 0:
+            print('The following antennas are not available in all scans and will '
+                  + f'not be considered for the main reference antenna:\n {[antennas_dict[k].codename for k in bad_antennas]}\n')
+            for pipeline_log in log_list:
+                pipeline_log.write('The following antennas are not available in all scans and will '
+                  + f'not be considered for the main reference antenna:\n {[antennas_dict[k].codename for k in bad_antennas]}\n')
         for element in list(set(bad_antennas)):
             del antennas_dict[element]
             
@@ -152,6 +159,12 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
             pipeline_log.write('\nWARNING: No antenna was available for all target scans\n')
         print('\nWARNING: No antenna was available for all target scans\n')
     else:
+        if len(bad_antennas) > 0:
+            print('The following antennas are not available for all the science target(s) scans and will '
+                  + f'not be considered for the main reference antenna:\n{[antennas_dict[k].codename for k in bad_antennas]}\n')
+            for pipeline_log in log_list:
+                pipeline_log.write('The following antennas are not available for all the science target(s) scans and will '
+                  + f'not be considered for the main reference antenna:\n{[antennas_dict[k].codename for k in bad_antennas]}\n')
         for element in list(set(bad_antennas)):
             del antennas_dict[element]
 
@@ -163,6 +176,7 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
                 snr_dict[i] = {}
                 for j in range(len(an_table)):
                     snr_dict[i][j+1] = []
+
         if search_central == False:  # Search for refant in all antennas
             snr_dict[i] = {}
             for j in range(len(an_table)):
@@ -176,6 +190,20 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
             for j in range(len(an_table)):
                 snr_dict[i][j+1] = []
 
+    # If not, print the antennas that have been lost
+    if search_central == True and len(snr_dict) > 0:
+        non_central_ants = [antennas_dict[n].name for n in antennas_dict if antennas_dict[n].name not in ['KP', 'LA', 'PT', 'OV', 'FD']]
+        if len(non_central_ants) == 1:
+            print(f'The following antenna is not a central antenna and will not be considered for the main reference antenna.\n{non_central_ants}\n')
+            for pipeline_log in log_list:
+                pipeline_log.write(f'The following antenna is not a central antenna and will not be considered for the main reference antenna:\n{non_central_ants}\n')
+
+        if len(non_central_ants) > 1:
+            print(f'The following antennas are not a central antenna and will not be considered for the main reference antenna.\n{non_central_ants}\n')
+            for pipeline_log in log_list:
+                pipeline_log.write(f'The following antennas are not a central antenna and will not be considered for the main reference antenna:\n{non_central_ants}\n')
+        for element in [n for n in antennas_dict if antennas_dict[n].name not in ['KP', 'LA', 'PT', 'OV', 'FD']]:
+            del antennas_dict[element]
 
     # Randomly select a maximum of max_scans of each source
     random.seed(42)

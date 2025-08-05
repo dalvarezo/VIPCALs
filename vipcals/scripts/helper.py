@@ -30,6 +30,9 @@ class Antenna():
         self.scans_obs = []
         self.median_SNR = 0
         self.max_scans = 0
+        self.codename = None
+    def set_codename(self):
+        self.codename = str(self.id) + '-' + str(self.name)
 
 class FFTarget():
     """Helper class to simplify the fringe fit workflow."""

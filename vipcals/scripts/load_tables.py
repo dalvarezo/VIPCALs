@@ -136,7 +136,7 @@ def load_ty_tables(data, bif, eif):
                 break
 
             # Try all letters
-            for s in alc:
+            for s in alc + '123456789':
                 url = normal + s +'cal.vlba'
                 r = requests.get(url)
                 if r.status_code != 404:
@@ -151,7 +151,7 @@ def load_ty_tables(data, bif, eif):
                 break
                   
             # try all letters
-            for s in alc:
+            for s in alc + '123456789':
                 url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
                 + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba'
                 r = requests.get(url)
@@ -166,7 +166,7 @@ def load_ty_tables(data, bif, eif):
             if len(letters) != 0:
                 break
             
-            for s in alc:
+            for s in alc + '123456789':
                 url = normal + s +'cal.vlba.Z'
                 r = requests.get(url)
                 if r.status_code != 404:
@@ -181,7 +181,7 @@ def load_ty_tables(data, bif, eif):
             if len(letters) != 0:
                 break
             
-            for s in alc:
+            for s in alc + '123456789':
                 url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
                 + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba.Z'
                 r = requests.get(url)
@@ -197,7 +197,7 @@ def load_ty_tables(data, bif, eif):
             if len(letters) != 0:
                 break
             
-            for s in alc:
+            for s in alc + '123456789':
                 url = normal + s +'cal.vlba.gz'
                 r = requests.get(url)
                 if r.status_code != 404:
@@ -212,7 +212,7 @@ def load_ty_tables(data, bif, eif):
             if len(letters) != 0:
                 break
 
-            for s in alc:
+            for s in alc + '123456789':
                 url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
                     + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba.gz'
                 r = requests.get(url)
@@ -407,7 +407,8 @@ def load_ty_tables(data, bif, eif):
         for l in lines:
             if 'Tsys information' in l: 
                 tsys_ants.append(l.split(' ')[-2])
-    ignore_ants = [x for x in tsys_ants if x not in [a.strip() for a in data.antennas]]
+    ignore_ants = list(set([x for x in tsys_ants 
+                            if x not in [a.strip() for a in data.antennas]]))
 
     antab.sparm = AIPSList(ignore_ants)
 
@@ -543,7 +544,7 @@ def load_fg_tables(data):
                 break
                   
             # try all letters
-            for s in alc:
+            for s in alc + '123456789':
                 url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
                 + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba'
                 r = requests.get(url)
@@ -558,7 +559,7 @@ def load_fg_tables(data):
             if len(letters) != 0:
                 break
             
-            for s in alc:
+            for s in alc + '123456789':
                 url = normal + s +'cal.vlba.Z'
                 r = requests.get(url)
                 if r.status_code != 404:
@@ -573,7 +574,7 @@ def load_fg_tables(data):
             if len(letters) != 0:
                 break
             
-            for s in alc:
+            for s in alc + '123456789':
                 url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
                 + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba.Z'
                 r = requests.get(url)
@@ -589,7 +590,7 @@ def load_fg_tables(data):
             if len(letters) != 0:
                 break
             
-            for s in alc:
+            for s in alc + '123456789':
                 url = normal + s +'cal.vlba.gz'
                 r = requests.get(url)
                 if r.status_code != 404:
@@ -604,7 +605,7 @@ def load_fg_tables(data):
             if len(letters) != 0:
                 break
 
-            for s in alc:
+            for s in alc + '123456789':
                 url = 'http://www.vlba.nrao.edu/astro/VOBS/astronomy/' \
                     + mmm + yy + '/' + project + s + '/' + project + s + 'cal.vlba.gz'
                 r = requests.get(url)
@@ -1030,11 +1031,18 @@ def ty_tsm_vlog(data, bif, eif, table_paths):
                 aux2 = ' '.join(aux)
                 final_list.append(aux2)
 
+
+    date = datetime.strptime(data.header.date_obs, "%Y-%m-%d")
+    dayno = date.timetuple().tm_yday
+
     with open(f'{tmp}/tsys.vlba', 'w') as fp:
         for item in final_list:
             # Replace the offset with 0.0 
             if '*' in item:
                 item = item.replace('*', '0.0')
+            if len(item) > 0 and item.split()[0] not in ['!', 'TSYS','/', 'INDEX']:
+                if float(item.split()[0]) > dayno+3 or float(item.split()[0]) < dayno-3:
+                    continue
             # write each item on a new line
             fp.write("%s\n" % item)
 

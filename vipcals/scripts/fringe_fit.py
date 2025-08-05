@@ -214,9 +214,9 @@ def assess_fringe_fit(data, log, version = 6):
                 if val == 0:
                     counter += 1
                     global_counter += 1
-            print('    ' + antenna_dict[a] + ' failed in ' + str(counter) + \
+            print('    ' + str(a) + '-' + antenna_dict[a] + ' failed in ' + str(counter) + \
                   ' out of ' + str(len(fring_dict[a])) + ' solutions.\n')
-            log.write('    ' + antenna_dict[a] + ' failed in ' \
+            log.write('    ' + str(a) + '-' + antenna_dict[a] + ' failed in ' \
                       + str(counter) + ' out of ' + str(len(fring_dict[a])) \
                       + ' solutions.\n')
             
@@ -248,10 +248,11 @@ def assess_fringe_fit(data, log, version = 6):
             if val == 0:
                 counter += 1
                 global_counter += 1
-        print(antenna_dict[a] + ' failed in ' + str(counter) + \
-              ' out of ' + str(len(fring_dict[a])) + ' solutions.\n')
-        log.write(antenna_dict[a] + ' failed in ' + str(counter) + \
-                  ' out of ' + str(len(fring_dict[a])) + ' solutions.\n')
+        print('    ' + str(a) + '-' + antenna_dict[a] + ' failed in ' + str(counter) + \
+                ' out of ' + str(len(fring_dict[a])) + ' solutions.\n')
+        log.write('    ' + str(a) + '-' + antenna_dict[a] + ' failed in ' \
+                    + str(counter) + ' out of ' + str(len(fring_dict[a])) \
+                    + ' solutions.\n')
         
         ratios_dict[a][0] = len(fring_dict[a]) - counter
         ratios_dict[a][1] = len(fring_dict[a])

@@ -194,17 +194,6 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     t0 = time.time()
     load.load_data(filepath_list, aips_name, sources, disk_number, multi_id,\
     selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
-    disp.write_info(uvdata, filepath_list, log_list, sources, stats_df=stats_df)
-    t1 = time.time() 
-    for pipeline_log in log_list:
-        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t1-t0))
-    disp.print_info(uvdata, filepath_list, sources)
-    print('Execution time: {:.2f} s. \n'.format(t1-t0))
-    stats_df['time_1'] = t1-t0
-
-    ## Check data integrity
-    print('\nChecking data integrity...\n')
-
     ## Modify the AN table in case there are non ASCII characters   
     try:
         uvdata.antennas
@@ -212,6 +201,18 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         tabl.remove_ascii_antname(uvdata, filepath_list[0])
         tabl.remove_ascii_poltype(uvdata, filepath_list[0])
         print('\nAN Table was modified to correct for padding in entries.\n')
+    
+    # Print some general information
+    disp.write_info(uvdata, filepath_list, log_list, sources, stats_df=stats_df)
+    disp.print_info(uvdata, filepath_list, sources)
+    t1 = time.time() 
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t1-t0))
+    print('Execution time: {:.2f} s. \n'.format(t1-t0))
+    stats_df['time_1'] = t1-t0
+
+    ## Check data integrity
+    print('\nChecking data integrity...\n')
 
     ## Check for order
     if uvdata.header['sortord'] != 'TB':
@@ -743,7 +744,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
 
         refant_summary = (
-            f"\n{ant_dict[refant].name} has been selected as the reference antenna "
+            f"\n{ant_dict[refant].codename} has been selected as the reference antenna "
             f"with an SNR of {round(ant_dict[refant].median_SNR, 2)}. It is available in "
             f"{len(ant_dict[refant].scans_obs)} out of {ant_dict[refant].max_scans} scans.\n"
         )
@@ -754,7 +755,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             pipeline_log.write("---------|---------|-----------|-----------\n")
             for ant in ant_dict.values():
                 pipeline_log.write(
-                    f"{ant.name:<8} | {round(ant.median_SNR,2):>6} |"
+                    f"{ant.codename:<8} | {round(ant.median_SNR,2):>6} |"
                     f" {len(ant.scans_obs):>9} | {ant.max_scans:>9}\n"
                 )
 
@@ -764,7 +765,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         print("---------|---------|-----------|-----------")
         for ant in ant_dict.values():
             print(
-                f"{ant.name:<8} | {round(ant.median_SNR,2):>6} |"
+                f"{ant.codename:<8} | {round(ant.median_SNR,2):>6} |"
                 f" {len(ant.scans_obs):>9} | {ant.max_scans:>9}"
             )
 
@@ -837,9 +838,6 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
         t4 = time.time()
 
-        for pipeline_log in log_list:
-            pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t4-t3))
-        print('Execution time: {:.2f} s. \n'.format(t4-t3))
         os.system(f'rm -rf {tmp_dir}/jplg*')
         os.system(f'rm -rf {tmp_dir}/codg*')
 
@@ -872,6 +870,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
         stats_df['iono_files'] = 'OLD'
         stats_df['time_7'] = t4 - t3
+
+    for pipeline_log in log_list:
+        pipeline_log.write('\nExecution time: {:.2f} s. \n'.format(t4-t3))
+    print('Execution time: {:.2f} s. \n'.format(t4-t3)) 
         
     ## Earth orientation parameters correction ##
     disp.write_box(log_list, 'Earth orientation parameters corrections')
@@ -1037,9 +1039,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                 init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
                 fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
 
-                antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                             if a['nosta'] in calibrator_scans[0].calib_antennas[:-1]]
-                flagged_antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                flagged_antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                             if a['nosta'] in no_calib_antennas]
                 
                 pipeline_log.write(f"\n{'Source:':<12} {calibrator_scans[0].source_name}\t\t")
@@ -1062,9 +1064,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                     init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
                     fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
 
-                    antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                    antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                                 if a['nosta'] in scn.calib_antennas[:-1]]
-                    flagged_antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                    flagged_antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                                 if a['nosta'] in no_calib_antennas]
                     pipeline_log.write(f"\n{'Source:':<12} {scn.source_name}\t\t")
                     pipeline_log.write(f"\n{'Time:':<12} {init_str} - {fin_str}")
@@ -1086,9 +1088,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
             fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
 
-            antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+            antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                         if a['nosta'] in calibrator_scans[0].calib_antennas[:-1]]
-            flagged_antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+            flagged_antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                         if a['nosta'] in no_calib_antennas]
             
             print(f"\n{'Source:':<12} {calibrator_scans[0].source_name}")
@@ -1109,9 +1111,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                 init_str = f"{scan_i[0]:02}/{scan_i[1]:02}:{scan_i[2]:02}:{scan_i[3]:02}"
                 fin_str  = f"{scan_f[0]:02}/{scan_f[1]:02}:{scan_f[2]:02}:{scan_f[3]:02}"
 
-                antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                             if a['nosta'] in scn.calib_antennas[:-1]]
-                flagged_antennas = [a['anname'].strip() for a in uvdata.table('AN', 1) 
+                flagged_antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                             if a['nosta'] in no_calib_antennas]
                 
                 print(f"\n{'Source:':<12} {scn.source_name}")
@@ -2207,9 +2209,16 @@ def pipeline(input_dict):
                 if id in multifreq_id[2][f]:
                     filepath_list_ID.append(f)
 
-            # Check if there are multiple frequencies in different IFs inside the ID
-            freq_groups = load.group_ids(id)
+            # Are my sources in this ID?
+            missingso = load.are_sources_in_id(filepath_list, id, target_list)
+            if missingso != []:
+                print(f'The following sources are missing on this frequency id {id}:\n{missingso}\n')
+                print(f'It will be skipped.\n')
+                continue
 
+            # Check if there are multiple frequencies in different IFs inside the ID
+            freq_groups = load.group_ids_v2(id)
+            
             for group in freq_groups:
             
                 ## Select sources to load ##
