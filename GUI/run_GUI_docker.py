@@ -39,7 +39,7 @@ from io import StringIO
 from pathlib import Path
 from PySide6.QtGui import QTextCursor
 
-tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+tmp_dir = os.path.expanduser("/usr/local/test/.vipcals/tmp")
 os.makedirs(tmp_dir, exist_ok=True)
 tmp_file = os.path.join(tmp_dir, "temp.json")
 
