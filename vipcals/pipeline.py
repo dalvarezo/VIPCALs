@@ -1278,12 +1278,14 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         else:
             phase_ref_scans = [x for x in scan_list if x.source_name == phase_ref[i]]
 
-            if solint == None:
+            if default_solint == None:
 
                 solint, solint_dict = opti.optimize_solint_mm(uvdata, phase_ref[i], \
                                                         phase_ref_scans, refant, 
                                                         min_solint = min_solint,
                                                         max_solint = max_solint)
+                
+                solint_list.append(solint)
 
                 if solint_list[i] != 1:
                     log_list[i].write('\nThe optimal solution interval for the phase ' \
@@ -1298,13 +1300,12 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
             else:
                 solint = default_solint
+                solint_list.append(solint) 
                 solint_dict = {default_solint: 'MANUAL'}
                 log_list[i].write('\nThe optimal solution interval has been manually selected as '\
                             + str(solint_list[i]) + ' minutes. \n')
                 print('\nThe optimal solution interval has been manually selected as ' \
-                    + str(solint_list[i]) + ' minute. \n') 
-
-            solint_list.append(solint)  
+                    + str(solint_list[i]) + ' minute. \n')  
 
             stats_df.at[i, 'solint'] = solint_list[i]
             stats_df.at[i, 'solint_dict'] = json.dumps(solint_dict)   
@@ -1656,7 +1657,11 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
     # Apply all SN tables into CL9    
     no_pr_target_scans = [x for x in scan_list if x.source_name in [t.name for t in no_pr_target_list]]
-    frng.fringe_clcal(uvdata, no_pr_target_list, no_pr_target_scans, max_ver = pr_sn - 1)
+    if len(no_pr_target_list) > 0:
+        frng.fringe_clcal(uvdata, no_pr_target_list, no_pr_target_scans, max_ver = pr_sn - 1)
+    else:
+        # Create a CL9 if it has not been created before
+        help.tacop(uvdata, 'CL', 8, 9)
     frng.fringe_phaseref_clcal(uvdata, pr_target_list, version = pr_sn)
 
 
