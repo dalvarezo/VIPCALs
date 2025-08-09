@@ -43,12 +43,9 @@ Support for other arrays is in development.
 
 **Docker installation:**
 
-  - docker
+  - Docker
   - sudo privileges
 
-**Singularity installation:**
-
-  - singularity
 
 -----
 
@@ -108,30 +105,6 @@ vipcals
     
     where <span class="title-ref">/your\_directory/</span> has to be
     replaced with the local directory containing your data.
-
-### Singularity Installation
-
-1.  Clone the repository:
-    
-    ``` bash
-    git clone https://gitlab.ia.forth.gr/smile/vipcals.git
-    ```
-
-2.  Build the Singularity image:
-    
-    ``` bash
-    cd vipcals/dockerfiles
-    singularity build vipcals.sif ./Singularity.def
-    ```
-
-3.  Run the image:
-    
-    ``` bash
-    singularity run --overlay /tmp/ vipcals.sif
-    ```
-
-The singularity image *vipcals.sif* can be also moved/copied into any
-other directory.
 
 -----
 
