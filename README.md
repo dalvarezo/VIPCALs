@@ -23,18 +23,9 @@ without human intervention.
 Built on **ParselTongue** (a Python interface to AIPS), the pipeline
 offers a minimalistic interface and produces fully calibrated datasets.
 
-<div class="note">
-
-<div class="title">
-
-Note
-
-</div>
-
-The current version supports **continuum calibration of VLBA data**.
-Support for other arrays is in development.
-
-</div>
+> **Development status**: The pipeline is under active development. The current version supports **continuum calibration of VLBA data**, with support for other arrays in testing.
+> Bugs, feedback, and suggestions are always welcome — please contact:  
+> **dalvarez@physics.uoc.gr**
 
 -----
 
@@ -105,16 +96,16 @@ vipcals
       -e DISPLAY=$DISPLAY \
       -e QT_X11_NO_MITSHM=1 \
       -v /tmp/.X11-unix:/tmp/.X11-unix \
-      -v /your_directory/:/usr/local/user vipcals
+      -v /your_directory/:/usr/local/vipcals vipcals
     ```
     or (MacOS):
 
-        ``` bash
+    ``` bash
     xhost +127.0.0.1
     docker run -it \
       -e DISPLAY=host.docker.internal:0 \
       -v /tmp/.X11-unix:/tmp/.X11-unix \
-      -v /your_directory/:/usr/local/user vipcals
+      -v /your_directory/:/usr/local/vipcals vipcals
     ``` 
   
     where <span class="title-ref">/your\_directory/</span> has to be

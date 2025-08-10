@@ -39,7 +39,7 @@ from io import StringIO
 from pathlib import Path
 from PySide6.QtGui import QTextCursor
 
-tmp_dir = os.path.expanduser("/usr/local/test/.vipcals/tmp")
+tmp_dir = os.path.expanduser("/usr/local/vipcals/.vipcals/tmp")
 os.makedirs(tmp_dir, exist_ok=True)
 tmp_file = os.path.join(tmp_dir, "temp.json")
 
@@ -148,7 +148,7 @@ class JsonPipelineWorker(QThread):
     def run(self):
         """Runs mock_pipeline.py in a subprocess and streams output."""
         CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-        MAIN_PATH = os.path.join(CURRENT_DIR, "..", "vipcals", "__main__.py")
+        MAIN_PATH = os.path.join(CURRENT_DIR, "..", "vipcals", "__main__docker.py")
         process = subprocess.Popen(
             ["ParselTongue", MAIN_PATH,
             self.json_path],
@@ -474,7 +474,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
 
 
     def get_input_file(self):
-        start_dir = Path("/usr/local/user")
+        start_dir = Path("/usr/local/vipcals")
         if start_dir.exists() == False:
             start_dir = "/home/"
         response = qtw.QFileDialog.getOpenFileNames(
@@ -495,7 +495,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.loadtables_line.setText(response[0])
 
     def get_output_dir(self):
-        start_dir = Path("/usr/local/user")
+        start_dir = Path("/usr/local/vipcals")
         if start_dir.exists() == False:
             start_dir = "/home/"
         response = qtw.QFileDialog.getExistingDirectory(
@@ -643,7 +643,7 @@ class JSONWindow(qtw.QWidget, Ui_JSON_window):
 
 
     def get_input_file(self):
-        start_dir = Path("/usr/local/user")
+        start_dir = Path("/usr/local/vipcals")
         if start_dir.exists() == False:
             start_dir = "/home/"
         response = qtw.QFileDialog.getOpenFileName(

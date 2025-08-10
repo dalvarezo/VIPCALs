@@ -40,6 +40,10 @@ print = functools.partial(print, flush=True)
 
 tmp_dir = os.path.expanduser("~/.vipcals/tmp")
 
+# Check if /usr/local/vipcals exists
+if os.path.isdir("/usr/local/vipcals"):
+    tmp_dir = "/usr/local/vipcals/.vipcals/tmp"
+
 def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list, 
               sources, load_all, full_source_list, disk_number, aips_name, klass, 
               multi_id, selfreq, bif, eif, default_refant, default_refant_list, 
