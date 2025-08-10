@@ -3,11 +3,15 @@
 VLBI Pipeline for automated data Calibration using AIPS (in the SMILE
 framework)
 
-<div class="contents" data-depth="2" data-local="">
 
-Contents
+## Table of Contents
+- [Overview](#overview)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Outputs](#outputs)
+- [Acknowledgements](#acknowledgements)
 
-</div>
 
 ## Overview
 
@@ -38,12 +42,13 @@ Support for other arrays is in development.
 
 **Manual installation:**
 
-  - AIPS 31DEC24
-  - conda
+  - AIPS 31DEC24 or newer
+  - Conda
 
 **Docker installation:**
 
   - Docker
+  - XQuartz (only in MacOS)
   - sudo privileges
 
 
@@ -56,7 +61,7 @@ Support for other arrays is in development.
 1.  Clone the repository:
     
     ``` bash
-    git clone https://gitlab.ia.forth.gr/smile/vipcals.git
+    git clone https://github.com/dalvarezo/VIPCALs.git
     ```
 
 2.  Create the conda environment:
@@ -84,7 +89,7 @@ vipcals
 1.  Clone the repository:
     
     ``` bash
-    git clone https://gitlab.ia.forth.gr/smile/vipcals.git
+    git clone https://github.com/dalvarezo/VIPCALs.git
     ```
 
 2.  Build the Docker container:
@@ -93,18 +98,29 @@ vipcals
     sudo docker build -t vipcals ./vipcals/dockerfiles/
     ```
 
-3.  Run it:
+3.  Run it (Linux):
     
     ``` bash
     sudo docker run -it --rm --net=host \
-      --env DISPLAY=$DISPLAY \
-      --env QT_X11_NO_MITSHM=1 \
-      --volume /tmp/.X11-unix:/tmp/.X11-unix \
+      -e DISPLAY=$DISPLAY \
+      -e QT_X11_NO_MITSHM=1 \
+      -v /tmp/.X11-unix:/tmp/.X11-unix \
       -v /your_directory/:/usr/local/user vipcals
     ```
-    
+    or (MacOS):
+
+        ``` bash
+    xhost +127.0.0.1
+    docker run -it \
+      -e DISPLAY=host.docker.internal:0 \
+      -v /tmp/.X11-unix:/tmp/.X11-unix \
+      -v /your_directory/:/usr/local/user vipcals
+    ``` 
+  
     where <span class="title-ref">/your\_directory/</span> has to be
-    replaced with the local directory containing your data.
+    replaced with the local directory where you wish to work.
+
+    In MacOS, make sure that both DockerDesktop and XQuartz are running, and that XQuartz → Preferences → Security → "Allow connections from network clients" is checked on.
 
 -----
 
