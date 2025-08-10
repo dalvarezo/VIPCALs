@@ -1,3 +1,11 @@
+## [0.3.2] - 2025-08-10
+### Changed
+- Updated installation instructions in README.md. Docker installation should now work on MacOS with DockerDesktop and XQuartz installed.
+- Removed Singularity installation. 
+
+### Fixed
+- Fixed bug where the phase-reference calibration would not work as intended.
+
 ## [0.3.1] - 2025-08-05
 ### Changed
 - Improvements in the log: now the antennas available in the dataset are written alongside the basic information of the dataset. 
