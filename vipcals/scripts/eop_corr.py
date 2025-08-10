@@ -1,6 +1,6 @@
 import os
 
-from AIPSTask import AIPSTask
+from AIPSTask import AIPSTask, AIPSList
 
 AIPSTask.msgkill = -8
 
@@ -30,6 +30,7 @@ def eop_correct(data):
     clcor.indisk = data.disk
     clcor.inseq = data.seq
     clcor.opcode = 'EOPS'
+    clcor.clcorprm = AIPSList([3, 7])
     clcor.infile = f'{tmp}/usno_finals_bis.erp'
     clcor.gainver = 2
     clcor.gainuse = 3

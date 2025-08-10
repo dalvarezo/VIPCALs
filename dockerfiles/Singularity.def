@@ -8,12 +8,13 @@ From: ubuntu:22.04
     export PATH=$CONDA_DIR/envs/pyside62/bin:$PATH
     export CONDA_DEFAULT_ENV=pyside62
     export AIPS_DISK=/etc/aips.dadevs
+    export HOME=/usr/local/aips
 
 %post
     apt-get update && apt-get install -y \
         tcsh python3 python3-pip git curl build-essential gfortran \
         libx11-dev xterm libreadline-dev libncurses-dev wget \
-        libglib2.0-0 unzip rsync sudo \
+        libglib2.0-0 unzip rsync sudo vim\
         libxcb1 libxcb-xinerama0 libxcb-icccm4 libxcb-image0 \
         libxcb-keysyms1 libxcb-render0 libxcb-shape0 libxcb-shm0 \
         libxcb-sync1 libxcb-xfixes0 libxkbcommon-x11-0 libx11-xcb1 \
@@ -36,7 +37,12 @@ From: ubuntu:22.04
     cp /opt/pyside62.yml /usr/local/aips/
     chown aips:aips /usr/local/aips/pyside62.yml
 
-    su - aips -c "source /opt/conda/etc/profile.d/conda.sh && conda init bash && conda env create -f /usr/local/aips/pyside62.yml && echo 'conda activate pyside62' >> ~/.bashrc"
+    su - aips -c "source /opt/conda/etc/profile.d/conda.sh && \
+       conda init bash && \
+       conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+       conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
+       conda env create -f /usr/local/aips/pyside62.yml && \
+       echo 'conda activate pyside62' >> ~/.bashrc"
     
     # Create AIPS DISK
 
@@ -55,9 +61,10 @@ From: ubuntu:22.04
 
     printf '\n# all users should source AIPS\nif [ -f /usr/local/aips/LOGIN.SH ]; then\n  source /usr/local/aips/LOGIN.SH\nfi\n' >> /etc/bash.bashrc
 
-    mkdir -p /usr/local/aips/aips/vipcals
-    cp -r /opt/vipcals /usr/local/aips/aips/
-    chown -R aips:aips /usr/local/aips/aips/vipcals
+    
+    # Get VIPCALs
+    cd /usr/local/aips/
+    git clone https://github.com/dalvarezo/VIPCALs.git
 
     # Make AIPS and vipcals group/world-readable so container user can access
     chmod -R a+rx /usr/local/aips
@@ -65,7 +72,6 @@ From: ubuntu:22.04
 %files
     pyside62.yml /opt/pyside62.yml
     31DEC24 /opt/.AIPSRC
-    vipcals /opt/vipcals
 
 %runscript
     #!/bin/bash
@@ -74,9 +80,23 @@ From: ubuntu:22.04
     source /opt/conda/etc/profile.d/conda.sh
     conda activate pyside62
 
-    # Source AIPS environment 
+    # Source AIPS environment
     source /usr/local/aips/LOGIN.SH
 
-    # Run the GUI
-    cd /usr/local/aips/aips/vipcals/GUI
-    exec python3 run_GUI_docker.py
+    # Open an interactive shell
+    exec bash
+
+
+#%runscript
+#    #!/bin/bash
+#
+#    # Load Conda environment
+#    source /opt/conda/etc/profile.d/conda.sh
+#    conda activate pyside62
+#
+#    # Source AIPS environment 
+#    source /usr/local/aips/LOGIN.SH
+#
+#    # Run the GUI
+#    cd /usr/local/aips/VIPCALs/GUI
+#    exec python3 run_GUI_docker.py

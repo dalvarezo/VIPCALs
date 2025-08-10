@@ -74,6 +74,8 @@ WORKDIR /home/aips
 SHELL ["/bin/bash", "-c"]
 
 RUN conda init bash && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
     conda env create -f /tmp/pyside62.yml && \
     echo "conda activate pyside62" >> ~/.bashrc
 
@@ -112,10 +114,10 @@ fi\n\
 ' >> /etc/bash.bashrc
 
 # Copy and run VIPCALs
-ADD vipcals /home/aips/vipcals
-RUN chown -R aips:aips /home/aips/vipcals
+RUN cd /home/aips/ && git clone https://github.com/dalvarezo/VIPCALs.git
+RUN chown -R aips:aips /home/aips/VIPCALs
 USER aips
-WORKDIR /home/aips/vipcals
+WORKDIR /home/aips/VIPCALs
 #CMD ["bash"]
-CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate pyside62 && source /usr/local/aips/LOGIN.SH && cd /home/aips/vipcals/GUI && python3 run_GUI_docker.py"]
+CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate pyside62 && source /usr/local/aips/LOGIN.SH && cd /home/aips/VIPCALs/GUI && python3 run_GUI_docker.py"]
 #CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate pyside62 && python3 /home/aips/vipcals/GUI/run_GUI.py"]

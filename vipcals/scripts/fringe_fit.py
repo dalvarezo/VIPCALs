@@ -145,7 +145,7 @@ def fringe_phaseref_clcal(data, target_list, version):
         clcal.sources = AIPSList([target.name])
         
         clcal.opcode = 'calp'
-        clcal.interpol = 'ambg'
+        clcal.interpol = '2pt'
         clcal.snver = version + i
         clcal.gainver = 9
         clcal.gainuse = 10
