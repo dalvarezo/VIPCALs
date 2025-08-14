@@ -58,7 +58,7 @@ offers a minimalistic interface and produces fully calibrated datasets.
 2.  Create the conda environment:
     
     ``` bash
-    cd vipcals
+    cd VIPCALs
     conda env create -f vipcalsenv.yml
     ```
 
@@ -86,7 +86,7 @@ vipcals
 2.  Build the Docker container:
     
     ``` bash
-    sudo docker build -t vipcals ./vipcals/dockerfiles/
+    sudo docker build -t VIPCALs ./vipcals/dockerfiles/
     ```
 
 3.  Run it (Linux):
