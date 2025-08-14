@@ -86,7 +86,7 @@ vipcals
 2.  Build the Docker container:
     
     ``` bash
-    sudo docker build -t VIPCALs ./vipcals/dockerfiles/
+    sudo docker build -t vipcals ./VIPCALs/dockerfiles/
     ```
 
 3.  Run it (Linux):
