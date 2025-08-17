@@ -165,11 +165,12 @@ for i, entry in enumerate(entry_list):
         exit()
 
     # Some inputs need to be floats
-    try:
-        input_dict['flag_edge'] = float(input_dict['flag_edge'])
-    except ValueError:
-        print('Edge channels to be flagged needs to be a float number.\n')
-        exit()
+    if input_dict['flag_edge'] != None:
+        try:
+            input_dict['flag_edge'] = float(input_dict['flag_edge'])
+        except ValueError:
+            print('Edge channels to be flagged needs to be a float number.\n')
+            exit()
 
     # Some inputs need to be given as a list #
     if type(input_dict['paths']) != list:
