@@ -153,7 +153,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     ## Load the dataset ##
     t0 = time.time()
     load.load_data(filepath_list, aips_name, sources, disk_number, multi_id,\
-    selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all)
+    selfreq, klass = klass, bif = bif, eif = eif, l_a = load_all, symlink_path = tmp_dir)
     ## Modify the AN table in case there are non ASCII characters   
     try:
         uvdata.antennas
