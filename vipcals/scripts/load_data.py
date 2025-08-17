@@ -46,24 +46,6 @@ def set_name(path, source, klass):
         date_obs = hdul['UV_DATA'].header['DATE-OBS']
     hdul.close()
     freq = int(klass.strip('G'))
-    if freq < 1:
-        band = 'P'
-    elif freq < 2:
-        band = 'L'
-    elif freq < 3:
-        band = 'S'
-    elif freq < 7:
-        band = 'C'
-    elif freq < 10:
-        band = 'X'
-    elif freq < 18:
-        band = 'U'
-    elif freq < 26:
-        band = 'K'
-    elif freq < 50: 
-        band = 'Ka'
-    else:
-        band = 'W'
 
     name = source + '_' + obs + '_' + klass + '_' + date_obs
     return(name)
@@ -94,15 +76,13 @@ def get_source_list(file_path_list, freq = 0):
                 a.id = elements['ID_NO.']
             except KeyError:
                 a.id = elements['SOURCE_ID']
-            try:
-                a.restfreq = elements['RESTFREQ'][0]
-            except IndexError: # Single IF datasets
-                a.restfreq = elements['RESTFREQ']      
-                
-            # Frequency can be given as an input
+            # Frequency can be given as an input when multiple bands
             if freq != 0:
                 a.restfreq = freq
-                
+            # If not, grab it from the header
+            else:
+                a.restfreq = hdul['FREQUENCY'].header['REF_FREQ']
+ 
             a.set_band()      
 
             # Check if the source was already on the list (multiple files)
@@ -374,7 +354,7 @@ def is_it_multifreq_if(file_path):
     """    
     multifreq = False
     hdul = fits.open(file_path)
-    if_freq = hdul['SOURCE'].data['RESTFREQ'][0] \
+    if_freq = hdul['FREQUENCY'].header['REF_FREQ'] \
               + hdul['FREQUENCY'].data['BANDFREQ']
 
     if isinstance(if_freq[0], np.float64) == True:

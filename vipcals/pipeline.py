@@ -40,9 +40,9 @@ print = functools.partial(print, flush=True)
 
 tmp_dir = os.path.expanduser("~/.vipcals/tmp")
 
-# Check if /usr/local/vipcals exists
-if os.path.isdir("/usr/local/vipcals"):
-    tmp_dir = "/usr/local/vipcals/.vipcals/tmp"
+# Check if /home/vipcals exists
+if os.path.isdir("/home/vipcals"):
+    tmp_dir = "/home/vipcals/.vipcals/tmp"
 
 def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list, 
               sources, load_all, full_source_list, disk_number, aips_name, klass, 
@@ -203,6 +203,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     stats_df['need_fg'] = False
     stats_df['need_gc'] = False
     stats_df['vlbacal_files'] = False
+    stats_df['evncal_files'] = False
 
     if load_antab != None:
         disp.write_box(log_list, 'Loading external table information')
@@ -212,6 +213,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         stats_df['need_ty'] = False
         stats_df['need_gc'] = False
         stats_df['vlbacal_files'] = load_antab
+        stats_df['evncal_files'] = load_antab
         tabl.load_external_antab(uvdata, load_antab)
 
         print(f'\nAmplitude calibration information has been loaded from {load_antab}\n')
@@ -223,8 +225,27 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                                    + '\n\nTY#1 and GC#1 created.\n\n')
 
     else:
+        if uvdata.header.telescop == 'EVN':
+            disp.write_box(log_list, 'Loading external table information')
+            disp.print_box('Loading external table information')
+            missing_tables = True
+            t_i_table = time.time()
+            retrieved_urls = tabl.load_evn_tables(uvdata)
+            stats_df['evncal_files'] = retrieved_urls
+
+            print("System temperatures and gain curves were retrieved from "\
+                  + f"{retrieved_urls}")
+            print(f"\nTY#1 and GC#1 created.\n")
+
+            for pipeline_log in log_list:
+                    pipeline_log.write('\nAmplitude calibration information has been'\
+                                    + f'loaded from {retrieved_urls}'\
+                                    + '\n\nTY#1 and GC#1 created.\n\n')
+
         if ([1, 'AIPS TY'] not in uvdata.tables or [1, 'AIPS GC'] \
-        not in uvdata.tables or [1, 'AIPS FG'] not in uvdata.tables):
+        not in uvdata.tables or [1, 'AIPS FG'] not in uvdata.tables) \
+            and uvdata.header.telescop != 'EVN':
+
             disp.write_box(log_list, 'Loading external table information')
             disp.print_box('Loading external table information')
             missing_tables = True
@@ -292,7 +313,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             stats_df['need_gc'] = True
         
    
-    if [1, 'AIPS FG'] not in uvdata.tables:
+    if [1, 'AIPS FG'] not in uvdata.tables and uvdata.header.telescop != 'EVN':
         try:
             retrieved_urls = tabl.load_fg_tables(uvdata)
             for pipeline_log in log_list:
@@ -590,7 +611,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                 pipeline_log.write('\n' + str(n) + '-' + n_name[0] + ' has no gain ' \
                                    + 'curve available, it will be flagged.\n') 
     
-    original_tsys, flagged_tsys, tsys_dict = tysm.ty_assess(uvdata)
+    original_tsys, flagged_tsys, tsys_dict, smo_antennas = tysm.ty_assess(uvdata)
     
     tsys_flag_percent = np.round(flagged_tsys/original_tsys*100, 2)
 
@@ -600,6 +621,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         for _, (ant, ty2, ty1) in tsys_dict.items():
             if ty1 != 0:
                 pipeline_log.write(f"{ant.strip():<8}|  {ty1:<4} |  {ty2} \n")
+
+        if len(smo_antennas) > 0:
+            pipeline_log.write(f"\nSystem temperatures of {smo_antennas} were fully flagged."\
+                + " The antennas will be included in FG#2.\n")
 
         pipeline_log.write('\nSystem temperatures clipped: ' + str(tsys_flag_percent) \
                            + '% of the Tsys values have been flagged ('  \
@@ -611,11 +636,45 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     for _, (ant, ty2, ty1) in tsys_dict.items():
         if ty1 != 0:
             print(f"{ant.strip():<8}|  {ty1:<4} |  {ty2} \n")
+
+    if len(smo_antennas) > 0:
+        print(f"\nSystem temperatures of {smo_antennas} were fully flagged."\
+              + " The antennas will be included in FG#2.\n")
      
     print('\nSystem temperatures clipped: ' + str(tsys_flag_percent) \
             + '% of the Tsys values have been flagged ('  \
             + str(flagged_tsys) + '/' + str(original_tsys) + ')\n' \
             + 'TY#2 created.\n') 
+    
+    # Print the TY tables
+    try:
+        plot.tsys_plotter(outpath_list[i], uvdata, tyver = 1)
+        print('\nOriginal system temperatures plotted in '
+                + outpath_list[i] + '/PLOTS/'  \
+                + filename_list[i] + '_TSYS_TY1.ps\n')
+        for i, target in enumerate(target_list):
+            log_list[i].write('\nOriginal system temperatures plotted in '
+                            + outpath_list[i] + '/PLOTS/'  \
+                            + filename_list[i] + '_TSYS_TY1.ps\n')           
+    except RuntimeError:
+        for i, target in enumerate(target_list):
+            log_list[i].write('\nOriginal system temperatures could not be plotted.\n')
+        print('\nOriginal system temperatures could not be plotted.\n')
+
+    try:
+        plot.tsys_plotter(outpath_list[i], uvdata, tyver = 2)
+        print('\nSmoothed system temperatures plotted in '
+                + outpath_list[i] + '/PLOTS/'  \
+                + filename_list[i] + '_TSYS_TY2.ps\n')
+        for i, target in enumerate(target_list):
+            log_list[i].write('\nSmoothed system temperatures plotted in '
+                            + outpath_list[i] + '/PLOTS/'  \
+                            + filename_list[i] + '_TSYS_TY2.ps\n')           
+    except RuntimeError:
+        for i, target in enumerate(target_list):
+            log_list[i].write('\nSmoothed system temperatures could not be plotted.\n')
+        print('\nSmoothed system temperatures could not be plotted.\n')
+
     
     stats_df['ty1_points'] = original_tsys
     stats_df['ty2_points'] = original_tsys - flagged_tsys
@@ -650,6 +709,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     disp.write_box(log_list, 'Reference antenna search')
     disp.print_box('Reference antenna search')
     print('\nSearch for reference antenna starts...\n')
+
+    # Disable search central antennas if the telescope is not the VLBA
+    if uvdata.header.telescop != 'VLBA':
+        search_central = False
     
     if default_refant == None:
         for pipeline_log in log_list:

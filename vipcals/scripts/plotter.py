@@ -17,6 +17,10 @@ AIPSTask.msgkill = -8
 
 tmp_dir = os.path.expanduser("~/.vipcals/tmp")
 
+# Check if /home/vipcals exists
+if os.path.isdir("/home/vipcals"):
+    tmp_dir = "/home/vipcals/.vipcals/tmp"
+
 def possm_plotter(filepath, data, target, \
                   gainuse, bpver = 0, flagver = 0, \
                   flag_edge = False, flag_frac = 0.1):
@@ -97,12 +101,13 @@ def possm_plotter(filepath, data, target, \
 
     # Check if plots have been created, if not, exit with an error message
     # Also get the maximum plot file number 
+    max_plot = 0
     for elements in reversed(data.tables):
         if 'AIPS PL' in elements:
             max_plot = elements[0]
             break
-        else:
-            raise RuntimeError("POSSM could not create any plot.")
+    if max_plot == 0:
+        raise RuntimeError("POSSM could not create any plot.")
     
     lwpla = AIPSTask('lwpla')
     lwpla.inname = data.name
@@ -166,11 +171,13 @@ def uvplt_plotter(filepath, data, target, solint = 0.09):
     uvplt.go()
 
     # Check if plots have been created, if not, exit with an error message
+    max_plot = 0
     for elements in reversed(data.tables):
         if 'AIPS PL' in elements:
+            max_plot = elements[0]
             break
-        else:
-            raise RuntimeError("UVPLT could not create any plot.")
+    if max_plot == 0:
+        raise RuntimeError("UVPLT could not create any plot.")
     
     # Export the plot
 
@@ -247,12 +254,13 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
 
     # Check if plots have been created, if not, exit with an error message
     # Also get the maximum plot file number 
+    max_plot = 0
     for elements in reversed(data.tables):
         if 'AIPS PL' in elements:
             max_plot = elements[0]
             break
-        else:
-            raise RuntimeError("VPLOT could not create any plot.")
+    if max_plot == 0:
+        raise RuntimeError("VPLOT could not create any plot.")
     
     lwpla = AIPSTask('lwpla')
 
@@ -266,6 +274,65 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
     lwpla.outfile = filepath + '/PLOTS/' + filename + '_VPLOT.ps'
+    
+    lwpla.go()
+    
+    # Clean all plots
+    data.zap_table('PL', -1)
+
+def tsys_plotter(filepath, data, tyver = 1):
+    """Plot system temperatures as a function of time to a PostScript file.
+
+    Uses the SNPLT task in AIPS to plot system temperatures of the antennas as a function 
+    of time. Only points relevant to the observation are plotted.
+    The plot is written into a ps file using the LWPLA task.
+
+    :param filepath: path of the output directory 
+    :type filepath: str
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param tyver: TY table version to print; defaults to 1
+    :type tyver: int, optional
+    """    
+    filename = filepath.split('/')[-1]
+
+    snplt = AIPSTask('snplt')
+    snplt.inname = data.name
+    snplt.inclass = data.klass
+    snplt.indisk = data.disk
+    snplt.inseq = data.seq
+
+    snplt.inext = 'TY'
+    snplt.optype = 'TSYS'
+    snplt.invers = tyver
+    snplt.nplots = 8
+
+    snplt.dotv = -1
+    
+    snplt.go()
+
+    # Check if plots have been created, if not, exit with an error message
+    # Also get the maximum plot file number 
+    max_plot = 0
+    for elements in reversed(data.tables):
+        if 'AIPS PL' in elements:
+            max_plot = elements[0]
+            break
+    if max_plot == 0:
+        raise RuntimeError("SNPLT could not create any plot.")
+    
+    lwpla = AIPSTask('lwpla')
+
+    lwpla.inname = data.name
+    lwpla.inclass = data.klass
+    lwpla.indisk = data.disk
+    lwpla.inseq = data.seq
+
+    lwpla.plver = 1
+    lwpla.invers = max_plot
+    
+    lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
+    lwpla.outfile = filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps'
     
     lwpla.go()
     
@@ -521,8 +588,6 @@ def pickle_vplot(wuvdata, path, name, an_table):
         with open(f'{path}/{name}.vplt.pickle', 'wb') as f:
             pickle.dump(vplot_dict, f)
 
-
-
 def pickle_possm(wuvdata, path, name, an_table, bp = False):
     """Generate visibility vs freq dicitonaries and compress them into an npz object.
 
@@ -555,6 +620,24 @@ def pickle_possm(wuvdata, path, name, an_table, bp = False):
                 vis = copy.deepcopy(v.visibility)
                 POSSM[tuple(v.baseline)][m].append(vis)
 
+    # Average the data per scan
+    for bline in POSSM:
+        if not isinstance(bline, tuple):
+            continue
+        avg_data = []
+        for scan in POSSM[bline]:
+            if len(scan) == 0:
+                avg_data.append(scan)
+                continue
+            arr = np.array(scan)
+            weighted_reals = arr[..., 0] * arr[..., 2]
+            weighted_imags = arr[..., 1] * arr[..., 2]
+            sum_weights = np.sum(arr[..., 2], axis=0)
+            avg_reals = np.divide(np.sum(weighted_reals, axis=0), sum_weights, where=sum_weights!=0)
+            avg_imags = np.divide(np.sum(weighted_imags, axis=0), sum_weights, where=sum_weights!=0)
+            avg_data.append(np.stack([avg_reals, avg_imags, sum_weights], axis=-1))
+        POSSM[bline] = avg_data
+
     POSSM['ant_dict'] = {x.nosta: x.anname.strip() for x in an_table}
     POSSM['pols'] = list(wuvdata.polarizations)
     POSSM['if_freq'] = wuvdata.table('FQ', 0)[0]['if_freq']
@@ -566,12 +649,10 @@ def pickle_possm(wuvdata, path, name, an_table, bp = False):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
             POSSM_str = {str(key): np.array(value, dtype=object) for key, value in POSSM.items()}
-            np.savez_compressed(f'{path}/{name}_CL{wuvdata.seq}.possm.npz', **POSSM_str)
-
-            
+            np.savez(f'{path}/{name}_CL{wuvdata.seq}.possm.npz', **POSSM_str)
 
     if bp == True:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=np.VisibleDeprecationWarning)
             POSSM_str = {str(key): np.array(value, dtype=object) for key, value in POSSM.items()}
-            np.savez_compressed(f'{path}/{name}_CL{wuvdata.seq}_BP.possm.npz', **POSSM_str)
+            np.savez(f'{path}/{name}_CL{wuvdata.seq}_BP.possm.npz', **POSSM_str)
