@@ -9,6 +9,10 @@ AIPSTask.msgkill = -8
 
 tmp_dir = os.path.expanduser("~/.vipcals/tmp")
 
+# Check if /home/vipcals exists
+if os.path.isdir("/home/vipcals"):
+    tmp_dir = "/home/vipcals/.vipcals/tmp"
+
 def ionos_correct(data):
     """Ionospheric delay calibration.
 

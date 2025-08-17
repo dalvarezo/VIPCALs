@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     libreadline-dev \
     libncurses-dev \
     wget \
+    vim \
     libglib2.0-0 \
     unzip \
     rsync \
@@ -54,10 +55,11 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create the 'aips' user
+# Create the 'aips' user and /usr/local/aips (home) and /home/vipcals (bind directory) 
 RUN	useradd -md /usr/local/aips -s /bin/bash aips &&\
 	echo "aips:aips" | chpasswd &&\
-	adduser aips sudo
+	adduser aips sudo &&\
+    mkdir -p /home/vipcals && chown -R aips:aips /home/vipcals
 
 # Install Miniconda
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
@@ -68,7 +70,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
 COPY pyside62.yml /tmp/pyside62.yml
 
 USER aips
-WORKDIR /home/aips
+WORKDIR /usr/local/aips
 
 # Make conda commands available to non-login shell
 SHELL ["/bin/bash", "-c"]
@@ -114,10 +116,10 @@ fi\n\
 ' >> /etc/bash.bashrc
 
 # Copy and run VIPCALs
-RUN cd /home/aips/ && git clone https://github.com/dalvarezo/VIPCALs.git
-RUN chown -R aips:aips /home/aips/VIPCALs
+RUN cd /usr/local/aips/ && git clone https://github.com/dalvarezo/VIPCALs.git
+RUN chown -R aips:aips /usr/local/aips/VIPCALs
 USER aips
-WORKDIR /home/aips/VIPCALs
+WORKDIR /usr/local/aips/VIPCALs
+
 #CMD ["bash"]
-CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate pyside62 && source /usr/local/aips/LOGIN.SH && cd /home/aips/VIPCALs/GUI && python3 run_GUI_docker.py"]
-#CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate pyside62 && python3 /home/aips/vipcals/GUI/run_GUI.py"]
+CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate pyside62 && source /usr/local/aips/LOGIN.SH && cd /usr/local/aips/VIPCALs/GUI && python3 run_GUI_docker.py"]

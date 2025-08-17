@@ -18,6 +18,43 @@ AIPSTask.msgkill = -8
 
 tmp_dir = os.path.expanduser("~/.vipcals/tmp")
 
+# Check if /home/vipcals exists
+if os.path.isdir("/home/vipcals"):
+    tmp_dir = "/home/vipcals/.vipcals/tmp"
+
+def load_evn_tables(data):
+    """Retrieve and load TY and GC tables from the EVN Archive
+
+    :param data: vibility data
+    :type data: AIPSUVData
+    """
+    tmp = tmp_dir
+
+    # Remove any pre-existing tables
+    if ([1, 'AIPS TY'] in data.tables):
+        data.zap_table('TY', 1)
+    if ([1, 'AIPS GC'] in data.tables):
+        data.zap_table('GC', 1)
+    # Retrieve the EVN antab tables
+    obs = data.header.observer
+    date = data.header.date_obs.replace('-', '')
+    evn_url = f"https://archive.jive.nl/exp/{obs}_{date[2:]}/pipe/{obs.lower()}.antab.gz"
+    os.system('curl -sf --retry 5 --retry-delay 10 ' + evn_url \
+                    + ' > ' + tmp + '/tables.evn.gz')  
+    os.system('zcat ' + tmp + '/tables.evn.gz > ' + tmp + '/tables.evn')
+
+    # Run ANTAB
+    antab = AIPSTask('antab')
+    antab.inname = data.name
+    antab.inclass = data.klass
+    antab.indisk = data.disk
+    antab.inseq = data.seq
+    antab.tyver = 1
+    antab.calin = f'{tmp}/tables.evn'
+    antab.go()
+
+    return(evn_url) 
+
 def load_ty_tables(data, bif, eif):
     """Retrieve and load TY tables from an external server.
 

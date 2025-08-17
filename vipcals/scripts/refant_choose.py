@@ -191,7 +191,7 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
                 snr_dict[i][j+1] = []
 
     # If not, print the antennas that have been lost
-    if search_central == True and len(snr_dict) > 0:
+    elif search_central == True:
         non_central_ants = [antennas_dict[n].codename for n in antennas_dict if antennas_dict[n].name not in ['KP', 'LA', 'PT', 'OV', 'FD']]
         if len(non_central_ants) == 1:
             print(f'The following antenna is not a central antenna and will not be considered for the main reference antenna.\n{non_central_ants}\n')

@@ -39,7 +39,7 @@ from io import StringIO
 from pathlib import Path
 from PySide6.QtGui import QTextCursor
 
-tmp_dir = os.path.expanduser("/usr/local/vipcals/.vipcals/tmp")
+tmp_dir = os.path.expanduser("/home/vipcals/.vipcals/tmp")
 os.makedirs(tmp_dir, exist_ok=True)
 tmp_file = os.path.join(tmp_dir, "temp.json")
 
@@ -474,7 +474,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
 
 
     def get_input_file(self):
-        start_dir = Path("/usr/local/vipcals")
+        start_dir = Path("/home/vipcals")
         if start_dir.exists() == False:
             start_dir = "/home/"
         response = qtw.QFileDialog.getOpenFileNames(
@@ -495,7 +495,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.loadtables_line.setText(response[0])
 
     def get_output_dir(self):
-        start_dir = Path("/usr/local/vipcals")
+        start_dir = Path("/home/vipcals")
         if start_dir.exists() == False:
             start_dir = "/home/"
         response = qtw.QFileDialog.getExistingDirectory(
@@ -643,7 +643,7 @@ class JSONWindow(qtw.QWidget, Ui_JSON_window):
 
 
     def get_input_file(self):
-        start_dir = Path("/usr/local/vipcals")
+        start_dir = Path("/home/vipcals")
         if start_dir.exists() == False:
             start_dir = "/home/"
         response = qtw.QFileDialog.getOpenFileName(
@@ -1443,28 +1443,13 @@ def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
     pol = polarization #POSSM['pols'].tolist().index(polarization)
 
     # Indexing goes like:
-    # POSSM[baseline][scan][time, IF, channel, polarization, visibility]
+    # POSSM[baseline][scan][IF, channel, polarization, visibility]
     if len(POSSM['pols'].tolist()) < 2:
-        reals = np.array(POSSM[bl][n])[:, :, :, :, 0]
-        imags = np.array(POSSM[bl][n])[:, :, :, :, 1]
-        weights = np.array(POSSM[bl][n])[:, :, :, :, 2]
+        avg_reals = np.array(POSSM[bl][n])[:, :, :, 0]
+        avg_imags = np.array(POSSM[bl][n])[:, :, :, 1]
     else:
-        reals = np.array(POSSM[bl][n])[:, :, :, pol, 0]
-        imags = np.array(POSSM[bl][n])[:, :, :, pol, 1]
-        weights = np.array(POSSM[bl][n])[:, :, :, pol, 2]
-
-    # Compute sums
-    weighted_reals = reals * weights
-    weighted_imags = imags * weights
-    sum_weights = np.sum(weights, axis=0)  # Shape: [?, ?, ?]
-
-    weighted_reals = np.array(weighted_reals, dtype=float)
-    weighted_imags = np.array(weighted_imags, dtype=float)
-    sum_weights = np.array(sum_weights, dtype=float)
-
-
-    avg_reals = np.divide(np.sum(weighted_reals, axis=0), sum_weights)
-    avg_imags = np.divide(np.sum(weighted_imags, axis=0), sum_weights)
+        avg_reals = np.array(POSSM[bl][n])[:, :, pol, 0]
+        avg_imags = np.array(POSSM[bl][n])[:, :, pol, 1]
 
     amps = np.sqrt((avg_reals**2 + avg_imags**2).astype(float)).flatten()
     phases = (np.arctan2(avg_imags.astype(float), avg_reals.astype(float)) * 360/(2*np.pi)).flatten()

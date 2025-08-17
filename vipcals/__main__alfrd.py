@@ -163,6 +163,13 @@ for i, entry in enumerate(entry_list):
         print('Threshold for frequency averaging has to be an integer value in kHz.\n')
         exit()
 
+    # Some inputs need to be floats
+    try:
+        input_dict['flag_edge'] = float(input_dict['flag_edge'])
+    except ValueError:
+        print('Edge channels to be flagged needs to be a float number.\n')
+        exit()
+        
     # Some inputs need to be given as a list #
     if type(input_dict['paths']) != list:
         print('Filepaths have to be given as a list in the input file.\n')

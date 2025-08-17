@@ -95,8 +95,8 @@ def ty_assess(data):
     :param data: visibility data
     :type data: AIPSUVData
     :return: number of points in TY#1, number of flagged points in TY#2, dictionary with 
-        these values per antenna
-    :rtype: float, float, dict
+        these values per antenna, antennas fully flagged
+    :rtype: float, float, dict, list of str
     """    
     ty1 = data.table('TY', 1)
     ty2 = data.table('TY', 2)
@@ -134,8 +134,29 @@ def ty_assess(data):
     flagged_points = total_points_1 - total_points_2
 
     tsys_dict= {}
+    smoothed_antennas = []
+    smoothed_antennas_names = []
     for key in ant_dict:
-        name = [str(x.nosta) + '-' + x.anname for x in data.table('AN', 1) if x.nosta == key][0]
+        name = [str(x.nosta) + '-' + x.anname.strip() for x in data.table('AN', 1) if x.nosta == key][0]
         tsys_dict[key] = (name, ant_dict[key][0], ant_dict[key][1])
+
+    for key in tsys_dict:
+        if tsys_dict[key][1]==0 and tsys_dict[key][2] != 0:
+            smoothed_antennas.append(int(key))
+            smoothed_antennas_names.append(tsys_dict[key][0])
+
+    # Flag antennas that got all their Tsys flagged
+    if len(smoothed_antennas) > 0:
+        uvflg = AIPSTask('uvflg')
+        uvflg.inname = data.name
+        uvflg.inclass = data.klass
+        uvflg.indisk = data.disk
+        uvflg.inseq = data.seq
+
+        uvflg.antennas = AIPSList(smoothed_antennas)
+        uvflg.outfgver = 2
+        uvflg.reason = 'FLAGGED ALL TSYS'
+
+        uvflg.go()
     
-    return(original_points, flagged_points, tsys_dict)
+    return(original_points, flagged_points, tsys_dict, smoothed_antennas_names)

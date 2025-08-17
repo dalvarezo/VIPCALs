@@ -58,7 +58,7 @@ offers a minimalistic interface and produces fully calibrated datasets.
 2.  Create the conda environment:
     
     ``` bash
-    cd vipcals
+    cd VIPCALs
     conda env create -f vipcalsenv.yml
     ```
 
@@ -86,7 +86,7 @@ vipcals
 2.  Build the Docker container:
     
     ``` bash
-    sudo docker build -t vipcals ./vipcals/dockerfiles/
+    sudo docker build -t vipcals ./VIPCALs/dockerfiles/
     ```
 
 3.  Run it (Linux):
@@ -105,7 +105,7 @@ vipcals
     docker run -it \
       -e DISPLAY=host.docker.internal:0 \
       -v /tmp/.X11-unix:/tmp/.X11-unix \
-      -v /your_directory/:/usr/local/vipcals vipcals
+      -v /your_directory/:/home/vipcals vipcals
     ``` 
   
     where <span class="title-ref">/your\_directory/</span> has to be
@@ -199,12 +199,11 @@ multiple files) and lets you inspect the results via interactive plots.
 
   - **Plotting Options**
     
-    \- *Interactive plots*: enable GUI plots (manual mode only) ..
-    warning:: Generating these plots can consume lots of time and
-    storage. It is advised to disable them for large datasets. Static
-    <span class="title-ref">.ps</span> and
-    <span class="title-ref">.pdf</span> plots are always saved in the
-    output directory.
+    \- *Interactive plots*: enable GUI plots (manual mode only) 
+
+    > **Warning**: Generating these plots can consume lots of time and
+    > storage. It is advised to disable them for large datasets. Static
+    > .ps and pdf plots are always saved in the output directory.
 
 ### JSON Input
 
@@ -301,6 +300,8 @@ EA075/
 │   ├── PLOTS/
 │   │   ├ 1159+2914_EA075_22G_2024-03-13_CL1_POSSM.ps
 │   │   ├ 1159+2914_EA075_22G_2024-03-13_CL9_POSSM.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY1.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY2.ps
 │   │   ├ 1159+2914_EA075_22G_2024-03-13_UVPLT.ps
 │   │   ├ 1159+2914_EA075_22G_2024-03-13_VPLOT.ps
 │   │   ├ 1159+2914_EA075_22G_2024-03-13_RADPLOT.pdf
@@ -340,6 +341,8 @@ folder:
 
 >   - *\*\_CL1\_POSSM.ps*: uncalibrated visibilities vs frequency
 >   - *\*\_CL9\_POSSM.ps*: calibrated visibilities vs frequency
+>   - *\*\_TSYS\_TY1.ps*: original antenna system temperatures vs time
+>   - *\*\_TSYS\_TY2.ps*: smoothed antenna system temperatures vs time
 >   - *\*UVPLT.ps*: UV coverage of the calibrated observation
 >   - *\*VPLOT.ps*: calibrated visibilities vs time
 >   - *\*RADPLOT.pdf*: calibrated visibilities vs uv-distance

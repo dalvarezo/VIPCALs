@@ -1,3 +1,17 @@
+## [0.3.3] - 2025-08-17
+### Added
+- EVN datasets can now be loaded and calibrated by VIPCALs. This is still under active development, and calibration might not be optimal in some cases.
+- Antenna system temperatures as a function of time, both original and smoothed, are now also printed in PS format into the /PLOTS folder. 
+
+### Changed
+- Optimized the size of the interactive plots generated for the GUI, now they are ~90% smaller.
+- The log now clearly states when an antenna has been flagged due to all their system temperature values being off the limits (0K - 1500K)
+
+### Fixed
+- Fixed major bug that prevented the pipeline from reading input fits files while in docker mode. How to run instructions have been updated to reflect the changes. 
+- Fixed bug where the reference antenna search would always give priority to the central VLBA antennas, even when that option was disabled.
+- Added a sanity check for the "Edge flagging" option, in previous versions the pipeline would crash when given a non-valid value. 
+
 ## [0.3.2] - 2025-08-10
 ### Changed
 - Updated installation instructions in README.md. Docker installation should now work on MacOS with DockerDesktop and XQuartz installed.

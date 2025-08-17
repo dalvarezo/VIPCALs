@@ -1078,7 +1078,7 @@ class PossmWindow(qtw.QMainWindow):
         controls_layout.addWidget(self.bl_selector)
 
         # --- Polarization Selector ---
-        self.current_pol = 'L'  # Default pol index
+        self.current_pol = 0  # Default pol index
         self.pol_selector = qtw.QComboBox()
         self.pol_selector.currentIndexChanged.connect(self.update_pol_selection)
         controls_layout.addWidget(self.pol_selector)
@@ -1429,28 +1429,13 @@ def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
     pol = polarization #POSSM['pols'].tolist().index(polarization)
 
     # Indexing goes like:
-    # POSSM[baseline][scan][time, IF, channel, polarization, visibility]
+    # POSSM[baseline][scan][IF, channel, polarization, visibility]
     if len(POSSM['pols'].tolist()) < 2:
-        reals = np.array(POSSM[bl][n])[:, :, :, :, 0]
-        imags = np.array(POSSM[bl][n])[:, :, :, :, 1]
-        weights = np.array(POSSM[bl][n])[:, :, :, :, 2]
+        avg_reals = np.array(POSSM[bl][n])[:, :, :, 0]
+        avg_imags = np.array(POSSM[bl][n])[:, :, :, 1]
     else:
-        reals = np.array(POSSM[bl][n])[:, :, :, pol, 0]
-        imags = np.array(POSSM[bl][n])[:, :, :, pol, 1]
-        weights = np.array(POSSM[bl][n])[:, :, :, pol, 2]
-
-    # Compute sums
-    weighted_reals = reals * weights
-    weighted_imags = imags * weights
-    sum_weights = np.sum(weights, axis=0)  # Shape: [?, ?, ?]
-
-    weighted_reals = np.array(weighted_reals, dtype=float)
-    weighted_imags = np.array(weighted_imags, dtype=float)
-    sum_weights = np.array(sum_weights, dtype=float)
-
-
-    avg_reals = np.divide(np.sum(weighted_reals, axis=0), sum_weights)
-    avg_imags = np.divide(np.sum(weighted_imags, axis=0), sum_weights)
+        avg_reals = np.array(POSSM[bl][n])[:, :, pol, 0]
+        avg_imags = np.array(POSSM[bl][n])[:, :, pol, 1]
 
     amps = np.sqrt((avg_reals**2 + avg_imags**2).astype(float)).flatten()
     phases = (np.arctan2(avg_imags.astype(float), avg_reals.astype(float)) * 360/(2*np.pi)).flatten()
