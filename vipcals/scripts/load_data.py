@@ -19,6 +19,12 @@ from AIPSData import AIPSUVData
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
 
+tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+
+# Check if /home/vipcals exists
+if os.path.isdir("/home/vipcals"):
+    tmp_dir = "/home/vipcals/.vipcals/tmp"
+
 
 def set_name(path, source, klass):
     """Set the name that will be used for the all the ouputs.
@@ -45,7 +51,6 @@ def set_name(path, source, klass):
     if '-' in hdul['UV_DATA'].header['DATE-OBS']:
         date_obs = hdul['UV_DATA'].header['DATE-OBS']
     hdul.close()
-    freq = int(klass.strip('G'))
 
     name = source + '_' + obs + '_' + klass + '_' + date_obs
     return(name)
@@ -207,7 +212,7 @@ def is_it_multifreq_id(file_path_list):
     :type file_path: str
     :return: whether the dataset has multiple bands, list of frequencies, dictionary 
         with each file and which frequencies it covers
-    :rtype: boolean, int, list of float
+    :rtype: boolean, list of tuple, list of float
     """    
     multifreq = False
     file_dict = {}
@@ -239,45 +244,13 @@ def group_ids(id):
     returns groups with parameters useful for the main workflow to deal with different 
     frequencies. 
 
-    Args:
-    :param id: _description_
+    :param id: list of tuples grouping the difference bands within an ID
+    :type id: list of tuples
 
     :return: minimum frequency of the id, minimum frequency of the group, minimum and 
         maximum IFs containing the group
     :rtype: float, float, list of int
-    """    
-    if not isinstance(id, np.float64):
-        # Sort values
-        # NOT SURE OF THE SORTING STEP, STILL TESTING
-        sorted_values = sorted(id)
-        #sorted_values = id
-        # Group based on jumps > 1e9 using positions in the sorted list
-        groups = []
-        current_group = [0]
-
-        for i in range(1, len(sorted_values)):
-            if sorted_values[i] - sorted_values[i - 1] > 1e9:
-                groups.append(current_group)
-                current_group = [i]
-            else:
-                current_group.append(i)
-        groups.append(current_group)
-
-        # Get overall minimum
-        overall_min = min(id)
-
-        # Create the output list
-        result = []
-        for group in groups:
-            group_min = min(sorted_values[i] for i in group)
-            result.append((group_min, overall_min, [min(group), max(group)]))
-
-        return result
-    
-    else:
-        return( [(id, id, [0,0] )])
-
-def group_ids_v2(id):
+    """ 
     if isinstance(id, np.float64):
         return [(id, id, [0, 0])]
     # Ensure input is a list or array
@@ -299,12 +272,17 @@ def group_ids_v2(id):
     return result
     
 def are_sources_in_id(file_path_list, loaded_id, sources):
-    """_summary_
+    """Check if some sources were not observed in a certain frequency ID
 
-    Args:
-        file_path_list (_type_): _description_
-        id (_type_): _description_
-        sources (_type_): _description_
+    :param file_path_list: list of files to check
+    :type file_path_list: list of str
+    :param loaded_id: frequency id produced by :func:`~vipcals.scripts.load_data.is_it_multifreq_id
+    :type loaded_id: list of tuple
+    :param sources: list of sources to check
+    :type sources: list of str
+
+    :return:
+    :rtype:
     """   
     missingso = [] 
     with fits.open(file_path_list[0]) as hdul:
@@ -556,9 +534,19 @@ def print_listr(data, path_list, filename_list):
     listr.xinc = 1
     listr.docrt = -2
     for i, name in enumerate(filename_list):
-        listr.outprint = path_list[i] + '/' + name + '_scansum.txt'
-        
+        # AIPS name limit is 135 characters
+        if len(path_list[i] + '/' + name + '_scansum.txt') < 100:
+            listr.outprint = path_list[i] + '/' + name + '_scansum.txt'
+        else:
+            listr.outprint = tmp_dir + '/aux.scansum.txt'
+
         listr.go()
+        
+        # If created, move aux.caltab.fits to the correct path
+        if len(path_list[i] + '/' + name + '_scansum.txt') >= 100:
+            os.system('mv ' + tmp_dir + '/aux.scansum.txt ' \
+                      + path_list[i] + '/' + name + '_scansum.txt')    
+
 
 def time_aver(data, oldtime, newtime):
     """Average visibility data in time

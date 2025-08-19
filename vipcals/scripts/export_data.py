@@ -9,6 +9,12 @@ AIPSTask.msgkill = -8
 
 import Wizardry.AIPSData as wizard
 
+tmp_dir = os.path.expanduser("~/.vipcals/tmp")
+
+# Check if /home/vipcals exists
+if os.path.isdir("/home/vipcals"):
+    tmp_dir = "/home/vipcals/.vipcals/tmp"
+
 def data_export(path_list, data, target_list, filename_list, \
                 ignore_list, channel_out, flag_edge = True, flag_frac = 0.1):
     """Split multi-source uv data to single source and export it to uvfits format.
@@ -127,8 +133,17 @@ def data_export(path_list, data, target_list, filename_list, \
             fittp.inclass = data.klass
             fittp.indisk = data.disk
             fittp.inseq = data.seq
-            fittp.dataout = path_list[i] + '/' + filename_list[i] + '.uvfits'  
+            # AIPS name limit is 135 characters
+            if len(path_list[i] + '/' + filename_list[i] + '.uvfits') < 100:
+                fittp.dataout = path_list[i] + '/' + filename_list[i] + '.uvfits'
+            else:
+                fittp.dataout = tmp_dir + '/aux.export.uvfits'
             fittp.go()
+
+            # If created, move the auxiliary file to the correct path
+            if len(path_list[i] + '/' + filename_list[i] + '.uvfits') >= 100:
+                os.system('mv ' + tmp_dir + '/aux.export.uvfits ' \
+                        + path_list[i] + '/' + filename_list[i] + '.uvfits')
 
     return(no_baseline)
 
@@ -168,13 +183,13 @@ def table_export(path_list, data, target_list, filename_list):
                             + '.caltab.uvfits'
         # If the name is too long, save the tables on aux.caltab.fits   
         else:
-            fittp.dataout = path_list[i] + '/TABLES/aux.caltab.uvfits' 
+            fittp.dataout = tmp_dir + '/aux.caltab.uvfits'
       
         fittp.go()
 
-        # If created, rename aux.caltab.fits with the proper name
+        # If created, move aux.caltab.fits to the correct path
         if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') >= 100:
-            os.system('mv ' + path_list[i] + '/TABLES/aux.caltab.uvfits ' \
+            os.system('mv ' + tmp_dir + '/aux.caltab.uvfits ' \
                       + path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits')
 
     # Remove the DUMMY AIPS entry

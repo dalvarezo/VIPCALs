@@ -108,8 +108,7 @@ vipcals
       -v /your_directory/:/home/vipcals vipcals
     ``` 
   
-    where <span class="title-ref">/your\_directory/</span> has to be
-    replaced with the local directory where you wish to work.
+    where <span class="title-ref">/your\_directory/</span> has to be replaced with the local directory where you wish to work. This directory should contain your data and any subfolders you want the pipeline to access.
 
     In MacOS, make sure that both DockerDesktop and XQuartz are running, and that XQuartz → Preferences → Security → "Allow connections from network clients" is checked on.
 

@@ -994,7 +994,7 @@ def ty_tsm_vlog(data, bif, eif, table_paths):
 
     Uses the VLOG task in AIPS to separate the system temperature information from one 
     or multiple cal.vlba files in the TSM format. The output is written onto 
-    /vipcals/tmp/tsys.vlba
+    ./vipcals/tmp/tsys.vlba
 
     :param data: visibility data
     :type data: AIPSUVData
@@ -1087,7 +1087,7 @@ def fg_tsm_vlog(data, table_paths):
     """Split flag tables from a TSM produced cal.vlba file.
 
     Uses the VLOG task in AIPS to separate the flag information from one or multiple 
-    cal.vlba files in the TSM format. The output is written onto /vipcals/tmp/flags.vlba
+    cal.vlba files in the TSM format. The output is written onto /.vipcals/tmp/flags.vlba
 
     :param data: visibility data
     :type data: AIPSUVData

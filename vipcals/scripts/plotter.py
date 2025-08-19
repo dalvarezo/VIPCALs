@@ -191,9 +191,18 @@ def uvplt_plotter(filepath, data, target, solint = 0.09):
     lwpla.invers = 1
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
-    lwpla.outfile = filepath + '/PLOTS/' + filename + '_UVPLT.ps'
+    if len(filepath + '/PLOTS/' + filename + '_UVPLT.ps') < 114:
+        lwpla.outfile = filepath + '/PLOTS/' + filename + '_UVPLT.ps'
+    else:
+        lwpla.outfile = tmp_dir + '/aux.uvplt.ps'
     
     lwpla.go()
+
+    # If the filepath name was too long, move the auxiliary file to the correct place
+    if len(filepath + '/PLOTS/' + filename + '_UVPLT.ps') >= 114:
+        os.system('mv ' + tmp_dir + '/aux.uvplt.ps '\
+                  + filepath + '/PLOTS/' + filename + '_UVPLT.ps')
+
     
     # Clean all plots
     data.zap_table('PL', -1)
@@ -273,9 +282,18 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     lwpla.invers = max_plot
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
-    lwpla.outfile = filepath + '/PLOTS/' + filename + '_VPLOT.ps'
+
+    if len(filepath + '/PLOTS/' + filename + '_VPLOT.ps') < 114:
+        lwpla.outfile = filepath + '/PLOTS/' + filename + '_VPLOT.ps'
+    else:
+        lwpla.outfile = tmp_dir + '/aux.vplot.ps'
     
     lwpla.go()
+
+    # If the filepath name was too long, move the auxiliary file to the correct place
+    if len(filepath + '/PLOTS/' + filename + '_VPLOT.ps') >= 114:
+        os.system('mv ' + tmp_dir + '/aux.vplot.ps '\
+                  + filepath + '/PLOTS/' + filename + '_VPLOT.ps')
     
     # Clean all plots
     data.zap_table('PL', -1)
@@ -333,8 +351,18 @@ def tsys_plotter(filepath, data, tyver = 1):
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
     lwpla.outfile = filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps'
+
+    if len(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps') < 114:
+        lwpla.outfile = filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps'
+    else:
+        lwpla.outfile = tmp_dir + f'/aux.tsys{tyver}.ps'
     
     lwpla.go()
+
+    # If the filepath name was too long, move the auxiliary file to the correct place
+    if len(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps') >= 114:
+        os.system('mv ' + tmp_dir + f'/aux.tsys{tyver}.ps '\
+                  + filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps')
     
     # Clean all plots
     data.zap_table('PL', -1)

@@ -15,6 +15,10 @@ class NoScansError(Exception):
     """Raised when no suitable scans for calibration are found."""
     pass
 
+class NoAutocorrError(Exception):
+    """Raised when no suitable scans for calibration are found."""
+    pass
+
 ################################################
 ####                Classes               ####
 ################################################

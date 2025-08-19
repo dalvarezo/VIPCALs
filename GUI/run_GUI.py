@@ -95,7 +95,7 @@ class OutputRedirector(StringIO):
             return "orange"
         elif "____info" in lower:
             return "lightblue"
-        return "white"
+        return "#cccccc"
         
 class PipelineWorker(QThread):
     output_received = Signal(str)  # Signal to send stdout

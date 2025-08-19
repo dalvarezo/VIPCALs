@@ -2,6 +2,10 @@ import numpy as np
 
 from AIPSTask import AIPSTask
 
+import Wizardry.AIPSData as wizard
+
+from scripts.helper import NoAutocorrError
+
 AIPSTask.msgkill = -8
 
 def autocorr_correct(data, solint = -3):
@@ -63,7 +67,16 @@ def sampling_correct(data, solint = -3):
     accor.inseq = data.seq
     accor.solint = solint 
 
-    accor.go()
+    try:
+        accor.go()
+    except RuntimeError:
+        wuvdata = wizard.AIPSUVData(data.name, data.klass, data.disk, data.seq)
+        baselines = np.array([w.baseline for w in wuvdata])
+        mask = baselines[:, 0] == baselines[:, 1]
+        if mask.sum() == 0:
+            raise NoAutocorrError("The dataset does not contain auto-correlation data.") from None
+        else:
+            raise
 
     clcal = AIPSTask('clcal')
     clcal.inname = data.name

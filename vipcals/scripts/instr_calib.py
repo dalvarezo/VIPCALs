@@ -166,7 +166,8 @@ def manual_phasecal_multi(data, refant, priority_refants, calib_scans):
                 # Flag results from antennas not corresponding to this scan
 
                 sn_table = data.table('SN', 3 + n)
-                del_rows = [r for r,s in enumerate(sn_table) if s.antenna_no not in scan.calib_antennas + [refant]]
+                del_rows = [r for r,s in enumerate(sn_table) 
+                            if s.antenna_no not in scan.calib_antennas + [refant]]
 
                 for row in del_rows:
 

@@ -392,7 +392,9 @@ for i, entry in enumerate(entry_list):
         # Loop through and delete
         for entry in catalog[disk]:
             AIPSUVData(entry.name, entry.klass, disk, entry.seq).zap()
-
+        
+        # Re-raise the original error
+        raise
 
     # When the pipeline finishes, clean the disk - ONLY IN DOCKER MODE
     # Choose disk number

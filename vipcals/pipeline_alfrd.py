@@ -982,7 +982,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             return()
         
         ## Get the calibrator scans
-        calibrator_scans, no_calib_antennas = cali.get_calib_scans_v2(uvdata, scan_list, refant)
+        calibrator_scans, no_calib_antennas = cali.get_calib_scans(uvdata, scan_list, refant)
 
         t7 = time.time()
 
@@ -2222,7 +2222,7 @@ def pipeline(input_dict):
                 continue
 
             # Check if there are multiple frequencies in different IFs inside the ID
-            freq_groups = load.group_ids_v2(id)
+            freq_groups = load.group_ids(id)
             
             for group in freq_groups:
             

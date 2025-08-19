@@ -1,3 +1,14 @@
+## [0.3.4] - 2025-08-19
+### Added
+- Now the pipeline will raise an error when the dataset does not contain autocorrelation data, which makes amplitude calibration not possible.
+
+### Changed
+- Text color in the GUI changed from white to light gray, making it easier to copy-paste into a text editor. 
+
+### Fixed
+- Fixed bug that would cause the pipeline to stop when output directory names where longer than allowed by AIPS tasks. Now any name length should be allowed.
+- Fixed bug in the Docker version which would prevent error messages to be displayed.
+
 ## [0.3.3] - 2025-08-17
 ### Added
 - EVN datasets can now be loaded and calibrated by VIPCALs. This is still under active development, and calibration might not be optimal in some cases.
