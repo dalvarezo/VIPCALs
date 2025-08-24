@@ -6,7 +6,7 @@
 - Text color in the GUI changed from white to light gray, making it easier to copy-paste into a text editor. 
 
 ### Fixed
-- Fixed bug that would cause the pipeline to stop when output directory names where longer than allowed by AIPS tasks. Now any name length should be allowed.
+- Fixed bug that would cause the pipeline to stop when output directory names were longer than allowed by AIPS tasks. Now any name length should be allowed.
 - Fixed bug in the Docker version which would prevent error messages to be displayed.
 
 ## [0.3.3] - 2025-08-17

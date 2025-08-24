@@ -1,0 +1,439 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usage &mdash; VIPCALs 0.3.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+
+  
+      <script src="_static/jquery.js"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+      <script src="_static/doctools.js"></script>
+      <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="AIPS Calibration Workflow" href="overview.html" />
+    <link rel="prev" title="How to install" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            VIPCALs
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#requirements">Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#manual-installation">Manual installation:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#docker-installation">Docker installation:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installation">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#id1">Manual Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#id2">Docker Installation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#manual-input">Manual Input</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pipeline-log">Pipeline log</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interactive-plots">Interactive plots</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#json-input">JSON Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#outputs">Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">AIPS Calibration Workflow</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#data-loading">Data loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#table-loading">Table loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#phase-center-shift">Phase center shift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#time-frequency-average">Time/frequency average</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#ty-table-smoothing">TY table smoothing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#choice-of-reference-antenna">Choice of reference antenna</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#ionospheric-delay-correction">Ionospheric delay correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#geometric-corrections">Geometric corrections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#choice-of-calibrator-scans">Choice of calibrator scans</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#digital-sampling-correction">Digital sampling correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#instrumental-delay-correction">Instrumental delay correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#complex-bandpass">Complex bandpass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#amplitude-calibration">Amplitude calibration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#target-fringe-fit">Target fringe fit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#data-export">Data export</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#plots">Plots</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">VIPCALs</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this heading"></a></h1>
+<p>Upon opening the pipeline, you will be presented with two modes:</p>
+<section id="manual-input">
+<h2>Manual Input<a class="headerlink" href="#manual-input" title="Permalink to this heading"></a></h2>
+<a class="reference internal image-reference" href="_images/mainmenu.png"><img alt="main VIPCALs menu" class="align-center" src="_images/mainmenu.png" style="width: 600px;" /></a>
+<br><br><p>This mode allows calibration of a single observation (which may include multiple files) and lets you inspect the results via interactive plots. Below is a description of the different parameters that can be used, both compulsory and optional.</p>
+<p><strong>Minimum Required Inputs</strong></p>
+<ul class="simple">
+<li><p><em>User number</em>: AIPS user number <em>(manual installation only)</em></p></li>
+<li><p><em>Disk number</em>: AIPS disk number <em>(manual installation only)</em></p></li>
+<li><p><em>Filepath</em>: file(s) to calibrate</p></li>
+<li><p><em>Output directory</em>: directory for output products</p></li>
+<li><p><em>Target</em>: name(s) of science target(s) to calibrate</p></li>
+</ul>
+<p><strong>Additional Options</strong></p>
+<ul>
+<li><p><strong>Calibration Options</strong></p>
+<ul class="simple">
+<li><p><em>Calibrate all</em>: calibrate all sources (default: only science target(s))</p></li>
+<li><p><em>Phase ref calibrator</em>: define specific source(s) to use as phase reference calibrator(s)</p></li>
+</ul>
+</li>
+<li><p><strong>Loading Options</strong></p>
+<ul class="simple">
+<li><p><em>Load all sources</em>: load all sources (default: only science target(s) + 3 tentative calibrators)</p></li>
+<li><p><em>Load amp. calibration tables</em>: load external tables with system temperatures and gain curves in AIPS ANTAB format.</p></li>
+<li><p><em>Time average threshold</em>: minimum integration time in seconds. If the data have a shorter time sampling, it will be averaged in time up to this value (0 to disable)</p></li>
+<li><p><em>Freq. average threshold</em>: minimum channel width in kHz. If the data have narrower channels, they will be averaged in frequency up to this value (0 to disable)</p></li>
+<li><p><em>Phase center shift</em>: give coordinates to shift the phase center of each target if more accurate positions are available.
+Format: <code class="docutils literal notranslate"><span class="pre">&quot;175.858625</span> <span class="pre">18.577322&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;11h43m26.07s</span> <span class="pre">+18d34m38.36s&quot;</span></code></p></li>
+</ul>
+</li>
+<li><p><strong>Reference Antenna Options</strong></p>
+<ul class="simple">
+<li><p><em>Reference antenna</em>: fixed reference antenna (e.g., <cite>“LA”</cite>)</p></li>
+<li><p><em>Priority antennas</em>: list of preferred antennas to be used as reference antenna (e.g., <cite>“LA”</cite>, <cite>“FD”</cite>, <cite>“EF”</cite>)</p></li>
+<li><p><em>Search central antennas</em>: prioritize central array antennas (VLBA only)</p></li>
+<li><p><em>Maximum scans</em>: maximum number of scans per source to use in the automatic reference antenna search <em>(default: 10)</em></p></li>
+</ul>
+</li>
+<li><p><strong>Fringe Fit Options</strong></p>
+<ul class="simple">
+<li><p><em>Signal-to-noise threshold</em>: minimum SNR accepted during the FFT step of the fringe fit on the science target</p></li>
+<li><p><em>Fixed solution interval</em>: fixed solution interval in minutes</p></li>
+<li><p><em>Minimum solution interval</em>: minimum allowed interval (in minutes) when searching for the optimal solution interval</p></li>
+<li><p><em>Maximum solution interval</em>: maximum allowed interval (in minutes) when searching for the optimal solution interval</p></li>
+</ul>
+</li>
+<li><p><strong>Export Options</strong></p>
+<ul class="simple">
+<li><p><em>Channel out</em>:</p>
+<ul>
+<li><p><cite>SINGLE</cite>: before exporting, average in frequency to 1 channel per IF</p></li>
+<li><p><cite>MULTI</cite>: export all channels</p></li>
+</ul>
+</li>
+<li><p><em>Edge flagging</em>: when exporting:</p>
+<ul>
+<li><p>If &lt; 1: flag that fraction of edge channels at the beginning/end of each IF</p></li>
+<li><p>If ≥ 1 and integer: flag that number of edge channels at the beginning/end of each IF</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong>Plotting Options</strong></p>
+<ul class="simple">
+<li><p><em>Interactive plots</em>: enable GUI plots (manual mode only)</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Generating these plots can consume lots of time and disk storage. It is advised to disable them for large datasets.
+Static <cite>.ps</cite> and <cite>.pdf</cite> plots are always saved in the output directory.</p>
+</div>
+</li>
+</ul>
+<section id="pipeline-log">
+<h3>Pipeline log<a class="headerlink" href="#pipeline-log" title="Permalink to this heading"></a></h3>
+<p>During the pipeline run, real time information is displayed in the GUI. All this information will be also available as a text file after the calibration.</p>
+<a class="reference internal image-reference" href="_images/runwindow.png"><img alt="main log menu" class="align-center" src="_images/runwindow.png" style="width: 600px;" /></a>
+<br><br></section>
+<section id="interactive-plots">
+<h3>Interactive plots<a class="headerlink" href="#interactive-plots" title="Permalink to this heading"></a></h3>
+<p>After a successful pipeline run, the user is given the option to display some diagnostic plots. The available plots are</p>
+<ul class="simple">
+<li><p>Amplitude and phase vs Frequency</p></li>
+<li><p>Calibrated amplitude and phase vs Time</p></li>
+<li><p>Calibrated amplitude and phase vs uv-distance</p></li>
+<li><p>uv coverage</p></li>
+</ul>
+<p>These plots are grouped by source and frequency band.</p>
+<a class="reference internal image-reference" href="_images/plotwindow.png"><img alt="main plots menu" class="align-center" src="_images/plotwindow.png" style="width: 600px;" /></a>
+<br><br><a class="reference internal image-reference" href="_images/uncal_bis.png"><img alt="example uncal baseline" class="align-center" src="_images/uncal_bis.png" style="width: 600px;" /></a>
+<br><br><a class="reference internal image-reference" href="_images/cal_bis.png"><img alt="example cal baseline" class="align-center" src="_images/cal_bis.png" style="width: 600px;" /></a>
+<br><br><div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The interactive plots are under active development and still present some small bugs, especially when there is no data available for multiple baselines.</p>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="json-input">
+<h2>JSON Input<a class="headerlink" href="#json-input" title="Permalink to this heading"></a></h2>
+<p>For batch processing, inputs can be supplied via a JSON file. All parameters mirror the manual input described above. As before, when running in Docker, both <cite>userno</cite> and <cite>disk</cite> should be omitted.</p>
+<p><strong>Minimum JSON Fields</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Type</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>userno</p></td>
+<td><p>int</p></td>
+</tr>
+<tr class="row-odd"><td><p>disk</p></td>
+<td><p>int</p></td>
+</tr>
+<tr class="row-even"><td><p>paths</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-odd"><td><p>targets</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-even"><td><p>output_directory</p></td>
+<td><p>str</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Optional JSON Fields</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Type</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>calib_all</p></td>
+<td><p>bool</p></td>
+</tr>
+<tr class="row-odd"><td><p>phase_ref</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-even"><td><p>load_all</p></td>
+<td><p>bool</p></td>
+</tr>
+<tr class="row-odd"><td><p>load_tables</p></td>
+<td><p>str</p></td>
+</tr>
+<tr class="row-even"><td><p>time_aver</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>freq_aver</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-even"><td><p>shifts</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-odd"><td><p>refant</p></td>
+<td><p>str</p></td>
+</tr>
+<tr class="row-even"><td><p>refant_list</p></td>
+<td><p>list of str</p></td>
+</tr>
+<tr class="row-odd"><td><p>search_central</p></td>
+<td><p>bool</p></td>
+</tr>
+<tr class="row-even"><td><p>max_scan_refant_search</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>fringe_snr</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-even"><td><p>solint</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>min_solint</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-even"><td><p>max_solint</p></td>
+<td><p>float</p></td>
+</tr>
+<tr class="row-odd"><td><p>channel_out</p></td>
+<td><p>str (“SINGLE” or “MULTI”)</p></td>
+</tr>
+<tr class="row-even"><td><p>flag_edge</p></td>
+<td><p>float</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples</strong></p>
+<p>Below you can find some examples of typical JSON files that can be given to VIPCALs</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;userno&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;disk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;/data/pipeline_test_sample/diego/BR235/BR235M/VLBA_BR235M_br235m_BIN0_SRC0_0_210726T164755.idifits&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;targets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;1611+179&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;1428+254&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;1443+188&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;output_directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/home/dalvarez/vipcals/vipcals/101_200&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;refant_list&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;LA&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;FD&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;userno&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;disk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;/data/pipeline_test_sample/felix/BR235/BR235O/VLBA_BR235O_br235o_BIN0_SRC0_0_210217T213934.idifits&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;targets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;0912+237&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;output_directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/home/dalvarez/vipcals/vipcals/101_200&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;shifts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;138.72500917 23.53151889&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Note that sources and coordinates in the <em>“phase_ref”</em> and <em>“shifts”</em> fields have to be given in the same order as the sources in the <em>“targets”</em> field. If there is any source where those options should not apply, then it can be skipped by giving a null value:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;userno&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;disk&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;paths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;/data/pipeline_test_sample/felix/BR235/BR235O/VLBA_BR235O_br235o_BIN0_SRC0_0_210217T213934.idifits&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;targets&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;0737+171&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;0912+237&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;phase_ref&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;0740+155&quot;</span><span class="p">,</span><span class="w"> </span><span class="kc">null</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;output_directory&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/home/dalvarez/vipcals/vipcals/101_200&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;shifts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="kc">null</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;138.72500917 23.53151889&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="outputs">
+<h2>Outputs<a class="headerlink" href="#outputs" title="Permalink to this heading"></a></h2>
+<p>Below is a representative structure of the output directory produced by the pipeline:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>EA075/
+├── J1159+2914_EA075_22G_2024-03-13/
+│   ├── PLOTS/
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_CL1_POSSM.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_CL9_POSSM.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY1.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY2.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_UVPLT.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_VPLOT.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_RADPLOT.pdf
+│   │
+│   ├── TABLES/
+│   │   ├ flags.vlba
+│   │   ├ gaincurves.vlba
+│   │   ├ tsys.vlba
+│   │   ├ 1159+2914_EA075_22G_2024-03-13.caltab.uvfits
+│   │
+│   ├ 1159+2914_EA075_22G_2024-03-13.stats.csv
+│   ├ 1159+2914_EA075_22G_2024-03-13.uvfits
+│   ├ 1159+2914_EA075_22G_2024-03-13_AIPSlog.txt
+│   ├ 1159+2914_EA075_22G_2024-03-13_scansum.txt
+│   ├ 1159+2914_EA075_22G_2024-03-13_VIPCALslog.txt
+│
+│
+├── J1143+1834_EA075_22G_2024-03-13/
+│   ├──
+:   :
+:   :
+</pre></div>
+</div>
+<p>For each calibrated source, there is a directory that contains:</p>
+<ul class="simple">
+<li><p><em>*.stats.csv</em>: metadata on the observation and the calibration process in csv format</p></li>
+<li><p><em>*.uvfits</em>: calibrated fits file</p></li>
+<li><p><em>*_AIPSlog.txt</em>: output produced by AIPS after each step</p></li>
+<li><p><em>*_scansum.txt</em>: summary of the observation including scan list and frequency setup</p></li>
+<li><p><em>*_VIPCALslog.txt</em>: human-readable summary of the calibration produced by VIPCALs</p></li>
+</ul>
+<p>The pipeline also generates the following plots inside the <em>/PLOTS/</em> folder:</p>
+<ul class="simple">
+<li><p><em>*_CL1_POSSM.ps</em>: uncalibrated visibilities vs frequency</p></li>
+<li><p><em>*_CL9_POSSM.ps</em>: calibrated visibilities vs frequency</p></li>
+<li><p><em>*_TSYS_TY1.ps</em>: original antenna system temperatures vs time</p></li>
+<li><p><em>*_TSYS_TY2.ps</em>: smoothed antenna system temperatures vs time</p></li>
+<li><p><em>*_UVPLT.ps</em>: UV coverage of the calibrated observation</p></li>
+<li><p><em>*_VPLOT.ps</em>: calibrated visibilities vs time</p></li>
+<li><p><em>*_RADPLOT.pdf</em>: calibrated visibilities vs uv-distance</p></li>
+</ul>
+<p>and the following tables in the <em>/TABLES/</em> folder:</p>
+<ul class="simple">
+<li><p><em>flags.vlba</em>: initial flags of the observation (if not included in the file)</p></li>
+<li><p><em>gaincurves.vlba</em>: gain curves of each antenna (if not included in the file)</p></li>
+<li><p><em>tsys.vlba</em>: antenna system temperatures (if not included in the file)</p></li>
+<li><p><em>*.caltab.uvfits</em>: AIPS tables used during the calibration</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="How to install" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="overview.html" class="btn btn-neutral float-right" title="AIPS Calibration Workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Diego Alvarez-Ortega.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

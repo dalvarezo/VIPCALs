@@ -1,12 +1,12 @@
 import functools
 print = functools.partial(print, flush=True)
 
-from scripts.helper import tacop
+from vipcals.scripts.helper import tacop
 
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
    
-def target_fring_fit(data, refant, priority_refants, target_name,  version, snr_cutoff,
+def target_fring_fit(data, refant, priority_refants, target_name, version, snr_cutoff,
                      solint, delay_w = 1000,\
                      rate_w = 200, solve_ifs = True):
     """Fringe fit the science target.

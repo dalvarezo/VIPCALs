@@ -1,0 +1,13 @@
+.spaced-figure {
+    margin-top: 1em;
+    margin-bottom: 12em;
+}
+
+/* Parameter names */
+.highlight .k { color: #555555; }
+
+/* Rest of line */
+.highlight .n { color: #3399cc; }
+
+/* Comments */
+.highlight .c1 { color: #ff6666; font-style: italic; }

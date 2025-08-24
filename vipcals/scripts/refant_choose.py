@@ -8,8 +8,8 @@ print = functools.partial(print, flush=True)
 
 from collections import defaultdict
 
-from scripts.helper import Antenna, Scan
-from scripts.helper import ddhhmmss, tacop
+from vipcals.scripts.helper import Antenna, Scan
+from vipcals.scripts.helper import ddhhmmss, tacop
 
 import Wizardry.AIPSData as wizard
 

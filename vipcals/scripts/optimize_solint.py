@@ -3,7 +3,7 @@ import warnings
 
 import numpy as np
 
-from scripts.helper import ddhhmmss
+from vipcals.scripts.helper import ddhhmmss
 
 from AIPSTask import AIPSTask, AIPSList
 

@@ -1,4 +1,4 @@
-from scripts.helper import tacop
+from vipcals.scripts.helper import tacop
 
 from AIPSTask import AIPSTask, AIPSList
 

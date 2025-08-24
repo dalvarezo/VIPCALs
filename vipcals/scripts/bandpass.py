@@ -1,4 +1,4 @@
-from scripts.helper import ddhhmmss
+from vipcals.scripts.helper import ddhhmmss
 
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8

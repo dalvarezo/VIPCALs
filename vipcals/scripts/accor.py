@@ -4,7 +4,7 @@ from AIPSTask import AIPSTask
 
 import Wizardry.AIPSData as wizard
 
-from scripts.helper import NoAutocorrError
+from vipcals.scripts.helper import NoAutocorrError
 
 AIPSTask.msgkill = -8
 

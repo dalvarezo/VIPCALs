@@ -1,0 +1,1539 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vipcals.scripts package &mdash; VIPCALs 0.3.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+
+  
+      <script src="_static/jquery.js"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+      <script src="_static/doctools.js"></script>
+      <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            VIPCALs
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#requirements">Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#manual-installation">Manual installation:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#docker-installation">Docker installation:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installation">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#id1">Manual Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#id2">Docker Installation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#manual-input">Manual Input</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#interactive-plots">Interactive plots</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#json-input">JSON Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#outputs">Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">AIPS Calibration Workflow</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#data-loading">Data loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#table-loading">Table loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#phase-center-shift">Phase center shift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#time-frequency-average">Time/frequency average</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#ty-table-smoothing">TY table smoothing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#choice-of-reference-antenna">Choice of reference antenna</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#ionospheric-delay-correction">Ionospheric delay correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#geometric-corrections">Geometric corrections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#choice-of-calibrator-scans">Choice of calibrator scans</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#digital-sampling-correction">Digital sampling correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#instrumental-delay-correction">Instrumental delay correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#complex-bandpass">Complex bandpass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#amplitude-calibration">Amplitude calibration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#target-fringe-fit">Target fringe fit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#data-export">Data export</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#plots">Plots</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">VIPCALs</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">vipcals.scripts package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/vipcals.scripts.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="vipcals-scripts-package">
+<h1>vipcals.scripts package<a class="headerlink" href="#vipcals-scripts-package" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-vipcals.scripts.accor">
+<span id="vipcals-scripts-accor-module"></span><h2>vipcals.scripts.accor module<a class="headerlink" href="#module-vipcals.scripts.accor" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.accor.autocorr_correct">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.accor.</span></span><span class="sig-name descname"><span class="pre">autocorr_correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.accor.autocorr_correct" title="Permalink to this definition"></a></dt>
+<dd><p>Auto corelation scaling correction - ACSCL</p>
+<p>Corrects errors in the scaling of auto correlations due to the bandpass
+using the ACSCL task in AIPS.
+Creates SN#4 and CL#7.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>solint</strong> (<em>float</em><em>, </em><em>optional</em>) – solution interval in minutes. If &gt; 0, does not pay
+attention to scan boundaries; defaults to -3</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.accor.sampling_correct">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.accor.</span></span><span class="sig-name descname"><span class="pre">sampling_correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.accor.sampling_correct" title="Permalink to this definition"></a></dt>
+<dd><p>Digital sampling correction - ACCOR</p>
+<p>Correct cross correlations using auto correlations using the ACCOR
+task in AIPS.
+Creates SN#2 and CL#5.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>solint</strong> (<em>float</em><em>, </em><em>optional</em>) – solution interval in minutes. If &gt; 0, does not pay
+attention to scan boundaries; defaults to -3</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.amp_cal">
+<span id="vipcals-scripts-amp-cal-module"></span><h2>vipcals.scripts.amp_cal module<a class="headerlink" href="#module-vipcals.scripts.amp_cal" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.amp_cal.amp_cal">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.amp_cal.</span></span><span class="sig-name descname"><span class="pre">amp_cal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_if</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.amp_cal.amp_cal" title="Permalink to this definition"></a></dt>
+<dd><p>Apply a-priori amplitude corrections - APCAL</p>
+<p>Use the APCAL task in AIPS to generate an amplitude calibration table.
+Takes as input the system temperature (TY) table and the
+gain curve (GC) table and generates a solution (SN) table containing
+amplitude gain calibration information.
+Creates SN#5 and CL#8.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>solint</strong> (<em>int</em><em>, </em><em>optional</em>) – solution interval (min). If &gt; 0, does not pay attention to
+scan boundaries; defaults to -3</p></li>
+<li><p><strong>average</strong> (<em>bool</em><em>, </em><em>optional</em>) – normalize Tsys by average Tsys; defaults to False</p></li>
+<li><p><strong>ref_if</strong> (<em>int</em><em>, </em><em>optional</em>) – if average = True and ref_if &gt; 1:  ref_if is used as as the IF
+to define the correct Tsys rather than the average over all IFs.
+if average = True and ref_if &lt; 1: the mean value is used.
+if average = False, this parameter does nothing; defaults to 0</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.bandpass">
+<span id="vipcals-scripts-bandpass-module"></span><h2>vipcals.scripts.bandpass module<a class="headerlink" href="#module-vipcals.scripts.bandpass" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.bandpass.bp_correction">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.bandpass.</span></span><span class="sig-name descname"><span class="pre">bp_correction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calib_scans</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.bandpass.bp_correction" title="Permalink to this definition"></a></dt>
+<dd><p>Apply complex bandpass correction to the data - BPASS</p>
+<p>Use the BPASS task in AIPS to create a BP table containing the
+bandpass response function of the antennas.
+Creates BP#1</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>cal_scan</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects) – scans used for the calibration</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.calib_choose">
+<span id="vipcals-scripts-calib-choose-module"></span><h2>vipcals.scripts.calib_choose module<a class="headerlink" href="#module-vipcals.scripts.calib_choose" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.calib_choose.flag_antennas_v2">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.calib_choose.</span></span><span class="sig-name descname"><span class="pre">flag_antennas_v2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">antennas</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.calib_choose.flag_antennas_v2" title="Permalink to this definition"></a></dt>
+<dd><p>Flag antennas due to missing calibrator scans.</p>
+<p>Produces FG#3</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>antennas</strong> (<em>list</em><em> of </em><em>int</em>) – antenna codes to be flagged</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.calib_choose.get_calib_scans">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.calib_choose.</span></span><span class="sig-name descname"><span class="pre">get_calib_scans</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordered_scan_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.calib_choose.get_calib_scans" title="Permalink to this definition"></a></dt>
+<dd><p>Get the scans that will be used for calibration steps.</p>
+<p>For each antenna, search in the scan list generated by <a class="reference internal" href="#vipcals.scripts.calib_choose.snr_scan_list_v2" title="vipcals.scripts.calib_choose.snr_scan_list_v2"><code class="xref py py-func docutils literal notranslate"><span class="pre">snr_scan_list_v2()</span></code></a>
+for the scan with the highest SNR. If there are any antennas where the highest SNR is
+lower than 5, they are flagged in FG#3 by <a class="reference internal" href="#vipcals.scripts.calib_choose.flag_antennas_v2" title="vipcals.scripts.calib_choose.flag_antennas_v2"><code class="xref py py-func docutils literal notranslate"><span class="pre">flag_antennas_v2()</span></code></a>.</p>
+<p>Returns a list of calibrator <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> with the antennas
+covered by each of them, as well as the flagged antennas if any.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>ordered_scan_list</strong> (lists of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects) – scan list ordered by SNR</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of scans ordered by median SNR, list of flagged antennas</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects, list of int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.calib_choose.snr_fring">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.calib_choose.</span></span><span class="sig-name descname"><span class="pre">snr_fring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority_refants</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.calib_choose.snr_fring" title="Permalink to this definition"></a></dt>
+<dd><p>Short fringe fit (only FFT) to select a bright calibrator.</p>
+<p>Fringe fit of all sources using FRING task in AIPS. It solves for delays
+and rates of each IFs and stopping at the FFT stage (no least square solution).
+The solution interval is automatically set so that it only creates one solution
+per scan. It creates a solution table (SN) which contains the signal-to-noise
+ratio (SNR) of each scan. Default values for the delay and rate windows
+are 1000 ns and 200hz.</p>
+<p>Creates SN#1, which contains the SNR per scan.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>priority_refants</strong> – list of alternatives to the reference antenna</p></li>
+<li><p><strong>priority_refants</strong> – list of int</p></li>
+<li><p><strong>delay_w</strong> (<em>int</em><em>, </em><em>optional</em>) – delay window in ns in which the search is performed;
+defaults to 1000</p></li>
+<li><p><strong>rate_w</strong> (<em>int</em><em>, </em><em>optional</em>) – rate window in mHz in which the search is performed;
+defaults to 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.calib_choose.snr_scan_list_v2">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.calib_choose.</span></span><span class="sig-name descname"><span class="pre">snr_scan_list_v2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.calib_choose.snr_scan_list_v2" title="Permalink to this definition"></a></dt>
+<dd><p>Create a list of scans ordered by SNR.</p>
+<p>The solution table (SN) produced by snr_fring is read and returns a list
+of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects ordered by their median SNR
+over all antennas.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>version</strong> (<em>int</em><em>, </em><em>optional</em>) – SN table version containing the SNR values; defaults to 1</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of scans ordered by median SNR</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.display">
+<span id="vipcals-scripts-display-module"></span><h2>vipcals.scripts.display module<a class="headerlink" href="#module-vipcals.scripts.display" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.display.print_box">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.display.</span></span><span class="sig-name descname"><span class="pre">print_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.display.print_box" title="Permalink to this definition"></a></dt>
+<dd><p>Print some text inside a box in the terminal</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>s</strong> (<em>str</em>) – text to display in the box</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.display.print_info">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.display.</span></span><span class="sig-name descname"><span class="pre">print_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.display.print_info" title="Permalink to this definition"></a></dt>
+<dd><p>Print some basic information about the loaded file to the logs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>filepath_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of paths to the original uvfits/idifits files</p></li>
+<li><p><strong>sources</strong> (<em>list</em><em> of </em><em>str</em>) – list of sources loaded</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.display.write_box">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.display.</span></span><span class="sig-name descname"><span class="pre">write_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.display.write_box" title="Permalink to this definition"></a></dt>
+<dd><p>Write some text inside a box in the log file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>log_list</strong> (<em>list</em><em> of </em><em>file</em>) – list of the pipeline logs</p></li>
+<li><p><strong>s</strong> (<em>str</em>) – text to display in the box</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.display.write_info">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.display.</span></span><span class="sig-name descname"><span class="pre">write_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats_df</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'None'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.display.write_info" title="Permalink to this definition"></a></dt>
+<dd><p>Write some basic information about the loaded file to the logs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>filepath_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of paths to the original uvfits/idifits files</p></li>
+<li><p><strong>log_list</strong> (<em>list</em><em> of </em><em>file</em>) – list of the pipeline logs</p></li>
+<li><p><strong>sources</strong> (<em>list</em><em> of </em><em>str</em>) – list of sources loaded</p></li>
+<li><p><strong>stats_df</strong> (<em>pandas.DataFrame object</em><em>, </em><em>optional</em>) – if given, Pandas DataFrame where to keep track of the different statistics</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.eop_corr">
+<span id="vipcals-scripts-eop-corr-module"></span><h2>vipcals.scripts.eop_corr module<a class="headerlink" href="#module-vipcals.scripts.eop_corr" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.eop_corr.eop_correct">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.eop_corr.</span></span><span class="sig-name descname"><span class="pre">eop_correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.eop_corr.eop_correct" title="Permalink to this definition"></a></dt>
+<dd><p>Earth orientation parameters correction.</p>
+<p>Correction of UT1-UTC and Earth’s pole position. Downloads a file and
+applies the CLCOR task in AIPS.
+Create CL#3</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.fringe_fit">
+<span id="vipcals-scripts-fringe-fit-module"></span><h2>vipcals.scripts.fringe_fit module<a class="headerlink" href="#module-vipcals.scripts.fringe_fit" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.fringe_fit.assess_fringe_fit">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.fringe_fit.</span></span><span class="sig-name descname"><span class="pre">assess_fringe_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.fringe_fit.assess_fringe_fit" title="Permalink to this definition"></a></dt>
+<dd><p>Retrieve the number of failed solutions after fringe fit</p>
+<p>Explore a solution table produced by FRING and print how many solutions failed. This
+is done by looking at the weights of every entry in the SN table. Since each SN table
+contains solutions only for one source, this information is also printed in the
+corresponding log of each source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>log</strong> (<em>file</em>) – pipeline log</p></li>
+<li><p><strong>version</strong> (<em>int</em><em>, </em><em>optional</em>) – SN version to evaluate, defaults to 6</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>total good solutions, total attempted solutions,
+dictionary with good/attempted values per antenna</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int, int, dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.fringe_fit.fringe_clcal">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.fringe_fit.</span></span><span class="sig-name descname"><span class="pre">fringe_clcal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_ver</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.fringe_fit.fringe_clcal" title="Permalink to this definition"></a></dt>
+<dd><p>Apply SN solution table from FRING to a new CL table.</p>
+<p>Apply solution tables to a new calibration table using the CLCAL task in AIPS.
+Tables go from SN#6 to max_ver, and they correspond to science targets were phase
+reference is not required. The new calibration tavle is always CL#9.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target_list</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">FFTarget</span></code> objects) – list of targets</p></li>
+<li><p><strong>target_scans</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects) – scans the target</p></li>
+<li><p><strong>max_ver</strong> (<em>int</em>) – maximum SN version to consider</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.fringe_fit.fringe_phaseref_clcal">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.fringe_fit.</span></span><span class="sig-name descname"><span class="pre">fringe_phaseref_clcal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.fringe_fit.fringe_phaseref_clcal" title="Permalink to this definition"></a></dt>
+<dd><p>Apply phase reference SN solution table from FRING to a new CL table</p>
+<p>Apply phase reference solution tables to a new calibration table using the CLCAL
+task in AIPS. These are always applied after the no-phase-reference solutions and
+its done in multiple CLCAL runs, as many as phase reference sources are. Each time,
+solutions are applied to CL#9, temporarily creating CL#10, which is then copied back
+into CL#9. This ensures that CL#9 finally contains all solutions for all sources,
+both phase referenced and not.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target_list</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">FFtarget</span></code> objects) – list of targets</p></li>
+<li><p><strong>version</strong> (<em>int</em>) – first SN table version corresponding to the phase referenced sources</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.fringe_fit.target_fring_fit">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.fringe_fit.</span></span><span class="sig-name descname"><span class="pre">target_fring_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority_refants</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">snr_cutoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve_ifs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.fringe_fit.target_fring_fit" title="Permalink to this definition"></a></dt>
+<dd><p>Fringe fit the science target.</p>
+<p>Uses the FRING task on AIPS to correct for any residual delay and rate errors on the
+phases. Creates a new SN table, which number depends on how many sources are being
+calibrated, with the solutions from the first source being written to SN#6.</p>
+<p>Returns the reference antenna and the delay and search windows used to the main
+workflow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>priority_refants</strong> – list of alternatives to the reference antenna</p></li>
+<li><p><strong>priority_refants</strong> – list of int</p></li>
+<li><p><strong>target_name</strong> (<em>str</em>) – target name</p></li>
+<li><p><strong>version</strong> (<em>int</em>) – SN version where to write the solutions.</p></li>
+<li><p><strong>snr_cutoff</strong> (<em>float</em>) – S/N threshold for the FFT stage</p></li>
+<li><p><strong>solint</strong> (<em>int</em>) – solution interval in minutes, if 0 =&gt; solint = 10 min,                    if &gt; scan  =&gt; solint = scan</p></li>
+<li><p><strong>delay_w</strong> – delay window in ns in which the search is performed; defaults to 1000    :type delay_w: int, optional</p></li>
+<li><p><strong>rate_w</strong> – rate window in hz in which the search is performed; defaults to 200     :type rate_w: int, optional</p></li>
+<li><p><strong>solve_ifs</strong> (<em>bool</em><em>, </em><em>optional</em>) – solve IFs separatedly; defaults to True</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.instr_calib">
+<span id="vipcals-scripts-instr-calib-module"></span><h2>vipcals.scripts.instr_calib module<a class="headerlink" href="#module-vipcals.scripts.instr_calib" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.instr_calib.manual_phasecal_multi">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.instr_calib.</span></span><span class="sig-name descname"><span class="pre">manual_phasecal_multi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority_refants</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calib_scans</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.instr_calib.manual_phasecal_multi" title="Permalink to this definition"></a></dt>
+<dd><p>Correct instrumental phase delay using multiple bright calibrators.</p>
+<p>Uses the FRING task to runs a fringe fit on a short scan of the calibrators,
+creating multiple SN tables. Then, merges the solutions in SN#4 and interpolates
+them to the other sources using the CLCAL task in AIPS.</p>
+<p>Creates SN#3 and CL#6</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>priority_refants</strong> – list of alternatives to the reference antenna</p></li>
+<li><p><strong>priority_refants</strong> – list of int</p></li>
+<li><p><strong>calib_scans</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">FFtarget</span></code> object) – list of scans used for the calibration</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.instr_calib.pulse_phasecal">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.instr_calib.</span></span><span class="sig-name descname"><span class="pre">pulse_phasecal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cal_scan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.instr_calib.pulse_phasecal" title="Permalink to this definition"></a></dt>
+<dd><p>Correct instrumental phase delay using the PC table.</p>
+<p>Corrects instrumental phase delay of each source using their entries from the
+pulse-calibration table (PC) using the PCCOR task in AIPS. A strong calibrator is
+used to eliminate any phase ambiguity (see <a class="reference external" href="ME">VLBA Scientific Memo #8</a>). The
+solution is applied to the calibration tables using the CLCAL task in AIPS.</p>
+<p>Creates SN#3 and CL#6</p>
+<p>THIS FUNCTION IS NOT USED IN THE CURRENT VERSION OF THE PIPELINE.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>cal_scan</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> object) – scan used for the calibration</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.ionos_corr">
+<span id="vipcals-scripts-ionos-corr-module"></span><h2>vipcals.scripts.ionos_corr module<a class="headerlink" href="#module-vipcals.scripts.ionos_corr" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.ionos_corr.ionos_correct">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.ionos_corr.</span></span><span class="sig-name descname"><span class="pre">ionos_correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.ionos_corr.ionos_correct" title="Permalink to this definition"></a></dt>
+<dd><p>Ionospheric delay calibration.</p>
+<p>Calls <a class="reference internal" href="#vipcals.scripts.ionos_corr.new_tecor" title="vipcals.scripts.ionos_corr.new_tecor"><code class="xref py py-func docutils literal notranslate"><span class="pre">new_tecor()</span></code></a> or     <a class="reference internal" href="#vipcals.scripts.ionos_corr.old_tecor" title="vipcals.scripts.ionos_corr.old_tecor"><code class="xref py py-func docutils literal notranslate"><span class="pre">old_tecor()</span></code></a> depending on the observation date     of the dataset. Information on the different formats can be found <a class="reference external" href="TE">here</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of retrieved files</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.ionos_corr.new_tecor">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.ionos_corr.</span></span><span class="sig-name descname"><span class="pre">new_tecor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.ionos_corr.new_tecor" title="Permalink to this definition"></a></dt>
+<dd><p>Ionospheric delay calibration using TECOR.</p>
+<p>Derives corrections for ionospheric Faraday rotation and     dispersive delay from maps of total electron content in IONEX     format.</p>
+<p>Reads the date from the header and the different observed days     from each scan, then downloads the corresponding file(s) using the new format     (recent than 26/11/2023) and applies the TECOR task in AIPS. The downloaded files
+are of the CODG type (Center for Orbit Determination in Europe).</p>
+<p>Creates CL#2</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of retrieved files</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.ionos_corr.old_tecor">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.ionos_corr.</span></span><span class="sig-name descname"><span class="pre">old_tecor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.ionos_corr.old_tecor" title="Permalink to this definition"></a></dt>
+<dd><p>Ionospheric delay calibration using TECOR.</p>
+<p>Derives corrections for ionospheric Faraday rotation and     dispersive delay from maps of total electron content in IONEX     format.</p>
+<p>Reads the date from the header and the different observed days     from each scan, then downloads the corresponding file(s) using the old format     (older than 26/11/2022) and applies the TECOR task in AIPS. The downloaded files
+are of the CODG type (Center for Orbit Determination in Europe).</p>
+<p>Creates CL#2</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of retrieved files</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.load_data">
+<span id="vipcals-scripts-load-data-module"></span><h2>vipcals.scripts.load_data module<a class="headerlink" href="#module-vipcals.scripts.load_data" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.are_sources_in_id">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">are_sources_in_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loaded_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.are_sources_in_id" title="Permalink to this definition"></a></dt>
+<dd><p>Check if some sources were not observed in a certain frequency ID</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of files to check</p></li>
+<li><p><strong>loaded_id</strong> (<em>list</em><em> of </em><em>tuple</em>) – frequency id produced by <a class="reference internal" href="#vipcals.scripts.load_data.is_it_multifreq_id" title="vipcals.scripts.load_data.is_it_multifreq_id"><code class="xref py py-func docutils literal notranslate"><span class="pre">is_it_multifreq_id()</span></code></a></p></li>
+<li><p><strong>sources</strong> (<em>list</em><em> of </em><em>str</em>) – list of sources to check</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of sources not observed with a certain frequency id</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.find_calibrators">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">find_calibrators</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full_source_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'BYCOORD'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.find_calibrators" title="Permalink to this definition"></a></dt>
+<dd><p>Choose possible calibrators from a source list.</p>
+<p>It loads information of ~9000 sources from an external file.
+Then, checks if there is available flux information for the
+sources in the source list generated by the
+<a class="reference internal" href="#vipcals.scripts.load_data.get_source_list" title="vipcals.scripts.load_data.get_source_list"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_source_list()</span></code></a> function.
+If there are more than 3 observed sources, the names of the brightest
+3 are returned. If not, all sources are returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>full_source_list</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Source</span></code> objects) – list of sources contained in the file</p></li>
+<li><p><strong>choose</strong> (<em>str</em>) – cross-match the sources using names (‘BYNAME’) or coordinates
+(‘BYCOORD’); default ‘BYCOORD’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>names of possible calibrators available in the file</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.freq_aver">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">freq_aver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.freq_aver" title="Permalink to this definition"></a></dt>
+<dd><p>Average visibility data in frequency</p>
+<p>Creates a new entry in AIPS adding ‘_AF’ or ‘_ATF’ to the name if it has
+already been averaged in time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>ratio</strong> (<em>float</em>) – ratio between the old number of frequency channels and the new one,     e.g. when going from 64 channels to 16, this number is 4</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.get_source_list">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">get_source_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.get_source_list" title="Permalink to this definition"></a></dt>
+<dd><p>Get a source list from a uvfits/idifits file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of paths of the uvfits/idifts files</p></li>
+<li><p><strong>freq</strong> (<em>int</em><em>, </em><em>optional</em>) – if there are multiple frequency ids, which one to choose; defaults to 0</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of sources contained in the file</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Source</span></code> objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.group_ids">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">group_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.group_ids" title="Permalink to this definition"></a></dt>
+<dd><p>Look for multiple frequencies within one frequency ID.</p>
+<p>Reads an id from <a class="reference internal" href="#vipcals.scripts.load_data.is_it_multifreq_id" title="vipcals.scripts.load_data.is_it_multifreq_id"><code class="xref py py-func docutils literal notranslate"><span class="pre">is_it_multifreq_id()</span></code></a> and
+returns groups with parameters useful for the main workflow to deal with different
+frequencies.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>id</strong> (<em>list</em><em> of </em><em>tuples</em>) – list of tuples grouping the difference bands within an ID</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>minimum frequency of the id, minimum frequency of the group, minimum and
+maximum IFs containing the group</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, float, list of int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.is_it_multifreq_id">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">is_it_multifreq_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.is_it_multifreq_id" title="Permalink to this definition"></a></dt>
+<dd><p>Check if the files contains multiple bands splitted in IDs.</p>
+<p>If more than one file is given, check how many files have common frequencies, and
+return a dictionary specifying which frequency corresponds to which files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – path of the uvfits/idifts file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>whether the dataset has multiple bands, list of frequencies, dictionary
+with each file and which frequencies it covers</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>boolean, list of tuple, list of float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.is_it_multifreq_if">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">is_it_multifreq_if</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.is_it_multifreq_if" title="Permalink to this definition"></a></dt>
+<dd><p>Check if the file contains multiple bands splitted in IFs.</p>
+<p>Looks at the central frequency of all IFs and looks for jumps of
+more than 1 GHz between them. Only works for datasets with 1 or 2
+frequency bands, not more.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – path of the uvfits/idifts file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the dataset has multiple bands, False if not; Value of the first              IF, always 1; value of the last IF of band 1; value of the first IF of              band 2; value of the last IF of band 2; first digit of the frequency of              band 1; first digit of the frequency of band 2; frequency of band 1 ;             frequency of band 2</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>boolean, int, int, int, int, str, str, float, float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.load_data">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">load_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selfreq</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">klass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bif</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eif</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l_a</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symlink_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/home/dalvarez/.vipcals/tmp'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.load_data" title="Permalink to this definition"></a></dt>
+<dd><p>Load data from a uvfits/idifits file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of paths of the uvfits/idifts files</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – file name whithin AIPS</p></li>
+<li><p><strong>sources</strong> (<em>list</em><em> of </em><em>str</em>) – list of sources to load</p></li>
+<li><p><strong>disk</strong> (<em>int</em>) – disk number whithin AIPS</p></li>
+<li><p><strong>multi_id</strong> (<em>bool</em>) – True if there are multiple frequency ids, False otherwise</p></li>
+<li><p><strong>selfreq</strong> (<em>int</em>) – if there are multiple frequency ids, which one to load</p></li>
+<li><p><strong>klass</strong> (<em>str</em><em>, </em><em>optional</em>) – class name whithin AIPS; defaults to ‘’</p></li>
+<li><p><strong>seq</strong> (<em>int</em><em>, </em><em>optional</em>) – sequence number within AIPS; defaults to 1</p></li>
+<li><p><strong>bif</strong> (<em>int</em><em>, </em><em>optional</em>) – first IF to copy, 0 =&gt; 1; defaults to 0</p></li>
+<li><p><strong>eif</strong> (<em>int</em><em>, </em><em>optional</em>) – highest IF to copy,  0 =&gt; all higher than bif; defaults to 0</p></li>
+<li><p><strong>l_a</strong> (<em>bool</em><em>, </em><em>optional</em>) – load all sources; default False</p></li>
+<li><p><strong>symlink_path</strong> (<em>str</em><em>, </em><em>optional</em>) – path where to create the symbolic links needed to load the data;
+default is the /vipcals/tmp folder</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.merge_red_tables">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">merge_red_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timetol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.merge_red_tables" title="Permalink to this definition"></a></dt>
+<dd><p>Merge redundant information on GC, TY, and PC tables.</p>
+<p>Uses the TAMRG task in AIPS to merge tables when loading multiple files.
+Inputs for the task are copied from the MERGECAL procedure</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>timetol</strong> (<em>float</em><em>, </em><em>optional</em>) – tolerance for comparing times in seconds; defaults to 0.1</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.print_listr">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">print_listr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.print_listr" title="Permalink to this definition"></a></dt>
+<dd><p>Print scan information in an external file.</p>
+<p>Runs the FITLD task in AIPS and prints the output in _scansum.txt</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>path_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of filepaths for each source</p></li>
+<li><p><strong>filename_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of folder names for the different science targets</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.redo_source_list">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">redo_source_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uvdata</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.redo_source_list" title="Permalink to this definition"></a></dt>
+<dd><p>Create again the source list after loading the data.</p>
+<p>This is done to avoid problems with the source IDs after
+concatenating multiple files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of sources contained in the observations</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Source</span></code> objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.run_indxr">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">run_indxr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.run_indxr" title="Permalink to this definition"></a></dt>
+<dd><p>Creates an index (NX) table and indexes the uv data file.</p>
+<p>Also creates CL#1 with entries every 0.1 minutes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.set_name">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">set_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">klass</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.set_name" title="Permalink to this definition"></a></dt>
+<dd><p>Set the name that will be used for the all the ouputs.</p>
+<p>Name format is SOURCENAME_PROJECT_BAND_DATE</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – path to the uvfits/idifits file</p></li>
+<li><p><strong>source</strong> (<em>str</em>) – name of the science target</p></li>
+<li><p><strong>klass</strong> (<em>str</em>) – klass name in AIPS, contains the band information</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>name to be used in the outputs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.tborder">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">tborder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.tborder" title="Permalink to this definition"></a></dt>
+<dd><p>Sort data in Time - Baseline order (TB)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_data.time_aver">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_data.</span></span><span class="sig-name descname"><span class="pre">time_aver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oldtime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">newtime</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_data.time_aver" title="Permalink to this definition"></a></dt>
+<dd><p>Average visibility data in time</p>
+<p>Creates a new entry in AIPS adding ‘_AT’ to the name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>oldtime</strong> (<em>float</em>) – previous time resolution in seconds</p></li>
+<li><p><strong>newtime</strong> (<em>float</em>) – new time resolution in seconds</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.load_tables">
+<span id="vipcals-scripts-load-tables-module"></span><h2>vipcals.scripts.load_tables module<a class="headerlink" href="#module-vipcals.scripts.load_tables" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.fg_tsm_vlog">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">fg_tsm_vlog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_paths</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.fg_tsm_vlog" title="Permalink to this definition"></a></dt>
+<dd><p>Split flag tables from a TSM produced cal.vlba file.</p>
+<p>Uses the VLOG task in AIPS to separate the flag information from one or multiple
+cal.vlba files in the TSM format. The output is written onto /.vipcals/tmp/flags.vlba</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>table_paths</strong> – list of paths where the calibration tables have been downloaded</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.load_evn_tables">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">load_evn_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.load_evn_tables" title="Permalink to this definition"></a></dt>
+<dd><p>Retrieve and load TY and GC tables from the EVN Archive</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – vibility data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.load_external_antab">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">load_external_antab</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.load_external_antab" title="Permalink to this definition"></a></dt>
+<dd><p>Load amplitude calibration information from an external file</p>
+<p>Load Tsys and gain curve information from an external file. This information has to
+be on an ANTAB format readable by AIPS</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>filepath</strong> (<em>str</em>) – path to an ANTAB file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.load_fg_tables">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">load_fg_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.load_fg_tables" title="Permalink to this definition"></a></dt>
+<dd><p>Retrieve and load FG tables from an external server.</p>
+<p>Download FG data from an external repository, edit them in a suitable format, and
+then load them into AIPS using the UVFLG task.</p>
+<p>The function can retrieve vlba.cal files produced by two different softwares: TSM
+before October 2015, and RDBETSM after. The files are retrieved from
+<a class="reference external" href="VOBS">http://www.vlba.nrao.edu/astro/VOBS/astronomy/</a>. The function uses
+brute-force to look for any possible name of vlba.cal files from the same
+project as the one in the data header. Then, the retrieved files are formatted
+automatically and saved into /TABLES/flags.vlba on the output directory. For the
+files in TSM format, the function <a class="reference internal" href="#vipcals.scripts.load_tables.fg_tsm_vlog" title="vipcals.scripts.load_tables.fg_tsm_vlog"><code class="xref py py-func docutils literal notranslate"><span class="pre">fg_tsm_vlog()</span></code></a>
+uses the VLOG task in AIPS to split the TY tables from the rest of the calibration
+tables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>urls from which the calibration tables have been retrieved</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.load_gc_tables">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">load_gc_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ant_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['all']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.load_gc_tables" title="Permalink to this definition"></a></dt>
+<dd><p>Retrieve and load GC tables from an external file.</p>
+<p>Look for relevant gain curves from an external file, edit them in a suitable format,
+and then load them into AIPS using the ANTAB task. It gets the curves from a master
+file, and selects the ones corresponding to the time range of the observation.</p>
+<p>Final gain curve table is saved as /TABLES/gaincurves.vlba on the output directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>log</strong> (<em>file</em>) – pipeline log</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.load_ty_tables">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">load_ty_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bif</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eif</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.load_ty_tables" title="Permalink to this definition"></a></dt>
+<dd><p>Retrieve and load TY tables from an external server.</p>
+<p>Download TY data from an external repository, edit them in a suitable format, and
+then load them into AIPS using the ANTAB task.</p>
+<p>The function can retrieve vlba.cal files produced by two different softwares: TSM
+before October 2015, and RDBETSM after. The files are retrieved from
+<a class="reference external" href="VOBS">http://www.vlba.nrao.edu/astro/VOBS/astronomy/</a>. The function uses
+brute-force to look for any possible name of vlba.cal files from the same
+project as the one in the data header. Then, the retrieved files are formatted
+automatically and saved into /TABLES/tsys.vlba on the output directory. The required
+IFs have to be given as an input, as usually they will come all together in the same
+calibration file. For the files in TSM format, the function
+<a class="reference internal" href="#vipcals.scripts.load_tables.ty_tsm_vlog" title="vipcals.scripts.load_tables.ty_tsm_vlog"><code class="xref py py-func docutils literal notranslate"><span class="pre">ty_tsm_vlog()</span></code></a> uses the VLOG task in AIPS to split
+the TY tables from the rest of the calibration tables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>bif</strong> (<em>int</em>) – first frequency IF to consider</p></li>
+<li><p><strong>eif</strong> (<em>int</em>) – last frequency IF to consider</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>urls from which the calibration tables have been retrieved</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.remove_ascii_antname">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">remove_ascii_antname</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.remove_ascii_antname" title="Permalink to this definition"></a></dt>
+<dd><p>Remove non-ASCII characters from antenna names.</p>
+<p>Recovers the antenna names from the uvifts/idifits files, then runs the TABED     task to edit the AN table in AIPS.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>filepath</strong> (<em>str</em>) – path to the original uvfits/idifits file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.remove_ascii_poltype">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">remove_ascii_poltype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.remove_ascii_poltype" title="Permalink to this definition"></a></dt>
+<dd><p>Remove non-ASCII characters from polarization types.</p>
+<p>Recovers the polarization labels from the uvifts/idifits files, then runs the TABED
+task to edit the AN table in AIPS.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>filepath</strong> (<em>str</em>) – path to the original uvfits/idifits file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.load_tables.ty_tsm_vlog">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.load_tables.</span></span><span class="sig-name descname"><span class="pre">ty_tsm_vlog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bif</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eif</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_paths</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.load_tables.ty_tsm_vlog" title="Permalink to this definition"></a></dt>
+<dd><p>Split tsys tables from a TSM produced cal.vlba file.</p>
+<p>Uses the VLOG task in AIPS to separate the system temperature information from one
+or multiple cal.vlba files in the TSM format. The output is written onto
+./vipcals/tmp/tsys.vlba</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>bif</strong> (<em>int</em>) – first frequency IF to consider</p></li>
+<li><p><strong>eif</strong> (<em>int</em>) – last frequency IF to consider</p></li>
+<li><p><strong>table_paths</strong> – list of paths where the calibration tables have been downloaded</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.optimize_solint">
+<span id="vipcals-scripts-optimize-solint-module"></span><h2>vipcals.scripts.optimize_solint module<a class="headerlink" href="#module-vipcals.scripts.optimize_solint" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.optimize_solint.optimize_solint_cm">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.optimize_solint.</span></span><span class="sig-name descname"><span class="pre">optimize_solint_cm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.optimize_solint.optimize_solint_cm" title="Permalink to this definition"></a></dt>
+<dd><p>Alternative algorithm to find the optimal solution interval for fringe fit.</p>
+<p>Runs a fringe fit in a selected number of scans of the target for five different
+solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal
+solution interval is the one that produces the best SNR. It will only search for
+solution intervals that are larger than min_solint. If there are more than 10 scans,
+the search will be done in 10 randomly selected scans.</p>
+<p>THIS ALGORITHM IS NOT USED IN THE CURRENT VERSION</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target</strong> (<em>str</em>) – source name</p></li>
+<li><p><strong>target_scans</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects) – list of scans where to optimize the solution interval</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>min_solint</strong> (<em>float</em><em>, </em><em>optional</em>) – minimum solution interval in minutes; defaults to 1</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>optimal solution interval in minutes, dictionary with the median SNR for
+each solution interval</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.optimize_solint.optimize_solint_mm">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.optimize_solint.</span></span><span class="sig-name descname"><span class="pre">optimize_solint_mm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.optimize_solint.optimize_solint_mm" title="Permalink to this definition"></a></dt>
+<dd><p>Find the optimal solution interval in which to fringe fit a target.</p>
+<p>Algorithm for mm-wavelengths</p>
+<p>Runs a fringe fit in a selected number of scans of the target for five different     solution intervals: 1/5, 1/4, 1/3, 1/2, and 1/1 of the scan length. The optimal     solution interval is the smallest time required for all baselines to reach an SNR     of 5. It will only search for solution intervals that are larger than min_solint.
+If there are more than 10 scans, the search will be done in 10 randomly selected
+scans.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target</strong> (<em>str</em>) – source name</p></li>
+<li><p><strong>target_scans</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects) – list of scans where to optimize the solution interval</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>min_solint</strong> (<em>float</em><em>, </em><em>optional</em>) – minimum solution interval in minutes; defaults to 1</p></li>
+<li><p><strong>max_solint</strong> (<em>float</em><em>, </em><em>optional</em>) – minimum solution interval in minutes; defaults to 10</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>optimal solution interval in minutes, dictionary with the SNR per antenna
+for each solution interval</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.optimize_solint.snr_fring_optimiz">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.optimize_solint.</span></span><span class="sig-name descname"><span class="pre">snr_fring_optimiz</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeran</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.optimize_solint.snr_fring_optimiz" title="Permalink to this definition"></a></dt>
+<dd><p>Short fringe fit (only FFT) to obtain an SNR value.</p>
+<p>Fringe fit of each IF, solving for delays and rates.
+The solution interval, the timerange, the source and the output SN version
+need to be specified.</p>
+<p>Creates a SN table containing the SNR values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>solint</strong> (<em>int</em>) – solution interval in minutes, if 0 =&gt; solint = 10 min,                    if &gt; scan/2  =&gt; solint = scan</p></li>
+<li><p><strong>timeran</strong> (<em>AIPSList</em>) – time range in AIPS format in which the search is performed</p></li>
+<li><p><strong>source</strong> (<em>str</em>) – name of the source on which to perform the fringe fit</p></li>
+<li><p><strong>output_version</strong> (<em>int</em>) – output version of the SN table</p></li>
+<li><p><strong>delay_w</strong> (<em>int</em><em>, </em><em>optional</em>) – delay window in ns in which the search is performed; defaults to 1000</p></li>
+<li><p><strong>rate_w</strong> (<em>int</em><em>, </em><em>optional</em>) – rate window in mHz in which the search is performed; defaults to 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.pang_corr">
+<span id="vipcals-scripts-pang-corr-module"></span><h2>vipcals.scripts.pang_corr module<a class="headerlink" href="#module-vipcals.scripts.pang_corr" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.pang_corr.pang_corr">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.pang_corr.</span></span><span class="sig-name descname"><span class="pre">pang_corr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.pang_corr.pang_corr" title="Permalink to this definition"></a></dt>
+<dd><p>Correct phases for parallactic angles.</p>
+<p>Runs the CLCOR task in AIPS to the data.
+Creates CL#4</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.plotter">
+<span id="vipcals-scripts-plotter-module"></span><h2>vipcals.scripts.plotter module<a class="headerlink" href="#module-vipcals.scripts.plotter" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.generate_pickle_plots">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">generate_pickle_plots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.generate_pickle_plots" title="Permalink to this definition"></a></dt>
+<dd><p>Generate multiple plots and serialize them in a compressed format.</p>
+<p>The function applies all the different calibration tables to the data and
+creates multiple matplotlib figures and dictionaries with each of them.
+The figures (UVPLT, RADPLOT) are serialized with pickle and can be later displayed
+in the GUI; the dictionaries (POSSM, VPLOT) are compressed in npz format and the GUI
+can generate the plots with them.</p>
+<p>Generated plots are amp&amp;phase vs freq (for each table), amp&amp;phase vs time
+(for the last table), amp&amp;phase vs uvdist (for the last table), and
+uv coverage. They are stored in a vipcals/tmp in order to be read
+by the GUI.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of sources to split</p></li>
+<li><p><strong>path_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of paths of the visibilities</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.generate_pickle_radplot">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">generate_pickle_radplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.generate_pickle_radplot" title="Permalink to this definition"></a></dt>
+<dd><p>Generate radplots and serialize them in pickle format.</p>
+<p>Exactly the same as <a class="reference internal" href="#vipcals.scripts.plotter.generate_pickle_plots" title="vipcals.scripts.plotter.generate_pickle_plots"><code class="xref py py-func docutils literal notranslate"><span class="pre">generate_pickle_plots()</span></code></a> but only
+for the amplitudes&amp;phases vs frequency. This function is called when the interactive
+mode of the pipeline is disabled, since AIPS cannot generate these plots on its own
+(or at least with the desired layout).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of sources to split</p></li>
+<li><p><strong>path_list</strong> (<em>list</em><em> of </em><em>str</em>) – list of paths of the visibilities</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.pickle_possm">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">pickle_possm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wuvdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">an_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.pickle_possm" title="Permalink to this definition"></a></dt>
+<dd><p>Generate visibility vs freq dicitonaries and compress them into an npz object.</p>
+<p>Produces a dictionary with visiblities and frequency information of each baseline.
+This is compressed into an npz object, from which the GUI can generate plots.
+Requires the Wizardry module, as it gives you full access to the visibilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wuvdata</strong> (<em>Wizardry.AIPSData.AIPSUVData object</em>) – AIPSUVData from the Wizardry module</p></li>
+<li><p><strong>path</strong> (<em>str</em>) – path were to write the pickle object</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – name to be given to the file</p></li>
+<li><p><strong>an_table</strong> (<em>AIPSTable</em>) – table with the antenna information</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.pickle_radplot">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">pickle_radplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wuvdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.pickle_radplot" title="Permalink to this definition"></a></dt>
+<dd><p>Generate visibility vs uvdist plots and serialize them into a pickle object.</p>
+<p>Produced plots are averaged in IFs (i.e. one value per IF) but not between IFs nor
+in time. RR and LL polarizations are plotted together.
+Requires the Wizardry module, as it gives you full access to the visibilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wuvdata</strong> (<em>str</em>) – AIPSUVData from the Wizardry module</p></li>
+<li><p><strong>path</strong> (<em>str</em>) – path were to write the pickle object</p></li>
+<li><p><strong>name</strong> – name to be given to the file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.pickle_uvplt">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">pickle_uvplt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wuvdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.pickle_uvplt" title="Permalink to this definition"></a></dt>
+<dd><p>Generate uv-coverage plots and serialize them into a pickle object.</p>
+<p>Requires the Wizardry module, as it gives you full access to the visibilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wuvdata</strong> (<em>str</em>) – AIPSUVData from the Wizardry module</p></li>
+<li><p><strong>path</strong> (<em>str</em>) – path were to write the pickle object</p></li>
+<li><p><strong>name</strong> – name to be given to the file</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.pickle_vplot">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">pickle_vplot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wuvdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">an_table</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.pickle_vplot" title="Permalink to this definition"></a></dt>
+<dd><p>Generate visibility vs time dicitonaries and compress them into a pickle object.</p>
+<p>Produces a dictionary with amplitude, phase, and timestamps of each baseline. This
+is written into a pickle object, from which the GUI can generate plots.
+Requires the Wizardry module, as it gives you full access to the visibilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wuvdata</strong> (<em>Wizardry.AIPSData.AIPSUVData object</em>) – AIPSUVData from the Wizardry module</p></li>
+<li><p><strong>path</strong> (<em>str</em>) – path were to write the pickle object</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – name to be given to the file</p></li>
+<li><p><strong>an_table</strong> (<em>AIPSTable</em>) – table with the antenna information</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.possm_plotter">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">possm_plotter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gainuse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bpver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flagver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flag_edge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flag_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.possm_plotter" title="Permalink to this definition"></a></dt>
+<dd><p>Plot visibilities as a function of frequency to a PostScript file.</p>
+<p>Uses the POSSM task in AIPS to plot amplitudes and phases as a function of frequency.
+These plots are written into a ps file using the LWPLA task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<em>str</em>) – path of the output directory</p></li>
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target</strong> (<em>str</em>) – target name</p></li>
+<li><p><strong>gainuse</strong> (<em>int</em>) – CL version to apply</p></li>
+<li><p><strong>bpver</strong> (<em>int</em><em>, </em><em>optional</em>) – BP table version to use, if = 0 then don’t correct for bandpass;
+defaults to 0</p></li>
+<li><p><strong>flagver</strong> (<em>int</em><em>, </em><em>optional</em>) – FG table version to use, if = 0 then apply the highest;
+defaults to 0</p></li>
+<li><p><strong>flag_edge</strong> (<em>bool</em><em>, </em><em>optional</em>) – flag edge channels; defaults to False</p></li>
+<li><p><strong>flag_frac</strong> (<em>float</em><em>, </em><em>optional</em>) – number of edge channels to flag, either a fraction (if &lt; 1)                       or an integer number of channels (if &gt;= 1); defaults to 0.1</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.tsys_plotter">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">tsys_plotter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tyver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.tsys_plotter" title="Permalink to this definition"></a></dt>
+<dd><p>Plot system temperatures as a function of time to a PostScript file.</p>
+<p>Uses the SNPLT task in AIPS to plot system temperatures of the antennas as a function
+of time. Only points relevant to the observation are plotted.
+The plot is written into a ps file using the LWPLA task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<em>str</em>) – path of the output directory</p></li>
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>tyver</strong> (<em>int</em><em>, </em><em>optional</em>) – TY table version to print; defaults to 1</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.uvplt_plotter">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">uvplt_plotter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.09</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.uvplt_plotter" title="Permalink to this definition"></a></dt>
+<dd><p>Plot UV coverage for a source to a PostScript file.</p>
+<p>Uses the UVPLT task in AIPS to plot the UV coverage of a source. By default it plots
+one visibility every 10 seconds.
+The plot is written into a ps file using the LWPLA task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<em>str</em>) – path of the output directory</p></li>
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target</strong> (<em>str</em>) – target name</p></li>
+<li><p><strong>solint</strong> (<em>float</em><em>, </em><em>optional</em>) – time averaging interval in minutes; defaults to 0.09 (~5 seconds)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.plotter.vplot_plotter">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.plotter.</span></span><span class="sig-name descname"><span class="pre">vplot_plotter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gainuse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bpver</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">avgif</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">avgchan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.09</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.plotter.vplot_plotter" title="Permalink to this definition"></a></dt>
+<dd><p>Plot visibilities as a function of time to a PostScript file.</p>
+<p>Uses the VPLOT task in AIPS to plot amplitudes and phases of a source as a function
+of time. By default it plots one visibility every ~5 seconds. Data are also averaged
+in IFs and channels.
+The plot is written into a ps file using the LWPLA task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<em>str</em>) – path of the output directory</p></li>
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>target</strong> (<em>str</em>) – science target name</p></li>
+<li><p><strong>gainuse</strong> (<em>int</em>) – CL version to apply</p></li>
+<li><p><strong>bpver</strong> (<em>int</em><em>, </em><em>optional</em>) – BP table version to use, if = 0 then don’t correct for bandpass;                   defaults to 0</p></li>
+<li><p><strong>avgif</strong> (<em>int</em><em>, </em><em>optional</em>) – average the data in IFs, 0 =&gt; False, 1 =&gt; True; defaults to 1</p></li>
+<li><p><strong>avgchan</strong> (<em>int</em><em>, </em><em>optional</em>) – average the data in channels, 0 =&gt; False, 1 =&gt; True; defaults to 1</p></li>
+<li><p><strong>solint</strong> (<em>float</em><em>, </em><em>optional</em>) – time averaging interval in minutes; defaults to 0.09</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.refant_choose">
+<span id="vipcals-scripts-refant-choose-module"></span><h2>vipcals.scripts.refant_choose module<a class="headerlink" href="#module-vipcals.scripts.refant_choose" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.refant_choose.get_flagged_antennas">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.refant_choose.</span></span><span class="sig-name descname"><span class="pre">get_flagged_antennas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.refant_choose.get_flagged_antennas" title="Permalink to this definition"></a></dt>
+<dd><p>Return a set of antennas flagged due to ‘NO TSYS/GC’.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.refant_choose.index_visibility_antennas">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.refant_choose.</span></span><span class="sig-name descname"><span class="pre">index_visibility_antennas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wuvdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bad_antennas</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.refant_choose.index_visibility_antennas" title="Permalink to this definition"></a></dt>
+<dd><p>Build a time-indexed mapping of antennas participating in visibilities.</p>
+<p>Iterates over all visibilities in the given AIPSUVData object and records the
+antennas involved at each timestamp, excluding autocorrelations and any antennas
+marked as bad. This mapping can be used to quickly determine which antennas
+were observing during specific time intervals, avoiding repeated iteration over
+the full visibility dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wuvdata</strong> (<em>wizard.AIPSUVData</em>) – Wizardry AIPSUVData object</p></li>
+<li><p><strong>bad_antennas</strong> (<em>list</em><em> of </em><em>int</em>) – List of antenna IDs to exclude</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary mapping visibility timestamps to sets of active antenna IDs</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[float, set[int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.refant_choose.is_flagged_scan">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.refant_choose.</span></span><span class="sig-name descname"><span class="pre">is_flagged_scan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flagged_antennas</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.refant_choose.is_flagged_scan" title="Permalink to this definition"></a></dt>
+<dd><p>Filter out flagged antennas from the scan.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.refant_choose.refant_choose_snr">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.refant_choose.</span></span><span class="sig-name descname"><span class="pre">refant_choose_snr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_source_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_central</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_scans</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.refant_choose.refant_choose_snr" title="Permalink to this definition"></a></dt>
+<dd><p>Choose a suitable reference antenna using SNR values</p>
+<p>Select antennas based on its availability throughout the observation, then run a     fast fringe fit on the target(s) using each antenna as the reference antenna. Return     the id of the antenna with the highest SNR.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>sources</strong> (<em>list</em><em> of </em><em>str</em>) – list with source names</p></li>
+<li><p><strong>target_list</strong> (<em>list</em><em> of </em><em>str</em>) – target names</p></li>
+<li><p><strong>full_source_list</strong> (<em>list</em><em> of </em><em>Source objects</em>) – list containing all sources in the dataset</p></li>
+<li><p><strong>log</strong> – list of pipeline logs</p></li>
+<li><p><strong>search_central</strong> (<em>bool</em><em>, </em><em>optional</em>) – search for reference antenna only between                             KP, LA, PT, OV and FD, defaults to True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Max_scans<span class="colon">:</span></dt>
+<dd class="field-even"><p>maximum number of scans per source where to compute the SNR; defaults
+to 10</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>reference antenna number, sorted antenna dictionary containing the SNR</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int, dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.refant_choose.refant_fring">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.refant_choose.</span></span><span class="sig-name descname"><span class="pre">refant_fring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.refant_choose.refant_fring" title="Permalink to this definition"></a></dt>
+<dd><p>Short fringe fit (only FFT) to select a reference antenna.</p>
+<p>Fringe fit each IF, solving for delays and rates. Default values for
+the delay and rate windows are 1000 ns and 200hz. Runs the FRING task in AIPS for
+each of the selected scans and then merges them into a single SN table.</p>
+<p>Creates a new SN table which contains the SNR per scan.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>selected_scans</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects) – list of scans where to compute the SNR</p></li>
+<li><p><strong>delay_w</strong> (<em>int</em><em>, </em><em>optional</em>) – delay window in ns in which the search is performed, defaults to 1000</p></li>
+<li><p><strong>rate_w</strong> (<em>int</em><em>, </em><em>optional</em>) – rate window in hz in which the search is performed, defaults to 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.refant_choose.refant_kring">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.refant_choose.</span></span><span class="sig-name descname"><span class="pre">refant_kring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">selected_scans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inttime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delay_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.refant_choose.refant_kring" title="Permalink to this definition"></a></dt>
+<dd><p>TEST</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>refant</strong> (<em>int</em>) – reference antenna number</p></li>
+<li><p><strong>selected_scans</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">Scan</span></code> objects) – list of scans where to compute the SNR</p></li>
+<li><p><strong>delay_w</strong> (<em>int</em><em>, </em><em>optional</em>) – delay window in ns in which the search is performed, defaults to 1000</p></li>
+<li><p><strong>rate_w</strong> (<em>int</em><em>, </em><em>optional</em>) – rate window in hz in which the search is performed, defaults to 200</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts.ty_smooth">
+<span id="vipcals-scripts-ty-smooth-module"></span><h2>vipcals.scripts.ty_smooth module<a class="headerlink" href="#module-vipcals.scripts.ty_smooth" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.ty_smooth.ty_assess">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.ty_smooth.</span></span><span class="sig-name descname"><span class="pre">ty_assess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.ty_smooth.ty_assess" title="Permalink to this definition"></a></dt>
+<dd><p>Evaluate how many TSys datapoints have been flagged in TY#2.</p>
+<p>It computes the difference between the total number of tsys entries in TY#1 and TY#2.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>number of points in TY#1, number of flagged points in TY#2, dictionary with
+these values per antenna, antennas fully flagged</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, float, dict, list of str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="vipcals.scripts.ty_smooth.ty_smooth">
+<span class="sig-prename descclassname"><span class="pre">vipcals.scripts.ty_smooth.</span></span><span class="sig-name descname"><span class="pre">ty_smooth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_interv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_dev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">250</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vipcals.scripts.ty_smooth.ty_smooth" title="Permalink to this definition"></a></dt>
+<dd><p>Smooth/filter system temperature tables.</p>
+<p>Flag TSys values below tmin and above tmax using the TYSMO task in AIPS. Also
+flag values that deviate more than (max_dev) K from a mean value. This is done on a
+per-source basis.</p>
+<p>Flag also antennas with no TY or GC table entries using the UVFLG task.</p>
+<p>Creates TY#2</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>AIPSUVData</em>) – visibility data</p></li>
+<li><p><strong>tmin</strong> (<em>float</em><em>, </em><em>optional</em>) – minimum TSys value allowed in K; defaults to 0</p></li>
+<li><p><strong>tmax</strong> (<em>float</em><em>, </em><em>optional</em>) – maximum TSys value allowed in K; defaults to 1000</p></li>
+<li><p><strong>time_interv</strong> (<em>float</em><em>, </em><em>optional</em>) – smoothing time interval in minutes; defaults to 15</p></li>
+<li><p><strong>max_dev</strong> (<em>float</em><em>, </em><em>optional</em>) – maximum TSys deviation allowed from the mean value of each
+source in K; defaults to 250</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of ids of antennas with no system temperature information,
+list of ids of antennas with no gain curve information</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of int, list of int</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-vipcals.scripts">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-vipcals.scripts" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Diego Alvarez-Ortega.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -10,8 +10,8 @@ from string import ascii_lowercase as alc
 from astropy.io import fits
 from astropy.table import Table
 
-from scripts.helper import NoTablesError
-from scripts.helper import GC_entry
+from vipcals.scripts.helper import NoTablesError
+from vipcals.scripts.helper import GC_entry
 
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8

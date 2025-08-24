@@ -12,25 +12,26 @@ from AIPS import AIPS
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 
-import scripts.load_data as load
-import scripts.display as disp
-import scripts.load_tables as tabl
-import scripts.ty_smooth as tysm
-import scripts.refant_choose as rant
-import scripts.ionos_corr as iono
-import scripts.eop_corr as eopc
-import scripts.accor as accr
-import scripts.amp_cal as ampc
-import scripts.pang_corr as pang
-import scripts.calib_choose as cali
-import scripts.instr_calib as inst
-import scripts.plotter as plot
-import scripts.bandpass as bpas
-import scripts.helper as help
-import scripts.fringe_fit as frng
-import scripts.optimize_solint as opti
-import scripts.export_data as expo
-import scripts.phase_shift as shft
+from vipcals.scripts import load_data as load
+from vipcals.scripts import display as disp
+from vipcals.scripts import load_tables as tabl
+from vipcals.scripts import ty_smooth as tysm
+from vipcals.scripts import refant_choose as rant
+from vipcals.scripts import ionos_corr as iono
+from vipcals.scripts import eop_corr as eopc
+from vipcals.scripts import accor as accr
+from vipcals.scripts import amp_cal as ampc
+from vipcals.scripts import pang_corr as pang
+from vipcals.scripts import calib_choose as cali
+from vipcals.scripts import instr_calib as inst
+from vipcals.scripts import plotter as plot
+from vipcals.scripts import bandpass as bpas
+from vipcals.scripts import helper as help
+from vipcals.scripts import fringe_fit as frng
+from vipcals.scripts import optimize_solint as opti
+from vipcals.scripts import export_data as expo
+from vipcals.scripts import phase_shift as shft
+
 
 from AIPSData import AIPSUVData, AIPSCat
 import Wizardry.AIPSData as wizard

@@ -161,7 +161,7 @@ multiple files) and lets you inspect the results via interactive plots.
     
       - *Reference antenna*: fixed reference antenna (e.g.,
         <span class="title-ref">"LA"</span>)
-      - *Piority antennas*: list of preferred antennas to be used as
+      - *Priority antennas*: list of preferred antennas to be used as
         reference antenna (e.g., <span class="title-ref">“LA”</span>,
         <span class="title-ref">“FD”</span>,
         <span class="title-ref">“EB”</span>)
@@ -201,13 +201,14 @@ multiple files) and lets you inspect the results via interactive plots.
     \- *Interactive plots*: enable GUI plots (manual mode only) 
 
     > **Warning**: Generating these plots can consume lots of time and
-    > storage. It is advised to disable them for large datasets. Static
+    > disk storage. It is advised to disable them for large datasets. Static
     > .ps and pdf plots are always saved in the output directory.
 
 ### JSON Input
 
-For batch processing, inputs can be supplied via a JSON file. All
-parameters mirror the manual input described above.
+For batch processing, inputs can be supplied via a JSON file. All 
+parameters mirror the manual input described above. As before, when running in Docker, 
+both userno and disk should be omitted.
 
 **Minimum JSON Fields**
 
@@ -239,7 +240,7 @@ parameters mirror the manual input described above.
 | min\_solint               | float                     |
 | max\_solint               | float                     |
 | channel\_out              | str ("SINGLE" or "MULTI") |
-| flag\_Edge                | float                     |
+| flag\_edge                | float                     |
 
 **Examples**
 
@@ -342,9 +343,9 @@ folder:
 >   - *\*\_CL9\_POSSM.ps*: calibrated visibilities vs frequency
 >   - *\*\_TSYS\_TY1.ps*: original antenna system temperatures vs time
 >   - *\*\_TSYS\_TY2.ps*: smoothed antenna system temperatures vs time
->   - *\*UVPLT.ps*: UV coverage of the calibrated observation
->   - *\*VPLOT.ps*: calibrated visibilities vs time
->   - *\*RADPLOT.pdf*: calibrated visibilities vs uv-distance
+>   - *\*\_UVPLT.ps*: UV coverage of the calibrated observation
+>   - *\*\_VPLOT.ps*: calibrated visibilities vs time
+>   - *\*\_RADPLOT.pdf*: calibrated visibilities vs uv-distance
 
 and the following tables in the */TABLES/* folder:
 

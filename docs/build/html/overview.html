@@ -1,0 +1,894 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AIPS Calibration Workflow &mdash; VIPCALs 0.3.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+
+  
+      <script src="_static/jquery.js"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+      <script src="_static/doctools.js"></script>
+      <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Usage" href="usage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            VIPCALs
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">How to install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#requirements">Requirements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#manual-installation">Manual installation:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#docker-installation">Docker installation:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installation">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#id1">Manual Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#id2">Docker Installation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#manual-input">Manual Input</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#pipeline-log">Pipeline log</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#interactive-plots">Interactive plots</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#json-input">JSON Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#outputs">Outputs</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AIPS Calibration Workflow</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-loading">Data loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pre-calibration-checks">Pre-calibration checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#table-loading">Table loading</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#phase-center-shift">Phase center shift</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#time-frequency-average">Time/frequency average</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ty-table-smoothing">TY table smoothing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#choice-of-reference-antenna">Choice of reference antenna</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ionospheric-delay-correction">Ionospheric delay correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#geometric-corrections">Geometric corrections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#choice-of-calibrator-scans">Choice of calibrator scans</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#digital-sampling-correction">Digital sampling correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#instrumental-delay-correction">Instrumental delay correction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#complex-bandpass">Complex bandpass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#amplitude-calibration">Amplitude calibration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#target-fringe-fit">Target fringe fit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-export">Data export</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#plots">Plots</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">VIPCALs</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">AIPS Calibration Workflow</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="aips-calibration-workflow">
+<h1>AIPS Calibration Workflow<a class="headerlink" href="#aips-calibration-workflow" title="Permalink to this heading"></a></h1>
+<p>In this section, we provide a detailed description of the AIPS tasks used throughout the pipeline, along with their most relevant parameters. For the scientific motivation behind this workflow, please refer to <a class="reference external" href="https://arxiv.org/abs/2508.13282">Alvarez-Ortega et al. (2025)</a>.</p>
+<a class="reference internal image-reference" href="_images/workflow_tags.png"><img alt="main VIPCALs workflow" class="align-center" src="_images/workflow_tags.png" style="width: 750px;" /></a>
+<br><br><section id="data-loading">
+<h2>Data loading<a class="headerlink" href="#data-loading" title="Permalink to this heading"></a></h2>
+<p>After splitting in frequencies and selecting multiple potential calibrators, data are loaded into AIPS using FITLD:</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;FITLD&#39;</span>
+
+<span class="k">outname</span><span class="n">       </span><span class="c1"># Project name</span>
+<span class="k">outdisk</span>
+<span class="k">outclass</span><span class="n">      </span><span class="c1"># The loaded frequency, i.e. 22G for K band data</span>
+<span class="k">outseq</span><span class="n">    1</span>
+
+<span class="k">sources</span><span class="n">       </span><span class="c1"># Science targets + potential calibrators</span>
+<span class="k">bif</span><span class="n">           </span><span class="c1"># Depending on frequency loaded</span>
+<span class="k">eif</span><span class="n">           </span><span class="c1"># Depending on frequency loaded</span>
+<span class="k">clint</span><span class="n">     0.1 </span><span class="c1"># CL entry interval in minutes</span>
+<span class="k">selfreq</span><span class="n">       </span><span class="c1"># Depending on frequency loaded</span>
+<span class="k">fqtol</span><span class="n">         </span><span class="c1"># 0.5% of selfreq</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>If more than 1 file is loaded, redundant calibration tables are merged with TAMRG</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># GC tables</span>
+<span class="k">task</span><span class="n"> &#39;TAMRG&#39;</span>
+
+<span class="k">inext</span><span class="n">     &#39;GC&#39;</span>
+<span class="k">aparm</span><span class="n">     1 1 2 1 3 1</span>
+<span class="k">bparm</span><span class="n">     1 2 3</span>
+
+<span class="k">invers</span><span class="n">    1</span>
+<span class="k">outvers</span><span class="n">   1</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># TY tables</span>
+<span class="k">task</span><span class="n"> &#39;TAMRG&#39;</span>
+
+<span class="k">inext</span><span class="n">     &#39;TY&#39;</span>
+<span class="k">aparm</span><span class="n">     1 1 4 1 5 1 6 1</span>
+<span class="k">bparm</span><span class="n">     1 3 4 5 6</span>
+<span class="k">cparm</span><span class="n">     0.1/(24*60*60)  </span><span class="c1"># Tolerance for timestamps, 0.1s</span>
+
+<span class="k">invers</span><span class="n">    1</span>
+<span class="k">outvers</span><span class="n">   1</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># PC tables</span>
+<span class="k">task</span><span class="n"> &#39;TAMRG&#39;</span>
+
+<span class="k">inext</span><span class="n"> &#39;PC&#39;</span>
+<span class="k">aparm</span><span class="n">     1 1 4 1 5 1 6 1</span>
+<span class="k">bparm</span><span class="n">     1 3 4 5 6</span>
+<span class="k">cparm</span><span class="n">     0.1/(24*60*60)   </span><span class="c1"># Tolerance for timestamps, 0.1s</span>
+
+<span class="k">invers</span><span class="n">    1</span>
+<span class="k">outvers</span><span class="n">   1</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="pre-calibration-checks">
+<h2>Pre-calibration checks<a class="headerlink" href="#pre-calibration-checks" title="Permalink to this heading"></a></h2>
+<p>If the loaded data not in time-baseline (TB) order, they are sorted with UVSRT</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;UVSRT&#39;</span>
+
+<span class="k">sort</span><span class="n">  &#39;TB&#39;</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>If there is not an index table (NX) or an intial calibration table (CL1), they are created with INDXR</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;INDXR&#39;</span>
+
+<span class="k">cparm(3)</span><span class="n">  0.1 </span><span class="c1"># CL entry interval in minutes</span>
+<span class="k">cparm(4)</span><span class="n">  4   </span><span class="c1"># Recalculate CL group delays if IM table is available</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="table-loading">
+<h2>Table loading<a class="headerlink" href="#table-loading" title="Permalink to this heading"></a></h2>
+<p>When system temperatures (TY1), gain curves (GC1), or initial flag tables (FG1) are not available in the data, they are retrieved online and loaded using ANTAB</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;ANTAB&#39;</span>
+
+<span class="k">tyver</span><span class="n"> 1</span>
+<span class="k">gcver</span><span class="n"> 1</span>
+<span class="k">calin</span><span class="n">     </span><span class="c1"># Tsys or GC file</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>or UVFLG in case of the initial flag table</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;UVFLG&#39;</span>
+
+<span class="k">intext</span><span class="n">    </span><span class="c1"># Flag file</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>When the dataset has been observed with the VLBA and the calibration tables have been generated with the TSM software, the pipeline uses the VLOG task to extract the information</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;VLOG&#39;</span>
+
+<span class="k">calin</span><span class="n">     </span><span class="c1"># cal.vlba file</span>
+<span class="k">outfile</span><span class="n">   </span><span class="c1"># Path for the extracted tables in ANTAB format</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>If there are non-ASCII characters in the antenna table (AN), these are replace with the correct values. This is done to avoid issues with ParselTongue, and the TABED task can be used for this purpose</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># For antenna names</span>
+
+<span class="k">task</span><span class="n"> &#39;TABED&#39;</span>
+
+<span class="k">inext</span><span class="n">     &#39;AN&#39;</span>
+<span class="k">invers</span><span class="n">    1</span>
+<span class="k">outvers</span><span class="n">   1</span>
+<span class="k">optype</span><span class="n">    &#39;REPL&#39;</span>
+
+<span class="k">aparm(1)</span><span class="n">      </span><span class="c1"># Column to modify, 1 for ant names, 9 for pol names</span>
+<span class="k">aparm(2)</span><span class="n">  0   </span><span class="c1"># First character to modify</span>
+<span class="k">aparm(3)</span><span class="n">  0   </span><span class="c1"># Last character to modify</span>
+<span class="k">aparm(4)</span><span class="n">  3   </span><span class="c1"># String type</span>
+
+<span class="k">bcount</span><span class="n">        </span><span class="c1"># Iterate over all rows one by one</span>
+<span class="k">ecount</span><span class="n">        </span><span class="c1"># Same row as bcount</span>
+
+<span class="k">keystrng</span><span class="n">      </span><span class="c1"># Correct names, extracted from the fits file</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># For polarization names</span>
+
+<span class="k">task</span><span class="n"> &#39;TABED&#39;</span>
+
+<span class="k">inext</span><span class="n">     &#39;AN&#39;</span>
+<span class="k">invers</span><span class="n">    1</span>
+<span class="k">outvers</span><span class="n">   1</span>
+<span class="k">optype</span><span class="n">    &#39;REPL&#39;</span>
+
+<span class="k">aparm(1)</span><span class="n">  9   </span><span class="c1"># Column to modify, antenna names are 1</span>
+<span class="k">aparm(2)</span><span class="n">  0   </span><span class="c1"># First character to modify</span>
+<span class="k">aparm(3)</span><span class="n">  0   </span><span class="c1"># Last character to modify</span>
+<span class="k">aparm(4)</span><span class="n">  3   </span><span class="c1"># String type</span>
+
+<span class="k">bcount</span><span class="n">        </span><span class="c1"># Iterate over all rows one by one</span>
+<span class="k">ecount</span><span class="n">        </span><span class="c1"># Same row as bcount</span>
+
+<span class="k">keystrng</span><span class="n">      </span><span class="c1"># Correct antenna names, extracted from the fits file</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="phase-center-shift">
+<h2>Phase center shift<a class="headerlink" href="#phase-center-shift" title="Permalink to this heading"></a></h2>
+<p>If specified by the user, VIPCALs can shift the correlation phase center of a source. It can be done through the UVFIX task, going from the old coordinates RA, DEC, to the new ones RA’, DEC’.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;UVFIX&#39;</span>
+
+<span class="k">srcname</span><span class="n">   </span><span class="c1"># Target to shift</span>
+<span class="k">shift</span><span class="n">     </span><span class="c1"># shift_1, shift_2</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>where shift_1 = cos(DEC) * (RA’ - RA), and shift_2 = (DEC’ - DEC).</p>
+</section>
+<hr class="docutils" />
+<section id="time-frequency-average">
+<h2>Time/frequency average<a class="headerlink" href="#time-frequency-average" title="Permalink to this heading"></a></h2>
+<p>To improve the signal-to-noise ratio while still preserving coherence, VIPCALs can apply both a time and frequency average. By default, if the time sampling is shorter than 1s, data are averaged in 2s bins with UVAVG</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># GC tables</span>
+<span class="k">task</span><span class="n"> &#39;UVAVG&#39;</span>
+
+<span class="k">doacor</span><span class="n">    1   </span><span class="c1"># Keep autocorrelations</span>
+<span class="k">yinc</span><span class="n">      2   </span><span class="c1"># Final sampling time, can be changed</span>
+<span class="k">zinc</span><span class="n">          </span><span class="c1"># Original sampling time</span>
+<span class="k">opcode</span><span class="n">    &#39;TIME&#39;</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>In frequency, the pipeline will run AVSPC by default if the channel width is narrower than 0.5MHz.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># GC tables</span>
+<span class="k">task</span><span class="n"> &#39;UVAVG&#39;</span>
+
+<span class="k">doacor</span><span class="n">    1   </span><span class="c1"># Keep autocorrelations</span>
+<span class="k">channel</span><span class="n">       </span><span class="c1"># Ratio old_channels/new_channels</span>
+<span class="k">avoption</span><span class="n">  &#39;SUBS&#39;</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>After this steps, the scan list is printed with LISTR into a text file in the output folder</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;LISTR&#39;</span>
+
+<span class="k">optype</span><span class="n">    &#39;SCAN&#39;</span>
+<span class="k">flagver</span><span class="n">   1</span>
+<span class="k">xinc</span><span class="n">      1   </span><span class="c1"># Display all lines</span>
+<span class="k">docrt</span><span class="n">     -2  </span><span class="c1"># Print to external file</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="ty-table-smoothing">
+<h2>TY table smoothing<a class="headerlink" href="#ty-table-smoothing" title="Permalink to this heading"></a></h2>
+<p>System temperatures are filtered and smoothed using TYSMO. Default criteria are to flag temperatures below 0K, over 1500K, and that deviate more than 250K from the mean of a given source</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;TYSMO&#39;</span>
+
+<span class="k">invers</span><span class="n">    1</span>
+<span class="k">outvers</span><span class="n">   2</span>
+
+<span class="k">inext</span><span class="n">     &#39;TY&#39;</span>
+<span class="k">dobetween</span><span class="n"> 0       </span><span class="c1"># Smooth each source individually</span>
+
+<span class="k">aparm(1)</span><span class="n">  0       </span><span class="c1"># Minimim temperature</span>
+<span class="k">aparm(6)</span><span class="n">  1500    </span><span class="c1"># Maximum temperature</span>
+
+<span class="k">cparm(1)</span><span class="n">  15      </span><span class="c1"># Time interval in which the mean is computed</span>
+<span class="k">cparm(6)</span><span class="n">  250     </span><span class="c1"># Maximum deviation allowed with respect to the mean</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Antennas with no TY or GC tables at this stage, or where all Tsys values have been flagged, are flagged in FG2 using UVFLG. First, FG1 is copied into FG2 using TACOP.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copy the table</span>
+
+<span class="k">task</span><span class="n"> &#39;TACOP&#39;</span>
+
+<span class="k">inext</span><span class="n">     &#39;FG&#39;</span>
+<span class="k">invers</span><span class="n">    1</span>
+<span class="k">outvers</span><span class="n">   2</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># Flag the antennas</span>
+
+<span class="k">task</span><span class="n"> &#39;UVFLG&#39;</span>
+
+<span class="k">antennas</span><span class="n">      </span><span class="c1"># Antennas with no TY or GC</span>
+<span class="k">outfgver</span><span class="n">  2</span>
+<span class="k">reason</span><span class="n">    &#39;NO TSYS/GC&#39;</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>TSys tables, both original and smoothed, are plotted with SNPLT</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;SNPLT&#39;</span>
+
+<span class="k">inext</span><span class="n">     &#39;TY&#39;</span>
+<span class="k">optype</span><span class="n">    &#39;TSYS&#39;</span>
+<span class="k">invers</span><span class="n">        </span><span class="c1"># 1 or 2</span>
+<span class="k">nplots</span><span class="n">    8</span>
+<span class="k">dotv</span><span class="n">      -1</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>and then printed to a PostScript file with LWPLA</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;LWPLA&#39;</span>
+
+<span class="k">dparm</span><span class="n"> 0 0 0 0 0 4 31 7 0  </span><span class="c1"># Plotting parameters</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="choice-of-reference-antenna">
+<h2>Choice of reference antenna<a class="headerlink" href="#choice-of-reference-antenna" title="Permalink to this heading"></a></h2>
+<p>A fringe fit with FRING is run on a selected number of scans, rotating around all possible reference antennas. This allows the pipeline to assign a fringe S/N to each antenna.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;FRING&#39;</span>
+
+<span class="k">refant</span><span class="n">        </span><span class="c1"># Rotates around antennas</span>
+<span class="k">docalib</span><span class="n">   1   </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   1</span>
+<span class="k">solint</span><span class="n">        </span><span class="c1"># Scan length</span>
+<span class="k">timeran</span><span class="n">       </span><span class="c1"># Scan time</span>
+
+<span class="k">aparm(1)</span><span class="n"> 2    </span><span class="c1"># Min. number of antennas for a solution</span>
+<span class="k">aparm(5)</span><span class="n"> 0    </span><span class="c1"># Solve IFs separately</span>
+<span class="k">aparm(6)</span><span class="n"> 2    </span><span class="c1"># Amount of information printed</span>
+<span class="k">aparm(7)</span><span class="n"> 1    </span><span class="c1"># No S/N cutoff</span>
+
+<span class="k">dparm(1)</span><span class="n"> 1    </span><span class="c1"># Number of baseline combinations</span>
+<span class="k">dparm(2)</span><span class="n"> 1000 </span><span class="c1"># Delay window in ns</span>
+<span class="k">dparm(3)</span><span class="n"> 200  </span><span class="c1"># Rate window in mHz</span>
+<span class="k">dparm(5)</span><span class="n"> 1    </span><span class="c1"># Stop at the FFT stage</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>This is run on a selected number of scans per each antenna, and each antenna gets all the solution tables merged into one. It is done with CLCAL.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;CLCAL&#39;</span>
+
+<span class="k">opcode</span><span class="n"> &#39;MERG&#39;</span>
+<span class="k">snver</span><span class="n">     </span><span class="c1"># First SN table of the antenna</span>
+<span class="k">invers</span><span class="n">    </span><span class="c1"># Last SN table of the antenna</span>
+<span class="k">refant</span><span class="n">    </span><span class="c1"># Each antenna</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Only the merged table is kept, the rest are deleted.</p>
+</section>
+<hr class="docutils" />
+<section id="ionospheric-delay-correction">
+<h2>Ionospheric delay correction<a class="headerlink" href="#ionospheric-delay-correction" title="Permalink to this heading"></a></h2>
+<p>Data observed after June 1998 are corrected for ionospheric delays. This is done with TECOR. Files are obtained from <a class="reference external" href="https://www.earthdata.nasa.gov/data/space-geodesy-techniques/gnss/atmospheric-products">NASA</a></p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;TECOR&#39;</span>
+
+<span class="k">infile</span><span class="n">        </span><span class="c1"># Depends on the date</span>
+<span class="k">nfiles</span><span class="n">        </span><span class="c1"># Number of days observed</span>
+<span class="k">aparm(1)</span><span class="n">  1   </span><span class="c1"># Correct for dispersive delays</span>
+<span class="k">gainver</span><span class="n">   1   </span><span class="c1"># From CL1</span>
+<span class="k">gainuse</span><span class="n">   2   </span><span class="c1"># To CL2</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>The IONEX file used is infile is codgDDD0.YYi for observations older than GPS Week 2238 (26/11/2022), and COD0OPSFINYYYYDDD0000_01D_01H_GIM.INX for newer observations. DDD, YY, and YYYY refer to the day, 2-digit year, and 4-digit year of the observation.</p>
+<p>Files older than June 1998 simply get their CL1 copied into CL2 with TACOP.</p>
+</section>
+<hr class="docutils" />
+<section id="geometric-corrections">
+<h2>Geometric corrections<a class="headerlink" href="#geometric-corrections" title="Permalink to this heading"></a></h2>
+<p>Earth orientation parameters and parallactic angle are corrected for with CLCOR.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># EOPS</span>
+<span class="k">task</span><span class="n"> &#39;CLCOR&#39;</span>
+
+<span class="k">opcode</span><span class="n">    &#39;EOPS&#39;</span>
+<span class="k">clcorprm</span><span class="n">  3 7     </span><span class="c1"># Consider data from +- 3 days</span>
+<span class="k">infile</span><span class="n">            </span><span class="c1"># usno_finals_bis.erp provided by the USNO</span>
+
+<span class="k">gainver</span><span class="n"> 2         </span><span class="c1"># From CL2</span>
+<span class="k">gainuse</span><span class="n"> 3         </span><span class="c1"># To CL3</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parallactic angle</span>
+<span class="k">task</span><span class="n"> &#39;CLCOR&#39;</span>
+
+<span class="k">opcode</span><span class="n">    &#39;PANG&#39;</span>
+<span class="k">clcorprm</span><span class="n">  1 0     </span><span class="c1"># Add corrections</span>
+<span class="k">gainver</span><span class="n"> 3         </span><span class="c1"># From CL3</span>
+<span class="k">gainuse</span><span class="n"> 4         </span><span class="c1"># To CL4</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="choice-of-calibrator-scans">
+<h2>Choice of calibrator scans<a class="headerlink" href="#choice-of-calibrator-scans" title="Permalink to this heading"></a></h2>
+<p>The pipeline uses FRING to rank each scan based on its fringe S/N</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;FRING&#39;</span>
+
+<span class="k">refant</span><span class="n">        </span><span class="c1"># Reference antenna</span>
+<span class="k">docalib</span><span class="n">   1   </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   4   </span><span class="c1"># Use CL4</span>
+<span class="k">solint</span><span class="n">        </span><span class="c1"># Scan length</span>
+
+<span class="k">aparm(1)</span><span class="n"> 2    </span><span class="c1"># Min. number of antennas for a solution</span>
+<span class="k">aparm(5)</span><span class="n"> 0    </span><span class="c1"># Solve IFs separately</span>
+<span class="k">aparm(6)</span><span class="n"> 2    </span><span class="c1"># Amount of information printed</span>
+<span class="k">aparm(7)</span><span class="n"> 5    </span><span class="c1"># S/N threshold</span>
+<span class="k">aparm(9)</span><span class="n"> 1    </span><span class="c1"># Use other antennas as backup reference antennas</span>
+<span class="k">search</span><span class="n">        </span><span class="c1"># Prioritized list of antennas to use</span>
+
+<span class="k">dparm(1)</span><span class="n"> 1    </span><span class="c1"># Number of baseline combinations</span>
+<span class="k">dparm(2)</span><span class="n"> 1000 </span><span class="c1"># Delay window in ns</span>
+<span class="k">dparm(3)</span><span class="n"> 200  </span><span class="c1"># Rate window in mHz</span>
+<span class="k">dparm(5)</span><span class="n"> 1    </span><span class="c1"># Stop at the FFT stage</span>
+
+<span class="k">snver</span><span class="n"> 1       </span><span class="c1"># Produce SN1</span>
+</pre></div>
+</div>
+</div></blockquote>
+<hr class="docutils" />
+<p>If, for a certain antenna, there are no scans with S/N greater than 5, then that antenna is flagged in FG3 using UVFLG</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;UVFLG&#39;</span>
+
+<span class="k">antennas</span><span class="n">      </span><span class="c1"># Antennas with no reliable calibrators</span>
+<span class="k">outfgver</span><span class="n">  3</span>
+<span class="k">reason</span><span class="n">    &#39;NO CALIB&#39;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<section id="digital-sampling-correction">
+<h2>Digital sampling correction<a class="headerlink" href="#digital-sampling-correction" title="Permalink to this heading"></a></h2>
+<p>Autocorrelations are normalized using the ACCOR, with corrections being applied with CLCAL</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;ACCOR&#39;</span>
+
+<span class="k">solint</span><span class="n">    -3      </span><span class="c1"># Solution interval of 3 minutes, respecting scan boundaries</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;CLCAL&#39;</span>
+
+<span class="k">opcode</span><span class="n">    &#39;CALP&#39;</span>
+<span class="k">interpol</span><span class="n">  &#39;SELF&#39;</span>
+
+<span class="k">snver</span><span class="n">     2</span>
+<span class="k">gainver</span><span class="n">   4       </span><span class="c1"># From CL4</span>
+<span class="k">gainuse</span><span class="n">   5       </span><span class="c1"># To CL5</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="instrumental-delay-correction">
+<h2>Instrumental delay correction<a class="headerlink" href="#instrumental-delay-correction" title="Permalink to this heading"></a></h2>
+<p>FRING is run for each of the calibrator scans selected previously.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;FRING&#39;</span>
+
+<span class="k">refant</span><span class="n">        </span><span class="c1"># Reference antenna</span>
+<span class="k">docalib</span><span class="n">   1   </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   5   </span><span class="c1"># Use CL5</span>
+<span class="k">solint</span><span class="n">        </span><span class="c1"># Scan length</span>
+
+<span class="k">calsour</span><span class="n">       </span><span class="c1"># Calibrator source</span>
+<span class="k">timerang</span><span class="n">      </span><span class="c1"># Scan interval</span>
+<span class="k">antennas</span><span class="n">      </span><span class="c1"># refant + antennas to be calibrated</span>
+
+<span class="k">aparm(1)</span><span class="n"> 2    </span><span class="c1"># Min. number of antennas for a solution</span>
+<span class="k">aparm(5)</span><span class="n"> 0    </span><span class="c1"># Solve IFs separately</span>
+<span class="k">aparm(6)</span><span class="n"> 2    </span><span class="c1"># Amount of information printed</span>
+<span class="k">aparm(7)</span><span class="n"> 5    </span><span class="c1"># S/N threshold</span>
+<span class="k">aparm(9)</span><span class="n"> 1    </span><span class="c1"># Use other antennas as backup reference antennas</span>
+<span class="k">search</span><span class="n">        </span><span class="c1"># Prioritized list of antennas to use</span>
+
+<span class="k">dparm(1)</span><span class="n"> 1    </span><span class="c1"># Number of baseline combinations</span>
+<span class="k">dparm(2)</span><span class="n"> 1000 </span><span class="c1"># Delay window in ns</span>
+<span class="k">dparm(3)</span><span class="n"> 200  </span><span class="c1"># Rate window in mHz</span>
+<span class="k">dparm(8)</span><span class="n"> 1    </span><span class="c1"># Zero the rated after fitting</span>
+
+<span class="k">snver</span><span class="n"> 3       </span><span class="c1"># Produce SN3</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>If there is more than one calibrator scan, merge the solutions with CLCAL</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;CLCAL&#39;</span>
+
+<span class="k">opcode</span><span class="n">    &#39;MERG&#39;</span>
+<span class="k">snver</span><span class="n">     3</span>
+<span class="k">invers</span><span class="n">    3+n</span>
+<span class="k">refant</span><span class="n">        </span><span class="c1"># Reference antenna</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>And apply the solutions with CLCAL</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;CLCAL&#39;</span>
+
+<span class="k">opcode</span><span class="n">    &#39;CALP&#39;</span>
+<span class="k">interpol</span><span class="n">  &#39;2PT&#39;</span>
+<span class="k">snver</span><span class="n">         </span><span class="c1"># Merged SN table</span>
+<span class="k">gainver</span><span class="n">   5   </span><span class="c1"># From CL5</span>
+<span class="k">gainuse</span><span class="n">   6   </span><span class="c1"># To CL6</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>If there were multiple calibrator scans, the individual tables are removed and the merged table is copied to SN3.</p>
+</section>
+<hr class="docutils" />
+<section id="complex-bandpass">
+<h2>Complex bandpass<a class="headerlink" href="#complex-bandpass" title="Permalink to this heading"></a></h2>
+<p>Bandpass is corrected with BPASS</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;BPASS&#39;</span>
+
+<span class="k">solint</span><span class="n">        -3      </span><span class="c1"># Solution interval respecting scan boundaries</span>
+<span class="k">refant</span><span class="n">            </span><span class="c1"># Reference antenna</span>
+<span class="k">calsour</span><span class="n">           </span><span class="c1"># Calibrator sources</span>
+
+<span class="k">docalib</span><span class="n">       1   </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">       6   </span><span class="c1"># Use CL6</span>
+<span class="k">outvers</span><span class="n">       1   </span><span class="c1"># Produce BP1</span>
+
+<span class="k">solint</span><span class="n">        -1  </span><span class="c1"># Scan length</span>
+<span class="k">weightit</span><span class="n">      1   </span><span class="c1"># Weight data by 1/sigma</span>
+<span class="k">bpassparm(5)</span><span class="n">  0   </span><span class="c1"># Divide by channel zero (central 75% of the IF)</span>
+<span class="k">bpassparm(9)</span><span class="n">  1   </span><span class="c1"># Interpolate over flagged channels</span>
+
+<span class="c1"># If only one calibrator scan is used:</span>
+<span class="k">timerang</span><span class="n">          </span><span class="c1"># Time interval of the scan</span>
+<span class="k">bpassparm(10)</span><span class="n"> 6   </span><span class="c1"># Shift the average phase to 0</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>After the bandpass corrections, normalize again the autocorrelations with ACSCL. Solutions are applied with CLCAL.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;ACSCL&#39;</span>
+
+<span class="k">solint</span><span class="n">    -3  </span><span class="c1"># Solution interval respecting scan boundaries</span>
+<span class="k">docalib</span><span class="n">   1   </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   6</span>
+<span class="k">doband</span><span class="n">    1   </span><span class="c1"># Apply bandpass correction</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;CLCAL&#39;</span>
+
+<span class="k">opcode</span><span class="n">    &#39;CALP&#39;</span>
+<span class="k">interpol</span><span class="n">  &#39;SELF&#39;</span>
+<span class="k">snver</span><span class="n">     4</span>
+<span class="k">gainver</span><span class="n">   6   </span><span class="c1"># From CL6</span>
+<span class="k">gainuse</span><span class="n">   7   </span><span class="c1"># To CL7</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="amplitude-calibration">
+<h2>Amplitude calibration<a class="headerlink" href="#amplitude-calibration" title="Permalink to this heading"></a></h2>
+<p>Final amplitude calibration is computed with APCAL and applied with CLCAL</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;APCAL&#39;</span>
+
+<span class="k">solint</span><span class="n">    -3  </span><span class="c1"># Solution interval respecting scan boundaries</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;CLCAL&#39;</span>
+
+<span class="k">opcode</span><span class="n">    &#39;CALP&#39;</span>
+<span class="k">interpol</span><span class="n">  &#39;SELF&#39;</span>
+<span class="k">snver</span><span class="n">     5</span>
+<span class="k">gainver</span><span class="n">   7   </span><span class="c1"># From CL7</span>
+<span class="k">gainuse</span><span class="n">   8   </span><span class="c1"># To CL8</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="target-fringe-fit">
+<h2>Target fringe fit<a class="headerlink" href="#target-fringe-fit" title="Permalink to this heading"></a></h2>
+<p>Before running the final fringe fit, the solution interval is optimized by running a fringe fit in a reduced set of target scans.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;FRING&#39;</span>
+
+<span class="k">refant</span><span class="n">            </span><span class="c1"># Reference antenna</span>
+<span class="k">calsour</span><span class="n">           </span><span class="c1"># Science target or phase-reference calibrator</span>
+
+<span class="k">solint</span><span class="n">            </span><span class="c1"># Rotates between 5, 4, 3, 2, and 1 solutions per scan</span>
+
+<span class="k">docalib</span><span class="n">   1     </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   8     </span><span class="c1"># Use CL8</span>
+<span class="k">doband</span><span class="n">    1     </span><span class="c1"># Apply the bandpass correction</span>
+
+<span class="k">aparm(1)</span><span class="n"> 2    </span><span class="c1"># Min. number of antennas for a solution</span>
+<span class="k">aparm(5)</span><span class="n"> 0    </span><span class="c1"># Solve IFs separately</span>
+<span class="k">aparm(6)</span><span class="n"> 2    </span><span class="c1"># Amount of information printed</span>
+<span class="k">aparm(7)</span><span class="n"> 1    </span><span class="c1"># No S/N threshold</span>
+<span class="k">aparm(9)</span><span class="n"> 1    </span><span class="c1"># Use other antennas as backup reference antennas</span>
+<span class="k">search</span><span class="n">        </span><span class="c1"># Prioritized list of antennas to use</span>
+
+<span class="k">dparm(1)</span><span class="n"> 1    </span><span class="c1"># Number of baseline combinations</span>
+<span class="k">dparm(2)</span><span class="n"> 1000 </span><span class="c1"># Delay window in ns</span>
+<span class="k">dparm(3)</span><span class="n"> 200  </span><span class="c1"># Rate window in mHz</span>
+<span class="k">dparm(5)</span><span class="n"> 1    </span><span class="c1"># Stop at the FFT stage</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Finally, fringe fit on target (or phase reference source) to correct for residual delay and rates</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;FRING&#39;</span>
+
+<span class="k">refant</span><span class="n">            </span><span class="c1"># Reference antenna</span>
+<span class="k">calsour</span><span class="n">           </span><span class="c1"># Science target or phase-reference calibrator</span>
+
+<span class="k">solint</span><span class="n">            </span><span class="c1"># Optimal solution interval</span>
+<span class="k">docalib</span><span class="n">   1     </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   8     </span><span class="c1"># Use CL8</span>
+<span class="k">doband</span><span class="n">    1     </span><span class="c1"># Apply the bandpass correction</span>
+
+
+
+<span class="k">aparm(1)</span><span class="n"> 2    </span><span class="c1"># Min. number of antennas for a solution</span>
+
+<span class="c1"># On a first round</span>
+<span class="k">aparm(5)</span><span class="n"> 0    </span><span class="c1"># Solve IFs separately</span>
+<span class="c1"># On a second round</span>
+<span class="k">aparm(5)</span><span class="n"> 1    </span><span class="c1"># Solve IFs together</span>
+
+<span class="k">aparm(6)</span><span class="n"> 2    </span><span class="c1"># Amount of information printed</span>
+<span class="k">aparm(7)</span><span class="n">      </span><span class="c1"># S/N cutodd, default is 5</span>
+<span class="k">aparm(9)</span><span class="n"> 1    </span><span class="c1"># Use other antennas as backup reference antennas</span>
+<span class="k">search</span><span class="n">        </span><span class="c1"># Prioritized list of antennas to use</span>
+
+<span class="k">dparm(1)</span><span class="n"> 1    </span><span class="c1"># Number of baseline combinations</span>
+<span class="k">dparm(2)</span><span class="n"> 1000 </span><span class="c1"># Delay window in ns</span>
+<span class="k">dparm(3)</span><span class="n"> 200  </span><span class="c1"># Rate window in mHz</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Solutions are applied with CLCAL</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># If the fringe fit is on the science target</span>
+
+<span class="k">task</span><span class="n"> &#39;CLCAL&#39;</span>
+
+<span class="k">opcode</span><span class="n">    &#39;CALP&#39;</span>
+<span class="k">interpol</span><span class="n">  &#39;SELF&#39;</span>
+<span class="k">cutoff</span><span class="n">        </span><span class="c1"># 1.1*scan_length, interpolate solutions only within the scan</span>
+<span class="k">gainver</span><span class="n">   8   </span><span class="c1"># From CL8</span>
+<span class="k">gainuse</span><span class="n">   9   </span><span class="c1"># To CL9</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="c1"># If the fringe fit is on the phase-reference calibrator</span>
+
+<span class="k">task</span><span class="n"> &#39;CLCAL&#39;</span>
+
+<span class="k">sources</span><span class="n">       </span><span class="c1"># Science target</span>
+
+<span class="k">opcode</span><span class="n">    &#39;CALP&#39;</span>
+<span class="k">interpol</span><span class="n">  &#39;2PT&#39;</span>
+
+<span class="k">gainver</span><span class="n">   8   </span><span class="c1"># From CL8</span>
+<span class="k">gainuse</span><span class="n">   9   </span><span class="c1"># To CL9</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="data-export">
+<h2>Data export<a class="headerlink" href="#data-export" title="Permalink to this heading"></a></h2>
+<p>Calibration, flags, and bandpass corrections are applied with SPLIT. Final calibrated data are exported to a uvfits with FITTP</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;SPLIT&#39;</span>
+
+<span class="k">sources</span><span class="n">       </span><span class="c1"># Science_target</span>
+<span class="k">docalib</span><span class="n">   1   </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   9   </span><span class="c1"># Use CL9</span>
+<span class="k">doband</span><span class="n">    1   </span><span class="c1"># Do bandpass</span>
+<span class="k">fgver</span><span class="n">     3   </span><span class="c1"># Use the last FG table</span>
+
+<span class="c1"># If channel_out == &#39;SINGLE&#39;</span>
+<span class="k">aparm(1)</span><span class="n">  2</span>
+<span class="c1"># If channel_out == &#39;MULTI&#39;</span>
+<span class="k">aparm(1)</span><span class="n">  1</span>
+
+<span class="k">bchan</span><span class="n">         </span><span class="c1"># Initial channel to calibrate, by default 1</span>
+<span class="k">echan</span><span class="n">         </span><span class="c1"># Final channel to calibrate, by default the last</span>
+</pre></div>
+</div>
+<div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;FITTP&#39;</span>
+
+<span class="k">dataout</span><span class="n"> &#39;/output_folder/sourcename_project_band_date/sourcename_project_band_date.uvfits</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<hr class="docutils" />
+<section id="plots">
+<h2>Plots<a class="headerlink" href="#plots" title="Permalink to this heading"></a></h2>
+<p>PostScript format plots are produced from AIPS using different tasks.</p>
+<p>For amplitude and phase as a function of frequency, both uncalibrated and calibrated, POSSM is used.</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;POSSM&#39;</span>
+
+<span class="k">sources</span><span class="n">           </span><span class="c1"># Science target</span>
+<span class="k">stokes</span><span class="n">    &#39;RRLL&#39;</span>
+<span class="k">solint</span><span class="n">    -1      </span><span class="c1"># Scan length</span>
+
+<span class="k">docalib</span><span class="n">   1       </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">           </span><span class="c1"># 1 for the uncalibrated, 9 for the calibrated</span>
+<span class="k">flagver</span><span class="n">           </span><span class="c1"># 1 for the uncalibrated, 3 for the calibrated</span>
+<span class="k">doband</span><span class="n">            </span><span class="c1"># 0 for the uncalibrated, 1 for the calibrated</span>
+
+<span class="k">bchan</span><span class="n">             </span><span class="c1"># Initial channel to calibrate, by default 1</span>
+<span class="k">echan</span><span class="n">             </span><span class="c1"># Final channel to calibrate, by default the last</span>
+
+<span class="c1"># Plotting options</span>
+<span class="k">aparm</span><span class="n"> 1 1 0 0 -180 180 0 0 1 0</span>
+<span class="k">nplots</span><span class="n"> 9</span>
+<span class="k">dotv</span><span class="n"> -1</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>For calibrated amplitudes and phases as a function of time, the pipeline uses VPLOT</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;VPLOT&#39;</span>
+
+<span class="k">sources</span><span class="n">           </span><span class="c1"># Science target</span>
+
+<span class="k">avgchan</span><span class="n">   1       </span><span class="c1"># Average channels</span>
+<span class="k">avgif</span><span class="n">     1       </span><span class="c1"># Average channels</span>
+<span class="k">solint</span><span class="n">    0.09    </span><span class="c1"># One point every 5 seconds</span>
+
+<span class="k">docalib</span><span class="n">   1       </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   9       </span><span class="c1"># Use CL9</span>
+<span class="k">flagver</span><span class="n">   3       </span><span class="c1"># Use FG3</span>
+<span class="k">doband</span><span class="n">    1       </span><span class="c1"># Correct for bandpass</span>
+
+<span class="k">bchan</span><span class="n">             </span><span class="c1"># Initial channel to calibrate, by default 1</span>
+<span class="k">echan</span><span class="n">             </span><span class="c1"># Final channel to calibrate, by default the last</span>
+
+<span class="c1"># Plotting options</span>
+<span class="k">bparm</span><span class="n"> 12 -1 0</span>
+<span class="k">nplots</span><span class="n"> 2</span>
+<span class="k">dotv</span><span class="n"> -1</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>For the uv coverage, the pipeline uses UVPLT</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;UVPLT&#39;</span>
+
+<span class="k">sources</span><span class="n">           </span><span class="c1"># Science target</span>
+<span class="k">stokes</span><span class="n">    &#39;RRLL&#39;</span>
+<span class="k">solint</span><span class="n">    0.09    </span><span class="c1"># One point every 10 seconds</span>
+
+<span class="k">docalib</span><span class="n">   1       </span><span class="c1"># Use calibrated data</span>
+<span class="k">gainuse</span><span class="n">   9       </span><span class="c1"># Use CL9</span>
+<span class="k">flagver</span><span class="n">   3       </span><span class="c1"># Use FG3</span>
+<span class="k">doband</span><span class="n">    1       </span><span class="c1"># Correct for bandpass</span>
+
+<span class="k">bchan</span><span class="n">             </span><span class="c1"># Initial channel to calibrate, by default 1</span>
+<span class="k">echan</span><span class="n">             </span><span class="c1"># Final channel to calibrate, by default the last</span>
+
+<span class="c1"># Plotting options</span>
+<span class="k">bparm</span><span class="n"> 6 7 2 0</span>
+<span class="k">do3color</span><span class="n"> -1</span>
+<span class="k">dotv</span><span class="n"> -1</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>Finally, all these plots are printed into PostScript files using LWPLA</p>
+<blockquote>
+<div><div class="highlight-firstword notranslate"><div class="highlight"><pre><span></span><span class="k">task</span><span class="n"> &#39;LWPLA&#39;</span>
+
+<span class="c1"># Plotting options</span>
+<span class="k">dparm</span><span class="n">     0 0 0 0 0 4 31 7 0</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Diego Alvarez-Ortega.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

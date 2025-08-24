@@ -1,4 +1,4 @@
-from scripts.helper import ddhhmmss, tacop
+from vipcals.scripts.helper import ddhhmmss, tacop
 
 import numpy as np
 
