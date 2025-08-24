@@ -23,6 +23,8 @@ without human intervention.
 Built on **ParselTongue** (a Python interface to AIPS), the pipeline
 offers a minimalistic interface and produces fully calibrated datasets.
 
+Documentation can be found in [Read the Docs](https://vipcals.readthedocs.io/)
+
 > **Development status**: The pipeline is under active development. The current version supports **continuum calibration of VLBA data**, with support for other arrays in testing.
 > Bugs, feedback, and suggestions are always welcome — please contact:  
 > **dalvarez@physics.uoc.gr**
