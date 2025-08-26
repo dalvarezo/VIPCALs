@@ -121,5 +121,7 @@ RUN chown -R aips:aips /usr/local/aips/VIPCALs
 USER aips
 WORKDIR /usr/local/aips/VIPCALs
 
+ENV PYTHONPATH="/usr/local/aips/VIPCALs:\$PYTHONPATH"
+
 #CMD ["bash"]
 CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate pyside62 && source /usr/local/aips/LOGIN.SH && cd /usr/local/aips/VIPCALs/GUI && python3 run_GUI_docker.py"]
