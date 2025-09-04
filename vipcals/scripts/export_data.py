@@ -276,6 +276,38 @@ def vis_count(data):
 
     return int(n_vis)
 
+def vis_count_v2(data):
+    """Fast count of unflagged visibilities using NumPy vectorization.
+
+    Also returns the visibility count per antenna.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :return: Total and per antenna number of unflagged visibilities
+    :rtype: int, dict
+    """
+    n_vis = 0
+    antenna_codes = [x.nosta for x in data.table('AN', 1)]
+    antenna_names = [x.anname.strip() for x in data.table('AN', 1)]
+    key_map = dict(zip(antenna_codes, antenna_names))
+    ant_counts = {ant: 0 for ant in antenna_codes}
+
+    w_data = wizard.AIPSUVData(data.name, data.klass, data.disk, data.seq)
+
+    for record in w_data:
+        vis = record.visibility  # shape: [IF, chan, pol, N]
+        weights = vis[..., 2]    # shape: [IF, chan, pol]
+        n_good = np.count_nonzero(weights)
+        n_vis += n_good
+        for ant in record.baseline:
+            if ant in ant_counts:  # just in case
+                ant_counts[ant] += n_good
+
+    ant_counts_translated = {key_map[k]: v for k,v in ant_counts.items() if k in key_map}
+    
+    return int(n_vis), ant_counts_translated
+
+
 def are_there_baselines(data, table_number, source_name):
     """Check if there are enough unflagged visibilities to form at least a baseline.
 

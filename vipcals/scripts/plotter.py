@@ -1,11 +1,14 @@
 import warnings
 import copy
+import ast
 import os
 import pickle
 import numpy as np
 
 from matplotlib import pyplot as plt
 import matplotlib as mpl
+from matplotlib.ticker import ScalarFormatter
+from scipy.interpolate import PchipInterpolator
 mpl.use('Agg')
 
 from AIPSData import AIPSCat
@@ -20,6 +23,66 @@ tmp_dir = os.path.expanduser("~/.vipcals/tmp")
 # Check if /home/vipcals exists
 if os.path.isdir("/home/vipcals"):
     tmp_dir = "/home/vipcals/.vipcals/tmp"
+
+def plot_vis_per_antenna(stats_df, target_list, filename_list, outpath_list):
+    """Plot visibility count per antenna across the pipeline.
+
+    :param stats_df: _description_
+    :type stats_df:
+    :param target_list: list of sources to plot
+    :type target_list: list of str
+    :param filename_list: list of names to use in the plots
+    :type filename_list: list of str
+    :param outpath_list: list of paths where to save the plots
+    :type outpath_list: list of str
+    """    
+    markers = [
+    "o", "s",  "D", "^",  "v", "<", ">","p", "P", "X",  "*","h", 
+    "H","+", "x", "1", "2","3", "4","|","_" ]
+
+    col_names = ['CL1_ant_vis', 'CL1_FG2_ant_vis',
+                'CL2_ant_vis', 'CL3_ant_vis',
+                'CL4_ant_vis', 'CL4_FG3_ant_vis',
+                'CL5_ant_vis', 'CL6_ant_vis',
+                'CL6_BP1_ant_vis', 'CL7_BP1_ant_vis',
+                'CL8_BP1_ant_vis', 'CL9_BP1_ant_vis']   
+         
+    for i, target in enumerate(target_list):
+        idx = stats_df.index[stats_df["target"] == target].tolist()[0]
+        dicts = [ast.literal_eval(stats_df.loc[idx, col]) for col in col_names]
+        antennas = list(dicts[0].keys())
+        x_orig = np.arange(len(dicts)) 
+        x_smooth = np.linspace(x_orig.min(), x_orig.max(), 200)
+        max_val = max(max(d.values()) for d in dicts)
+
+        x_labels = ['CL1', 'CL1_FG2', 'CL2', 'CL3', 'CL4', 
+                    'CL4_FG3', 'CL5', 'CL6', 'CL6_BP',
+                    'CL7_BP', 'CL8_BP', 'CL9_BP']
+        
+        plt.figure(figsize=(13, 5))
+
+        for j, ant in enumerate(antennas):
+            y_orig = [d[ant] for d in dicts]
+            f = PchipInterpolator(x_orig, y_orig)
+            y_smooth = f(x_smooth)
+
+            plt.plot(x_smooth, y_smooth, label=ant, linestyle = 'dotted', lw = 2, 
+                     alpha = 0.75, marker=markers[j % len(markers)], markevery = 8)
+
+        plt.xlabel("Steps", fontsize = 16)
+        plt.xticks(ticks=range(len(dicts)), labels=x_labels, rotation=45, fontsize = 12)
+
+        plt.gca().yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+        plt.gca().yaxis.get_major_formatter().set_scientific(True)
+        plt.gca().yaxis.get_major_formatter().set_powerlimits((0,0)) 
+        plt.ylim(0, 1.1 * max_val)  
+        plt.ylabel("Visibility count",  fontsize = 16)
+
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize = 13)
+        plt.tight_layout()
+        plt.savefig(f'{outpath_list[i]}/PLOTS/{filename_list[i]}_VISANT.pdf', 
+                    bbox_inches='tight', dpi=260, format='pdf')
+        plt.close()
 
 def possm_plotter(filepath, data, target, \
                   gainuse, bpver = 0, flagver = 0, \
@@ -128,7 +191,7 @@ def possm_plotter(filepath, data, target, \
     lwpla.go()
     
     # If filename was long, move it
-    if len(outpath) > 114:
+    if len(outpath) >= 114:
         os.system(f'mv {tmp}/CL{gainuse}.ps {outpath}')
     # Clean all plots
     data.zap_table('PL', -1)
@@ -664,6 +727,12 @@ def pickle_possm(wuvdata, path, name, an_table, bp = False):
             avg_reals = np.divide(np.sum(weighted_reals, axis=0), sum_weights, where=sum_weights!=0)
             avg_imags = np.divide(np.sum(weighted_imags, axis=0), sum_weights, where=sum_weights!=0)
             avg_data.append(np.stack([avg_reals, avg_imags, sum_weights], axis=-1))
+
+            # Replace flagged (weight=0) entries with NaN in reals and imags
+            avg_reals_masked = np.where(sum_weights==0, np.nan, avg_reals)
+            avg_imags_masked = np.where(sum_weights==0, np.nan, avg_imags)
+            avg_data.append(np.stack([avg_reals_masked, avg_imags_masked, sum_weights], axis=-1))
+
         POSSM[bline] = avg_data
 
     POSSM['ant_dict'] = {x.nosta: x.anname.strip() for x in an_table}

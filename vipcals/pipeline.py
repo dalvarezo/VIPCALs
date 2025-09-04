@@ -570,8 +570,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=1, flagver=1)
     for i, target in enumerate(target_list):
         cl1 = AIPSUVData(target, 'PLOT', uvdata.disk, 1)
-        vis_cl1 = expo.vis_count(cl1)
+        vis_cl1, vis_ant_cl1 = expo.vis_count_v2(cl1)
         stats_df.at[i, 'CL1_vis'] = int(vis_cl1)
+        stats_df.at[i, 'CL1_ant_vis'] = json.dumps(vis_ant_cl1)
         print(f"CL1 visibilities of {target}: {vis_cl1}\n")
         log_list[i].write(f"\nCL1 visibilities of {target}: {vis_cl1}\n")
     
@@ -649,11 +650,11 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     
     # Print the TY tables
     try:
-        plot.tsys_plotter(outpath_list[i], uvdata, tyver = 1)
-        print('\nOriginal system temperatures plotted in '
-                + outpath_list[i] + '/PLOTS/'  \
-                + filename_list[i] + '_TSYS_TY1.ps\n')
         for i, target in enumerate(target_list):
+            plot.tsys_plotter(outpath_list[i], uvdata, tyver = 1)
+            print('\nOriginal system temperatures plotted in '
+                    + outpath_list[i] + '/PLOTS/'  \
+                    + filename_list[i] + '_TSYS_TY1.ps\n')
             log_list[i].write('\nOriginal system temperatures plotted in '
                             + outpath_list[i] + '/PLOTS/'  \
                             + filename_list[i] + '_TSYS_TY1.ps\n')           
@@ -663,11 +664,11 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         print('\nOriginal system temperatures could not be plotted.\n')
 
     try:
-        plot.tsys_plotter(outpath_list[i], uvdata, tyver = 2)
-        print('\nSmoothed system temperatures plotted in '
-                + outpath_list[i] + '/PLOTS/'  \
-                + filename_list[i] + '_TSYS_TY2.ps\n')
         for i, target in enumerate(target_list):
+            plot.tsys_plotter(outpath_list[i], uvdata, tyver = 2)
+            print('\nSmoothed system temperatures plotted in '
+                    + outpath_list[i] + '/PLOTS/'  \
+                    + filename_list[i] + '_TSYS_TY2.ps\n')
             log_list[i].write('\nSmoothed system temperatures plotted in '
                             + outpath_list[i] + '/PLOTS/'  \
                             + filename_list[i] + '_TSYS_TY2.ps\n')           
@@ -689,8 +690,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=1, flagver=2)
     for i, target in enumerate(target_list):
         cl1_fg2 = AIPSUVData(target, 'PLOT', uvdata.disk, 1)
-        vis_cl1_fg2 = expo.vis_count(cl1_fg2)
+        vis_cl1_fg2, vis_ant_cl1_fg2 = expo.vis_count_v2(cl1_fg2)
         stats_df.at[i, 'CL1_vis_FG2'] = int(vis_cl1_fg2)
+        stats_df.at[i, 'CL1_FG2_ant_vis'] = json.dumps(vis_ant_cl1_fg2)
         print(f"CL1 visibilities of {target} after flagging: {vis_cl1_fg2}\n")
         log_list[i].write(f"\nCL1 visibilities of {target} after flagging: {vis_cl1_fg2}\n")
 
@@ -816,8 +818,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         expo.data_split(uvdata, target_list, cl_table=2, flagver=2)
         for i, target in enumerate(target_list):
             cl2 = AIPSUVData(target, 'PLOT', uvdata.disk, 2)
-            vis_cl2 = expo.vis_count(cl2)
+            vis_cl2, vis_ant_cl2 = expo.vis_count_v2(cl2)
             stats_df.at[i, 'CL2_vis'] = int(vis_cl2)
+            stats_df.at[i, 'CL2_ant_vis'] = json.dumps(vis_ant_cl2) 
             print(f"CL2 visibilities of {target}: {vis_cl2}\n")
             log_list[i].write(f"\nCL2 visibilities of {target}: {vis_cl2}\n")
 
@@ -846,8 +849,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         expo.data_split(uvdata, target_list, cl_table=2, flagver=2)
         for i, target in enumerate(target_list):
             cl2 = AIPSUVData(target, 'PLOT', uvdata.disk, 2)
-            vis_cl2 = expo.vis_count(cl2)
+            vis_cl2, vis_ant_cl2 = expo.vis_count_v2(cl2)
             stats_df.at[i, 'CL2_vis'] = int(vis_cl2)
+            stats_df.at[i, 'CL2_ant_vis'] = json.dumps(vis_ant_cl2)
             print(f"CL2 visibilities of {target}: {vis_cl2}\n")
             log_list[i].write(f"\nCL2 visibilities of {target}: {vis_cl2}\n")
 
@@ -899,8 +903,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=3, flagver=2)
     for i, target in enumerate(target_list):
         cl3 = AIPSUVData(target, 'PLOT', uvdata.disk, 3)
-        vis_cl3 = expo.vis_count(cl3)
+        vis_cl3, vis_ant_cl3 = expo.vis_count_v2(cl3)
         stats_df.at[i, 'CL3_vis'] = int(vis_cl3)
+        stats_df.at[i, 'CL3_ant_vis'] = json.dumps(vis_ant_cl3)
         print(f"CL3 visibilities of {target}: {vis_cl3}\n")
         log_list[i].write(f"\nCL3 visibilities of {target}: {vis_cl3}\n")
 
@@ -927,8 +932,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=4, flagver=2)
     for i, target in enumerate(target_list):
         cl4 = AIPSUVData(target, 'PLOT', uvdata.disk, 4)
-        vis_cl4 = expo.vis_count(cl4)
+        vis_cl4, vis_ant_cl4 = expo.vis_count_v2(cl4)
         stats_df.at[i, 'CL4_vis'] = int(vis_cl4)
+        stats_df.at[i, 'CL4_ant_vis'] = json.dumps(vis_ant_cl4)
         print(f"CL4 visibilities of {target}: {vis_cl4}\n")
         log_list[i].write(f"\nCL4 visibilities of {target}: {vis_cl4}\n")
 
@@ -1149,8 +1155,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=4, flagver=3)
     for i, target in enumerate(target_list):
         cl4_fg3 = AIPSUVData(target, 'PLOT', uvdata.disk, 4)
-        vis_cl4_fg3 = expo.vis_count(cl4_fg3)
+        vis_cl4_fg3, vis_ant_cl4_fg3 = expo.vis_count_v2(cl4_fg3)
         stats_df.at[i, 'CL4_vis_FG3'] = int(vis_cl4_fg3)
+        stats_df.at[i, 'CL4_FG3_ant_vis'] = json.dumps(vis_ant_cl4_fg3)
         print(f"CL4 visibilities of {target} after flagging: {vis_cl4_fg3}\n")
         log_list[i].write(f"\nCL4 visibilities of {target} after flagging: {vis_cl4_fg3}\n")
 
@@ -1169,8 +1176,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=5, flagver=3)
     for i, target in enumerate(target_list):
         cl5 = AIPSUVData(target, 'PLOT', uvdata.disk, 5)
-        vis_cl5 = expo.vis_count(cl5)
+        vis_cl5, vis_ant_cl5 = expo.vis_count_v2(cl5)
         stats_df.at[i, 'CL5_vis'] = int(vis_cl5)
+        stats_df.at[i, 'CL5_ant_vis'] = json.dumps(vis_ant_cl5)
         print(f"CL5 visibilities of {target}: {vis_cl5}\n")
         log_list[i].write(f"\nCL5 visibilities of {target}: {vis_cl5}\n")
 
@@ -1198,8 +1206,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=6, flagver=3)
     for i, target in enumerate(target_list):
         cl6 = AIPSUVData(target, 'PLOT', uvdata.disk, 6)
-        vis_cl6 = expo.vis_count(cl6)
+        vis_cl6, vis_ant_cl6 = expo.vis_count_v2(cl6)
         stats_df.at[i, 'CL6_vis'] = int(vis_cl6)
+        stats_df.at[i, 'CL6_ant_vis'] = json.dumps(vis_ant_cl6)
         print(f"CL6 visibilities of {target}: {vis_cl6}\n")
         log_list[i].write(f"\nCL6 visibilities of {target}: {vis_cl6}\n")
 
@@ -1229,8 +1238,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                     keep = True)
     for i, target in enumerate(target_list):
         cl6_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 6)
-        vis_cl6_bp1 = expo.vis_count(cl6_bp1)
+        vis_cl6_bp1, vis_ant_cl6_bp1 = expo.vis_count_v2(cl6_bp1)
         stats_df.at[i, 'CL6_BP1_vis'] = int(vis_cl6_bp1)
+        stats_df.at[i, 'CL6_BP1_ant_vis'] = json.dumps(vis_ant_cl6_bp1)
         print(f"CL6 + BP1 visibilities of {target}: {vis_cl6_bp1}\n")
         log_list[i].write(f"\nCL6 + BP1 visibilities of {target}: {vis_cl6_bp1}\n")
 
@@ -1257,8 +1267,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=7, flagver=3, bpass = True)
     for i, target in enumerate(target_list):
         cl7_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 7)
-        vis_cl7_bp1 = expo.vis_count(cl7_bp1)
+        vis_cl7_bp1, vis_ant_cl7_bp1 = expo.vis_count_v2(cl7_bp1)
         stats_df.at[i, 'CL7_BP1_vis'] = int(vis_cl7_bp1)
+        stats_df.at[i, 'CL7_BP1_ant_vis'] = json.dumps(vis_ant_cl7_bp1)
         print(f"CL7 + BP1 visibilities of {target}: {vis_cl7_bp1}\n")
         log_list[i].write(f"\nCL7 + BP1 visibilities of {target}: {vis_cl7_bp1}\n")
 
@@ -1285,8 +1296,9 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     expo.data_split(uvdata, target_list, cl_table=8, flagver=3, bpass = True)
     for i, target in enumerate(target_list):
         cl8_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 8)
-        vis_cl8_bp1 = expo.vis_count(cl8_bp1)
+        vis_cl8_bp1, vis_ant_cl8_bp1 = expo.vis_count_v2(cl8_bp1)
         stats_df.at[i, 'CL8_BP1_vis'] = int(vis_cl8_bp1)
+        stats_df.at[i, 'CL8_BP1_ant_vis'] = json.dumps(vis_ant_cl8_bp1)
         print(f"CL8 + BP1 visibilities of {target}: {vis_cl8_bp1}\n")
         log_list[i].write(f"\nCL8 + BP1 visibilities of {target}: {vis_cl8_bp1}\n")
 
@@ -1788,12 +1800,16 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
         r =  stats_df.index[stats_df['target'] == target][0]
         if target not in ignore_list and target not in no_baseline:
             cl9_bp1 = AIPSUVData(target, 'PLOTBP', uvdata.disk, 9)
-            vis_cl9_bp1 = expo.vis_count(cl9_bp1)
+            vis_cl9_bp1, vis_ant_cl9_bp1 = expo.vis_count_v2(cl9_bp1)
             stats_df.at[r, 'CL9_BP1_vis'] = int(vis_cl9_bp1)
+            stats_df.at[i, 'CL9_BP1_ant_vis'] = json.dumps(vis_ant_cl9_bp1)
             print(f"CL9 + BP1 visibilities of {target}: {vis_cl9_bp1}\n")
             log_list[i].write(f"\nCL9 + BP1 visibilities of {target}: {vis_cl9_bp1}\n")
         else:
             stats_df.at[r, 'CL9_BP1_vis'] = 0
+            antenna_names = [x.anname.strip() for x in uvdata.table('AN', 1)]
+            vis_ant_cl9_bp1 = dict(zip(antenna_names, [0]*len(antenna_names)))
+            stats_df.at[i, 'CL9_BP1_ant_vis'] = json.dumps(vis_ant_cl9_bp1)
         
     stats_df['time_18'] = time.time() - t_export
 
@@ -1951,8 +1967,20 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                               + filename_list[i]  + '_RADPLOT.ps\n')
             print('Visibilities as a function of uv-distance plotted in '
                               + outpath_list[i] + '/PLOTS/' \
-                              + filename_list[i]  + '_RADPLOT.ps\n')       
-        
+                              + filename_list[i]  + '_RADPLOT.ps\n')    
+            
+    ## Plot visibilities per antenna across the calibration
+    plot.plot_vis_per_antenna(stats_df, target_list, filename_list, outpath_list)
+
+    for i, target in enumerate(target_list):
+        log_list[i].write('Visibility timeline per antenna plotted in '
+                        + outpath_list[i] + '/PLOTS/' \
+                        + filename_list[i]  + '_VISANT.pdf\n')
+        print('Visibility timeline per antenna plotted in '
+                        + outpath_list[i] + '/PLOTS/' \
+                        + filename_list[i]  + '_VISANT.pdf\n')
+
+
     for i, target in enumerate(target_list):
         plot_size = sum(f.stat().st_size for f in Path(outpath_list[i] + '/PLOTS/').rglob('*') if f.is_file())
         stats_df.at[i, 'plot_size_mb'] = plot_size / 1024**2
