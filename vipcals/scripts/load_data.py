@@ -460,7 +460,7 @@ def merge_red_tables(data, timetol = 0.1):
 
     # If multiple files, merge redundant data in tables
     # Inputs are copied from RUN MERGECAL procedure
-    if 'GC' in data.tables:
+    if any(entry[1] == "AIPS GC" for entry in data.tables):
         # Process GC tables
         tamrg = AIPSTask('tamrg')
         tamrg.inname = data.name
@@ -477,7 +477,7 @@ def merge_red_tables(data, timetol = 0.1):
 
         tamrg.go()
 
-    if 'TY' in data.tables:
+    if any(entry[1] == "AIPS TY" for entry in data.tables):
         # Process TY tables
         tamrg = AIPSTask('tamrg')
         tamrg.inname = data.name
@@ -495,7 +495,7 @@ def merge_red_tables(data, timetol = 0.1):
 
         tamrg.go()
 
-    if 'PC' in data.tables:
+    if any(entry[1] == "AIPS PC" for entry in data.tables):
         # Process PC tables
         tamrg = AIPSTask('tamrg')
         tamrg.inname = data.name
