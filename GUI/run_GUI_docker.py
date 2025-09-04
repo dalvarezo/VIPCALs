@@ -17,7 +17,7 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 plt.style.use('dark_background')
 
-
+from datetime import timedelta
 
 from PySide6 import QtCore as qtc
 from PySide6.QtCore import QThread, Signal
@@ -1445,14 +1445,21 @@ def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
     # Indexing goes like:
     # POSSM[baseline][scan][IF, channel, polarization, visibility]
     if len(POSSM['pols'].tolist()) < 2:
-        avg_reals = np.array(POSSM[bl][n])[:, :, :, 0]
-        avg_imags = np.array(POSSM[bl][n])[:, :, :, 1]
-    else:
-        avg_reals = np.array(POSSM[bl][n])[:, :, pol, 0]
-        avg_imags = np.array(POSSM[bl][n])[:, :, pol, 1]
+        avg_reals = np.array(POSSM[bl][n])[:, :, :, 0].astype(float)
+        avg_imags = np.array(POSSM[bl][n])[:, :, :, 1].astype(float)
+        weights = np.array(POSSM[bl][n])[:, :, :, 2].astype(float)
 
-    amps = np.sqrt((avg_reals**2 + avg_imags**2).astype(float)).flatten()
-    phases = (np.arctan2(avg_imags.astype(float), avg_reals.astype(float)) * 360/(2*np.pi)).flatten()
+    else:
+        avg_reals = np.array(POSSM[bl][n])[:, :, pol, 0].astype(float)
+        avg_imags = np.array(POSSM[bl][n])[:, :, pol, 1].astype(float)
+        weights = np.array(POSSM[bl][n])[:, :, pol, 2].astype(float)
+
+    # Replace flagged/zero-weight values with NaN
+    avg_reals[weights == 0] = np.nan
+    avg_imags[weights == 0] = np.nan
+
+    amps = np.sqrt((avg_reals**2 + avg_imags**2)).flatten()
+    phases = (np.arctan2(avg_imags, avg_reals) * 360/(2*np.pi)).flatten()
     
     if_freq = POSSM['if_freq']
     chan_freq = []
@@ -1521,31 +1528,45 @@ def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
     return(possm_fig)
 
 def interactive_vplot(vplot, bline, vplot_fig):
-            bl = bline
-            times = vplot[bl][0]
-            amps = vplot[bl][1]
-            phases = vplot[bl][2]
-            a1 = vplot['ant_dict'][bl[0]]
-            a2 = vplot['ant_dict'][bl[1]]
-            axes = vplot_fig.subplots(2, 1,  sharex=True) 
+    bl = bline
+    times = vplot[bl][0]
+    amps = vplot[bl][1]
+    phases = vplot[bl][2]
+    a1 = vplot['ant_dict'][bl[0]]
+    a2 = vplot['ant_dict'][bl[1]]
+    axes = vplot_fig.subplots(2, 1,  sharex=True) 
 
-            vplot_fig.suptitle('Amp&Phase - Time')
-            vplot_fig.suptitle(f"{bl[0]}.{a1} - {bl[1]}.{a2}", fontsize=20)
+    vplot_fig.suptitle('Amp&Phase - Time')
+    vplot_fig.suptitle(f"{bl[0]}.{a1} - {bl[1]}.{a2}", fontsize=20)
 
-            # First subplot 
-            axes[0].scatter(times, amps, label='Amplitude', marker = '.',
-                            s = 2, c = 'lime')
-            axes[0].set_ylabel('Amplitude (JY)')
-            axes[0].set_ylim(bottom = 0.85*min(amps), top = 1.15* max(amps))
+    # Convert decimal days to timedelta strings DD/HH:MM:SS
+    def day_to_str(day):
+        total_seconds = day * 24 * 3600
+        td = timedelta(seconds=total_seconds)
+        d = td.days
+        h, remainder = divmod(td.seconds, 3600)
+        m, s = divmod(remainder, 60)
+        return f"{d:02d}/{h:02d}:{m:02d}:{s:02d}"
+        
+    # Create tick labels for X-axis
+    xticks = np.linspace(np.array(times).min(), np.array(times).max(), 5)
+    xticklabels = [day_to_str(t) for t in xticks]
 
-            # Second subplot 
-            axes[1].scatter(times, phases, label='Phase', marker = '.',
-                            s = 2, c = 'lime')
-            axes[1].set_xlabel('Time')
-            axes[1].set_ylabel('Phase (degrees)')
+    # First subplot: Amplitude
+    axes[0].scatter(times, amps, label='Amplitude', marker='.', s=2, c='lime')
+    axes[0].set_ylabel('Amplitude (Jy)')
+    axes[0].set_ylim(bottom=0.85*np.array(amps).min(), top=1.15*np.array(amps).max())
 
+    # Second subplot: Phase
+    axes[1].scatter(times, phases, label='Phase', marker='.', s=2, c='lime')
+    axes[1].set_xlabel('Time (DD/HH:MM:SS)')
+    axes[1].set_ylabel('Phase (degrees)')
+    axes[1].set_xticks(xticks)
+    axes[1].set_xticklabels(xticklabels, rotation=20, ha='right')
 
-            return(vplot_fig)
+    vplot_fig.tight_layout()
+
+    return(vplot_fig)
 
 def apply_dark_theme(app):
     dark_palette = gtg.QPalette()
