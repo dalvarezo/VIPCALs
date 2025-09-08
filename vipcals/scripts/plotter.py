@@ -726,7 +726,7 @@ def pickle_possm(wuvdata, path, name, an_table, bp = False):
             sum_weights = np.sum(arr[..., 2], axis=0)
             avg_reals = np.divide(np.sum(weighted_reals, axis=0), sum_weights, where=sum_weights!=0)
             avg_imags = np.divide(np.sum(weighted_imags, axis=0), sum_weights, where=sum_weights!=0)
-            avg_data.append(np.stack([avg_reals, avg_imags, sum_weights], axis=-1))
+            #avg_data.append(np.stack([avg_reals, avg_imags, sum_weights], axis=-1))
 
             # Replace flagged (weight=0) entries with NaN in reals and imags
             avg_reals_masked = np.where(sum_weights==0, np.nan, avg_reals)
@@ -735,6 +735,7 @@ def pickle_possm(wuvdata, path, name, an_table, bp = False):
 
         POSSM[bline] = avg_data
 
+    POSSM['scans'] = scans
     POSSM['ant_dict'] = {x.nosta: x.anname.strip() for x in an_table}
     POSSM['pols'] = list(wuvdata.polarizations)
     POSSM['if_freq'] = wuvdata.table('FQ', 0)[0]['if_freq']

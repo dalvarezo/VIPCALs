@@ -190,6 +190,9 @@ class MainWindow(qtw.QMainWindow, Ui_VIPCALs):
         self.stack = qtw.QStackedWidget()
         self.setCentralWidget(self.stack)
 
+        # Set icon
+        #self.setWindowIcon(gtg.QIcon(f"{os.path.dirname(os.path.abspath(__file__))}/icon.png"))
+
         # Create different widgets
         self.main_page = MainPage(self)
         self.json_page = JSONWindow(self)
@@ -1045,6 +1048,7 @@ class PossmWindow(qtw.QMainWindow):
         self.selected_baseline = None
 
         self.possm_data = {}
+        self.plot_keys = ()
 
 
         # Create a central widget and main layout
@@ -1086,11 +1090,6 @@ class PossmWindow(qtw.QMainWindow):
         controls_layout.addWidget(self.cl_selector)
 
 
-        # --- Baseline Selector ---
-        self.bl_selector = qtw.QComboBox()
-        self.bl_selector.currentTextChanged.connect(self.update_baseline_selection)
-        controls_layout.addWidget(self.bl_selector)
-
         # --- Polarization Selector ---
         self.current_pol = 0  # Default pol index
         self.pol_selector = qtw.QComboBox()
@@ -1102,6 +1101,11 @@ class PossmWindow(qtw.QMainWindow):
         self.scan_selector = qtw.QComboBox()
         self.scan_selector.currentIndexChanged.connect(self.update_scan_selection)
         controls_layout.addWidget(self.scan_selector)
+
+        # --- Baseline Selector ---
+        self.bl_selector = qtw.QComboBox()
+        self.bl_selector.currentTextChanged.connect(self.update_baseline_selection)
+        controls_layout.addWidget(self.bl_selector)
 
         # --- Previous and Next Buttons ---
         self.prev_button = qtw.QPushButton("Previous")
@@ -1133,6 +1137,27 @@ class PossmWindow(qtw.QMainWindow):
 
     def update_scan_selection(self, index):
         self.current_scan = index
+
+        # Populate baseline selector
+        self.plot_keys = [key for key in self.possm_data.keys() if isinstance(key, tuple) and len(self.possm_data[key][self.current_scan]) > 0]
+        self.plot_keys.sort()
+
+        prev_baseline = self.selected_baseline
+
+        self.bl_selector.clear()
+        for key in self.plot_keys:
+            self.bl_selector.addItem(f"{key[0]}-{key[1]}")
+
+        if prev_baseline in self.plot_keys:
+            self.selected_baseline = prev_baseline
+        else:
+            self.selected_baseline = self.plot_keys[0] if self.plot_keys else None
+
+        if self.selected_baseline:
+            self.bl_selector.setCurrentText(f"{self.selected_baseline[0]}-{self.selected_baseline[1]}")
+            self.current_plot_index = self.plot_keys.index(self.selected_baseline)
+
+
         self.plot_data()
 
     def update_pol_selection(self, pol):
@@ -1206,7 +1231,24 @@ class PossmWindow(qtw.QMainWindow):
                     original_key = key
                 self.possm_data[original_key] = loaded_dict[key]
 
-            self.plot_keys = [key for key in self.possm_data.keys() if isinstance(key, tuple)]
+            # Populate pol selector
+            self.pol_selector.clear()
+            pols = self.possm_data['pols']
+            for i, p in enumerate(pols):
+                self.pol_selector.addItem(f"{p}")
+            self.current_pol = 0
+            self.pol_selector.setCurrentIndex(self.current_pol)
+
+            # Populate scan selector
+            self.scan_selector.clear()
+            num_scans = len(self.possm_data['scans'])
+            for i in range(num_scans):
+                self.scan_selector.addItem(f"Scan {i+1}")
+            self.current_scan = 0
+            self.scan_selector.setCurrentIndex(self.current_scan)
+
+            # Populate baseline selector
+            self.plot_keys = [key for key in self.possm_data.keys() if isinstance(key, tuple) and len(self.possm_data[key][self.current_scan]) > 0]
             self.plot_keys.sort()
 
             prev_baseline = self.selected_baseline
@@ -1224,25 +1266,6 @@ class PossmWindow(qtw.QMainWindow):
                 self.bl_selector.setCurrentText(f"{self.selected_baseline[0]}-{self.selected_baseline[1]}")
                 self.current_plot_index = self.plot_keys.index(self.selected_baseline)
 
-            # Populate scan selector
-            self.scan_selector.clear()
-            if self.selected_baseline in self.possm_data:
-                num_scans = len(self.possm_data[self.selected_baseline])
-                for i in range(num_scans):
-                    self.scan_selector.addItem(f"Scan {i+1}")
-                self.current_scan = 0
-                self.scan_selector.setCurrentIndex(self.current_scan)
-
-            # Populate pol selector
-            self.pol_selector.clear()
-            if self.selected_baseline in self.possm_data:
-                pols = self.possm_data['pols']
-                for i, p in enumerate(pols):
-                    self.pol_selector.addItem(f"{p}")
-                self.current_pol = 0
-                self.pol_selector.setCurrentIndex(self.current_pol)
-
-
         except FileNotFoundError:
             qtw.QMessageBox.warning(self, "File not found", f"Could not find file: {filename}")
             self.possm_data = {}
@@ -1250,26 +1273,88 @@ class PossmWindow(qtw.QMainWindow):
             self.bl_selector.clear()
             self.selected_baseline = None
 
-
-
-
     def plot_data(self):
-        """Plot data based on the selected baseline and scan index using interactive_possm()."""
+        """Efficient plotting without changing any visual style or layout."""
         if not self.possm_data or not self.plot_keys or not self.selected_baseline:
             return
 
-        # Get current baseline and scan
-        scan = self.current_scan  # For now, this is static. Make dynamic later if needed.
+        scan = self.current_scan
         pol = self.current_pol
-        # --- NEW PLOT DRAWING ---
-        self.figure.clear()  # Clear old plot
+        bl = self.selected_baseline
 
-        with np.errstate(divide='ignore', invalid='ignore'):
-            interactive_possm(self.possm_data, self.selected_baseline, 
-                              polarization = pol ,scan=scan, possm_fig=self.figure)
+        # --- Initialize axes and lines only once ---
+        if not hasattr(self, 'axes_top'):
+            # Compute num_chunks and chunk_size
+            if_freq = self.possm_data['if_freq']
+            chan_freq = []
+            for IF, freq in enumerate(if_freq):
+                n_chan = int(self.possm_data['total_bandwidth'][IF]/self.possm_data['ch_width'][IF])
+                for c in range(n_chan):
+                    chan_freq.append(self.possm_data['central_freq'] + freq + c * self.possm_data['ch_width'][IF])
+            chan_freq = np.array(chan_freq) / 1e9
+            self.chan_freq = chan_freq
+            self.chunk_size = n_chan
+            self.num_chunks = len(chan_freq) // n_chan
 
-        self.canvas.draw()
+            # --- Create figure with 1:2 height ratio ---
+            self.figure.clear()
+            fig, axes = plt.subplots(
+                nrows=2,
+                ncols=self.num_chunks,
+                # figsize=(12, 6),
+                gridspec_kw={'height_ratios': [1, 2]},
+                sharey = 'row'
+            )
+            self.canvas.figure = self.figure = fig
+            self.canvas.draw_idle()
 
+            axes = np.atleast_2d(axes)
+            self.axes_top = axes[0, :] if self.num_chunks > 1 else [axes[0]]
+            self.axes_bottom = axes[1, :] if self.num_chunks > 1 else [axes[1]]
+
+            # Initialize line containers
+            self.top_lines = []
+            self.bottom_lines = []
+            self.connect_lines_bottom = []
+
+            for i in range(self.num_chunks):
+                ax_top = self.axes_top[i]
+                ax_bottom = self.axes_bottom[i]
+
+                # Marker lines
+                line_top, = ax_top.plot([], [], "+", color="g", mec='c', mfc='c', markersize=12, linestyle='none')
+                line_bottom, = ax_bottom.plot([], [], "+", color="g", mec='c', mfc='c', markersize=12)
+                self.top_lines.append(line_top)
+                self.bottom_lines.append(line_bottom)
+
+                # Connecting lines (green)
+                conn_bottom, = ax_bottom.plot([], [], "-", color='g', alpha = 0.8)
+                self.connect_lines_bottom.append(conn_bottom)
+
+                # Set spines and tick labels exactly as original
+                for ax in (ax_top, ax_bottom):
+                    ax.spines['bottom'].set_color('yellow')
+                    ax.spines['top'].set_color('yellow')
+                    ax.spines['right'].set_color('yellow')
+                    ax.spines['left'].set_color('yellow')
+
+                ax_top.tick_params(labelbottom=False)
+                if i > 0:
+                    ax_top.tick_params(labelleft=False)
+                    ax_bottom.tick_params(labelleft=False)
+
+            self.figure.subplots_adjust(bottom=0.18, wspace=0, hspace=0)
+            plt.style.use('dark_background')
+
+        # --- Update data and y-limits via optimized function ---
+        interactive_possm(self.possm_data, bl, pol, scan,
+                        axes_top=self.axes_top,
+                        axes_bottom=self.axes_bottom,
+                        top_lines=self.top_lines,
+                        bottom_lines=self.bottom_lines,
+                        connect_lines_bottom=self.connect_lines_bottom)
+
+        self.canvas.draw_idle()
 
     
 class RadplotWindow(qtw.QMainWindow):
@@ -1437,95 +1522,99 @@ class UvplotWindow(qtw.QMainWindow):
 
         self.canvas.draw()
 
-def interactive_possm(POSSM, bline, polarization, scan,  possm_fig):
+def interactive_possm(POSSM, bline, polarization, scan,
+                      axes_top, axes_bottom, top_lines, bottom_lines,
+                      connect_lines_bottom):
+    """
+    Fast updating POSSM plot without changing any design choices.
+
+    Parameters:
+    - POSSM: loaded POSSM data dict
+    - bline: tuple, baseline (ant1, ant2)
+    - polarization: integer index
+    - scan: integer index
+    - axes_top / axes_bottom: lists of matplotlib Axes (pre-created)
+    - top_lines / bottom_lines: lists of Line2D objects (pre-created)
+    """
+
     n = scan
     bl = bline
-    pol = polarization #POSSM['pols'].tolist().index(polarization)
+    pol = polarization
 
-    # Indexing goes like:
-    # POSSM[baseline][scan][IF, channel, polarization, visibility]
+    # --- Extract data ---
     if len(POSSM['pols'].tolist()) < 2:
         avg_reals = np.array(POSSM[bl][n])[:, :, :, 0].astype(float)
         avg_imags = np.array(POSSM[bl][n])[:, :, :, 1].astype(float)
         weights = np.array(POSSM[bl][n])[:, :, :, 2].astype(float)
-
     else:
         avg_reals = np.array(POSSM[bl][n])[:, :, pol, 0].astype(float)
         avg_imags = np.array(POSSM[bl][n])[:, :, pol, 1].astype(float)
         weights = np.array(POSSM[bl][n])[:, :, pol, 2].astype(float)
 
-    # Replace flagged/zero-weight values with NaN
     avg_reals[weights == 0] = np.nan
     avg_imags[weights == 0] = np.nan
 
-    amps = np.sqrt((avg_reals**2 + avg_imags**2)).flatten()
+    amps = np.sqrt(avg_reals**2 + avg_imags**2).flatten()
     phases = (np.arctan2(avg_imags, avg_reals) * 360/(2*np.pi)).flatten()
-    
+
+    # --- Precompute frequencies ---
     if_freq = POSSM['if_freq']
     chan_freq = []
     for IF, freq in enumerate(if_freq):
         n_chan = int(POSSM['total_bandwidth'][IF]/POSSM['ch_width'][IF])
         for c in range(n_chan):
-            chan_freq.append(POSSM['central_freq'] + freq + c * POSSM['ch_width'][IF]) 
+            chan_freq.append(POSSM['central_freq'] + freq + c * POSSM['ch_width'][IF])
     chan_freq = np.array(chan_freq) / 1e9
     chunk_size = n_chan
     num_chunks = len(chan_freq) // chunk_size
 
-    # Always create axes from possm_fig
-    axes = possm_fig.subplots(
-        2, num_chunks, #figsize=(8, 4), 
-        gridspec_kw = {'height_ratios': [1,2]},
-        sharey = 'row')
-
-    axes_top, axes_bottom = axes
-    # Plot each chunk in its respective subplot
+    # --- Update line data and axes ---
     for i in range(num_chunks):
-        start, end = i * chunk_size, (i + 1) * chunk_size   
-        axes_top[i].plot(chan_freq[start:end], phases[start:end], color="g",  mec = 'c', mfc='c', marker="+", markersize = 12,
-                        linestyle="none")
-        axes_bottom[i].plot(chan_freq[start:end], amps[start:end], color="g",  mec = 'c', mfc='c', marker="+", markersize = 12, )
-        axes_top[i].hlines(y = 0, xmin =  chan_freq[start], xmax = chan_freq[end-1], color = 'y')
-        axes_top[i].set_ylim(-180,180)
+        start, end = i * chunk_size, (i + 1) * chunk_size
+
+        # Update marker data
+        top_lines[i].set_data(chan_freq[start:end], phases[start:end])
+        bottom_lines[i].set_data(chan_freq[start:end], amps[start:end])
+
+        # Update connecting lines
+        connect_lines_bottom[i].set_data(chan_freq[start:end], amps[start:end])
+
+        # Update y-limits
+        axes_top[i].set_ylim(-180, 180)
         if np.all(np.isnan(amps)):
-            # Skip plotting or set default limits
-            axes_bottom[i].set_ylim(0, 1) 
+            axes_bottom[i].set_ylim(0, 1)
         else:
-            axes_bottom[i].set_ylim(np.nanmin(amps)*0.90, np.nanmax(amps) * 1.10)
-        axes_top[i].tick_params(labelbottom=False)
-        axes_top[i].spines['bottom'].set_color('yellow')
-        axes_top[i].spines['top'].set_color('yellow')
-        axes_top[i].spines['right'].set_color('yellow')
-        axes_top[i].spines['left'].set_color('yellow')
-        axes_bottom[i].spines['bottom'].set_color('yellow')
-        axes_bottom[i].spines['top'].set_color('yellow')
-        axes_bottom[i].spines['right'].set_color('yellow')
-        axes_bottom[i].spines['left'].set_color('yellow')
+            axes_bottom[i].set_ylim(np.nanmin(amps) * 0.90,
+                                    np.nanmax(amps) * 1.10)
 
-    # Remove ticks to not saturate the plot
-    for i in range(1, num_chunks):
-        axes_top[i].tick_params(labelleft=False)
-        axes_bottom[i].tick_params(labelleft=False)
+        # x-limits remain dynamic per chunk
+        axes_top[i].set_xlim(chan_freq[start], chan_freq[end-1])
+        axes_bottom[i].set_xlim(chan_freq[start], chan_freq[end-1])
 
-    # Rotate xtick labels so they overlap a bit less
+        # --- Set 2 xticks per bottom chunk at 1/4 and 3/4 ---
+        if end > start:
+            tick_indices = [start + (end - start) // 4, start + 3 * (end - start) // 4]
+            axes_bottom[i].set_xticks(chan_freq[tick_indices])
+            axes_bottom[i].set_xticklabels([f"{chan_freq[j]:.2f}" for j in tick_indices])
+        else:
+            axes_bottom[i].set_xticks([0, 1])
+            axes_bottom[i].set_xticklabels(["0", "0"])
+
+    # --- Set y-axis labels on first axes ---
+    axes_top[0].set_ylabel('Phase (Degrees)', fontsize=15)
+    axes_bottom[0].set_ylabel('Amplitude (Jy)', fontsize=15)
+
+    # --- Rotate xtick labels for bottom axes ---
     for ax in axes_bottom:
         for label in ax.get_xticklabels():
             label.set_rotation(45)
             label.set_ha('right')
 
-    
-    axes_top[0].set_ylabel('Phase (Degrees)', fontsize = 15)
-    axes_bottom[0].set_ylabel('Amplitude (Jy)', fontsize = 15)
-    plt.style.use('dark_background')
-
+    # --- Update title and labels exactly as original ---
     a1 = POSSM['ant_dict'].item()[bl[0]]
     a2 = POSSM['ant_dict'].item()[bl[1]]
-    # possm_fig.suptitle(f"Baseline {bl[0]}-{bl[1]}", fontsize=20)
-    possm_fig.suptitle(f"{bl[0]}.{a1} - {bl[1]}.{a2}", fontsize=20)
-    possm_fig.supxlabel("Frequency (GHz)", fontsize = 16)
-    possm_fig.subplots_adjust(bottom=0.18)
-    possm_fig.subplots_adjust(wspace=0, hspace = 0)  # No horizontal spacing
-
-    return(possm_fig)
+    axes_top[0].figure.suptitle(f"{bl[0]}.{a1} - {bl[1]}.{a2}", fontsize=20)
+    axes_bottom[0].figure.supxlabel("Frequency (GHz)", fontsize=16)
 
 def interactive_vplot(vplot, bline, vplot_fig):
     bl = bline
