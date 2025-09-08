@@ -1602,7 +1602,6 @@ def interactive_possm(POSSM, bline, polarization, scan,
     axes_top[0].figure.suptitle(f"{bl[0]}.{a1} - {bl[1]}.{a2}", fontsize=20)
     axes_bottom[0].figure.supxlabel("Frequency (GHz)", fontsize=16)
 
-
 def interactive_vplot(vplot, bline, vplot_fig):
     bl = bline
     times = vplot[bl][0]

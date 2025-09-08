@@ -8,7 +8,7 @@ from vipcals.scripts.helper import NoAutocorrError
 
 AIPSTask.msgkill = -8
 
-def autocorr_correct(data, solint = -3):
+def autocorr_correct(data, solint = 10):
     """Auto corelation scaling correction - ACSCL
     
     Corrects errors in the scaling of auto correlations due to the bandpass 
@@ -18,7 +18,7 @@ def autocorr_correct(data, solint = -3):
     :param data: visibility data
     :type data: AIPSUVData
     :param solint: solution interval in minutes. If > 0, does not pay 
-        attention to scan boundaries; defaults to -3
+        attention to scan boundaries; defaults to 10
     :type solint: float, optional
     """    
     acscl = AIPSTask('acscl')
@@ -47,7 +47,7 @@ def autocorr_correct(data, solint = -3):
 
     clcal.go()
 
-def sampling_correct(data, solint = -3):
+def sampling_correct(data, solint = 10):
     """Digital sampling correction - ACCOR
     
     Correct cross correlations using auto correlations using the ACCOR
@@ -57,7 +57,7 @@ def sampling_correct(data, solint = -3):
     :param data: visibility data
     :type data: AIPSUVData
     :param solint: solution interval in minutes. If > 0, does not pay 
-        attention to scan boundaries; defaults to -3
+        attention to scan boundaries; defaults to 10
     :type solint: float, optional
     """    
     accor = AIPSTask('accor')
