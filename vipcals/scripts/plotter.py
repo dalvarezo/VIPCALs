@@ -183,7 +183,7 @@ def possm_plotter(filepath, data, target, \
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
     outpath = filepath +  '/PLOTS/' + filename + '_CL' + str(gainuse) + '_POSSM.ps'
-    if len(outpath) >= 114:
+    if len(outpath) >= 110:
         lwpla.outfile = f'{tmp}/CL{gainuse}.ps'
     else:    
         lwpla.outfile = outpath
@@ -191,7 +191,7 @@ def possm_plotter(filepath, data, target, \
     lwpla.go()
     
     # If filename was long, move it
-    if len(outpath) >= 114:
+    if len(outpath) >= 110:
         os.system(f'mv {tmp}/CL{gainuse}.ps {outpath}')
     # Clean all plots
     data.zap_table('PL', -1)
@@ -254,7 +254,7 @@ def uvplt_plotter(filepath, data, target, solint = 0.09):
     lwpla.invers = 1
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
-    if len(filepath + '/PLOTS/' + filename + '_UVPLT.ps') < 114:
+    if len(filepath + '/PLOTS/' + filename + '_UVPLT.ps') < 110:
         lwpla.outfile = filepath + '/PLOTS/' + filename + '_UVPLT.ps'
     else:
         lwpla.outfile = tmp_dir + '/aux.uvplt.ps'
@@ -262,7 +262,7 @@ def uvplt_plotter(filepath, data, target, solint = 0.09):
     lwpla.go()
 
     # If the filepath name was too long, move the auxiliary file to the correct place
-    if len(filepath + '/PLOTS/' + filename + '_UVPLT.ps') >= 114:
+    if len(filepath + '/PLOTS/' + filename + '_UVPLT.ps') >= 110:
         os.system('mv ' + tmp_dir + '/aux.uvplt.ps '\
                   + filepath + '/PLOTS/' + filename + '_UVPLT.ps')
 
@@ -346,7 +346,7 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
 
-    if len(filepath + '/PLOTS/' + filename + '_VPLOT.ps') < 114:
+    if len(filepath + '/PLOTS/' + filename + '_VPLOT.ps') < 110:
         lwpla.outfile = filepath + '/PLOTS/' + filename + '_VPLOT.ps'
     else:
         lwpla.outfile = tmp_dir + '/aux.vplot.ps'
@@ -354,7 +354,7 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     lwpla.go()
 
     # If the filepath name was too long, move the auxiliary file to the correct place
-    if len(filepath + '/PLOTS/' + filename + '_VPLOT.ps') >= 114:
+    if len(filepath + '/PLOTS/' + filename + '_VPLOT.ps') >= 110:
         os.system('mv ' + tmp_dir + '/aux.vplot.ps '\
                   + filepath + '/PLOTS/' + filename + '_VPLOT.ps')
     
@@ -415,7 +415,7 @@ def tsys_plotter(filepath, data, tyver = 1):
     lwpla.dparm = AIPSList([0, 0, 0, 0, 0, 4, 31, 7, 0 ])
     lwpla.outfile = filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps'
 
-    if len(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps') < 114:
+    if len(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps') < 110:
         lwpla.outfile = filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps'
     else:
         lwpla.outfile = tmp_dir + f'/aux.tsys{tyver}.ps'
@@ -423,7 +423,7 @@ def tsys_plotter(filepath, data, tyver = 1):
     lwpla.go()
 
     # If the filepath name was too long, move the auxiliary file to the correct place
-    if len(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps') >= 114:
+    if len(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps') >= 110:
         os.system('mv ' + tmp_dir + f'/aux.tsys{tyver}.ps '\
                   + filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps')
     
