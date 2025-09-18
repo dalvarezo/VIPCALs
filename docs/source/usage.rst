@@ -260,6 +260,7 @@ Below is a representative structure of the output directory produced by the pipe
     │   │   ├ 1159+2914_EA075_22G_2024-03-13_UVPLT.ps
     │   │   ├ 1159+2914_EA075_22G_2024-03-13_VPLOT.ps
     │   │   ├ 1159+2914_EA075_22G_2024-03-13_RADPLOT.pdf
+    │   │   ├ 1159+2914_EA075_22G_2024-03-13_VISANT.pdf
     │   │
     │   ├── TABLES/
     │   │   ├ flags.vlba
@@ -296,6 +297,7 @@ The pipeline also generates the following plots inside the */PLOTS/* folder:
 - *\*\_UVPLT.ps*: UV coverage of the calibrated observation
 - *\*\_VPLOT.ps*: calibrated visibilities vs time
 - *\*\_RADPLOT.pdf*: calibrated visibilities vs uv-distance
+- *\*\_VISANT.pdf*: number of visibilities per antenna across the different calibration tables
 
 and the following tables in the */TABLES/* folder:
 

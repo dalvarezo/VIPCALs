@@ -442,7 +442,7 @@ Autocorrelations are normalized using the ACCOR, with corrections being applied 
    
       task 'ACCOR'
       
-      solint    -3      # Solution interval of 3 minutes, respecting scan boundaries
+      solint    10      # Solution interval of 10 minutes, not respecting scan boundaries
       
    .. code-block:: firstword
    
@@ -549,7 +549,7 @@ After the bandpass corrections, normalize again the autocorrelations with ACSCL.
    
       task 'ACSCL'
       
-      solint    -3  # Solution interval respecting scan boundaries
+      solint    10      # Solution interval of 10 minutes, not respecting scan boundaries
       docalib   1   # Use calibrated data
       gainuse   6
       doband    1   # Apply bandpass correction

@@ -1,3 +1,17 @@
+## [0.3.5] - 2025-09-18
+### Added
+- Visibilities per antenna across the different calibration steps are now included as .pdf plot in the /PLOTS directory.
+
+### Changed
+- Interactive visibilities vs time plots now show the timestamps in DD/HH:MM:SS since the beginning of the observation.
+- Interactive visibilities vs frequency plots now render much faster, especially when iterating over baselines.
+- Default solution interval for ACCOR and ACSCL (normalization of autocorrelations) changed from 3 to 10 minutes, seems to be more stable for lower frequencies.
+
+### Fixed
+- Fixed bug that was causing the pipeline to not merge redundant tables, causing problems when concatenating multiple files.
+- Now flagged channels are correctly displayed in the interactive visibilities vs frequency plots.
+- Fixed bug when generating plots of targets with very long names.
+
 ## [0.3.4] - 2025-08-19
 ### Added
 - Now the pipeline will raise an error when the dataset does not contain autocorrelation data, which makes amplitude calibration not possible.
