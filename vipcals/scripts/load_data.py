@@ -169,7 +169,7 @@ def find_calibrators(full_source_list, choose = 'BYCOORD'):
         source_coords = SkyCoord([x.ra for x in full_source_list], \
                              [y.dec for y in full_source_list], unit = 'deg')
         calib_coords = SkyCoord(calib_list['RA'].to_list(), calib_list['DEC'].to_list())
-        idx1, idx2 ,_ ,_ = search_around_sky(source_coords, calib_coords, 5 * u.arcsec)
+        idx1, idx2 ,_ ,_ = search_around_sky(source_coords, calib_coords, 1 * u.arcsec)
         for i, idx in enumerate(idx1):
             try:
                 full_source_list[idx].band_flux = \
