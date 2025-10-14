@@ -1738,11 +1738,11 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
     # Apply all SN tables into CL9    
     no_pr_target_scans = [x for x in scan_list if x.source_name in [t.name for t in no_pr_target_list]]
     if len(no_pr_target_list) > 0:
-        frng.fringe_clcal(uvdata, no_pr_target_list, no_pr_target_scans, max_ver = pr_sn - 1)
+        frng.fringe_clcal(uvdata, refant, no_pr_target_list, no_pr_target_scans, max_ver = pr_sn - 1)
     else:
         # Create a CL9 if it has not been created before
         help.tacop(uvdata, 'CL', 8, 9)
-    frng.fringe_phaseref_clcal(uvdata, pr_target_list, version = pr_sn)
+    frng.fringe_phaseref_clcal(uvdata, refant, pr_target_list, version = pr_sn)
 
 
     t14 = time.time()

@@ -78,7 +78,7 @@ def target_fring_fit(data, refant, priority_refants, target_name, version, snr_c
 
     return(target_fring.refant, str(target_fring.dparm[2]), str(target_fring.dparm[3]))
 
-def fringe_clcal(data, target_list, target_scans, max_ver):
+def fringe_clcal(data, refant, target_list, target_scans, max_ver):
     """Apply SN solution table from FRING to a new CL table.
 
     Apply solution tables to a new calibration table using the CLCAL task in AIPS.
@@ -87,6 +87,8 @@ def fringe_clcal(data, target_list, target_scans, max_ver):
 
     :param data: visibility data
     :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
     :param target_list: list of targets
     :type target_list: list of :class:`~vipcals.scripts.helper.FFTarget` objects
     :param target_scans: scans the target
@@ -103,10 +105,11 @@ def fringe_clcal(data, target_list, target_scans, max_ver):
     clcal.inclass = data.klass
     clcal.indisk = data.disk
     clcal.inseq = data.seq
+    clcal.refant = refant
     # clcal.sources = AIPSList([t.name for t in target_list])
     
-    clcal.opcode = 'calp'
-    clcal.interpol = 'self'
+    clcal.opcode = 'CALP'
+    clcal.interpol = 'SELF'
     # Maximum interpolation time range
     clcal.cutoff = 1.1 * (longest_scan.time_interval*24*60) 
 
@@ -114,10 +117,10 @@ def fringe_clcal(data, target_list, target_scans, max_ver):
     clcal.invers = max_ver
     clcal.gainver = 8
     clcal.gainuse = 9
-    
+
     clcal.go()
 
-def fringe_phaseref_clcal(data, target_list, version):
+def fringe_phaseref_clcal(data, refant, target_list, version):
     """Apply phase reference SN solution table from FRING to a new CL table
 
     Apply phase reference solution tables to a new calibration table using the CLCAL 
@@ -129,6 +132,8 @@ def fringe_phaseref_clcal(data, target_list, version):
 
     :param data: visibility data
     :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
     :param target_list: list of targets
     :type target_list: list of :class:`~vipcals.scripts.helper.FFtarget` objects
     :param version: first SN table version corresponding to the phase referenced sources
@@ -142,10 +147,11 @@ def fringe_phaseref_clcal(data, target_list, version):
         clcal.inclass = data.klass
         clcal.indisk = data.disk
         clcal.inseq = data.seq
+        clcal.refant = refant
         clcal.sources = AIPSList([target.name])
         
-        clcal.opcode = 'calp'
-        clcal.interpol = '2pt'
+        clcal.opcode = 'CALP'
+        clcal.interpol = '2PT'
         clcal.snver = version + i
         clcal.gainver = 9
         clcal.gainuse = 10

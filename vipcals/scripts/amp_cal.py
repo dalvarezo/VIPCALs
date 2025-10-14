@@ -53,8 +53,8 @@ def amp_cal(data, solint = -3, average = False, ref_if = 0):
     clcal.inclass = data.klass
     clcal.indisk = data.disk
     clcal.inseq = data.seq
-    clcal.opcode = 'calp'
-    clcal.interpol = 'self'
+    clcal.opcode = 'CALP'
+    clcal.interpol = 'SELF'
     clcal.snver = 5
     clcal.gainver = 7
     clcal.gainuse = 8

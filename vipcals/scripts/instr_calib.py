@@ -51,8 +51,8 @@ def pulse_phasecal(data, refant, cal_scan):
     clcal.inclass = data.klass
     clcal.indisk = data.disk
     clcal.inseq = data.seq
-    clcal.opcode = 'calp'
-    clcal.interpol = 'self'
+    clcal.opcode = 'CALP'
+    clcal.interpol = 'SELF'
     clcal.snver = 3
     clcal.gainver = 5
     clcal.gainuse = 6
@@ -231,8 +231,8 @@ def manual_phasecal_multi(data, refant, priority_refants, calib_scans):
     if len(list(set(bad_antennas))) > 0:
         clcal_apply.antennas = AIPSList(list(set(bad_antennas)))
 
-    clcal_apply.opcode = 'calp'
-    clcal_apply.interpol = '2pt'
+    clcal_apply.opcode = 'CALP'
+    clcal_apply.interpol = '2PT'
     clcal_apply.snver =  data.table_highver('SN') # The last SN table
     clcal_apply.gainver = 5
     clcal_apply.gainuse = 6
