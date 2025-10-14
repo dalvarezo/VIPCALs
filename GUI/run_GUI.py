@@ -378,7 +378,15 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         remove_button.clicked.connect(partial(self.remove_target_row, line_edit))
 
         self.target_rows.append((line_edit, remove_button))
+
         self.refresh_layout()
+
+        # Reassign TAB order
+        elements = [x for tup in self.target_rows for x in tup]
+        for i in range(len(elements)):
+            if i != len(elements) - 1:
+                qtw.QWidget.setTabOrder(elements[i], elements[i+1])
+        qtw.QWidget.setTabOrder(elements[-1], self.more_options_btn)
 
     def remove_target_row(self, target_line_edit):
         for i, (line_edit, remove_button) in enumerate(self.target_rows):
@@ -393,6 +401,12 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 self.target_rows.pop(i)
                 self.refresh_layout()
                 break
+        # Reassign TAB order
+        elements = [x for tup in self.target_rows for x in tup]
+        for i in range(len(elements)):
+            if i != len(elements) - 1:
+                qtw.QWidget.setTabOrder(elements[i], elements[i+1])
+        qtw.QWidget.setTabOrder(elements[-1], self.more_options_btn)
 
     def add_phaseref_row(self):
         line_edit = qtw.QLineEdit()
@@ -408,6 +422,13 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.phaseref_rows.append((line_edit, remove_button))
         self.refresh_layout()
 
+        # Reassign TAB order
+        elements = [x for tup in self.phaseref_rows for x in tup]
+        for i in range(len(elements)):
+            if i != len(elements) - 1:
+                qtw.QWidget.setTabOrder(elements[i], elements[i+1])
+        qtw.QWidget.setTabOrder(elements[-1], self.loadall_chck)
+
     def remove_phaseref_row(self, target_line_edit):
         for i, (line_edit, remove_button) in enumerate(self.phaseref_rows):
             if line_edit == target_line_edit:
@@ -421,6 +442,13 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 self.phaseref_rows.pop(i)
                 self.refresh_layout()
                 break
+
+        # Reassign TAB order
+        elements = [x for tup in self.phaseref_rows for x in tup]
+        for i in range(len(elements)):
+            if i != len(elements) - 1:
+                qtw.QWidget.setTabOrder(elements[i], elements[i+1])
+        qtw.QWidget.setTabOrder(elements[-1], self.loadall_chck)
 
     def add_shift_row(self):
         line_edit = qtw.QLineEdit()
@@ -436,6 +464,13 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.shift_rows.append((line_edit, remove_button))
         self.refresh_layout()
 
+        # Reassign TAB order
+        elements = [x for tup in self.shift_rows for x in tup]
+        for i in range(len(elements)):
+            if i != len(elements) - 1:
+                qtw.QWidget.setTabOrder(elements[i], elements[i+1])
+        qtw.QWidget.setTabOrder(elements[-1], self.refant_line)
+
     def remove_shift_row(self, target_line_edit):
         for i, (line_edit, remove_button) in enumerate(self.shift_rows):
             if line_edit == target_line_edit:
@@ -450,6 +485,13 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 self.refresh_layout()
                 break
 
+        # Reassign TAB order
+        elements = [x for tup in self.shift_rows for x in tup]
+        for i in range(len(elements)):
+            if i != len(elements) - 1:
+                qtw.QWidget.setTabOrder(elements[i], elements[i+1])
+        qtw.QWidget.setTabOrder(elements[-1], self.refant_line)
+
     def refresh_layout(self):
         # Clear and re-add rows to ensure proper layout
         for i, (line_edit, remove_button) in enumerate(self.target_rows):
@@ -463,7 +505,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             self.gridLayout_4.addWidget(remove_button, row_index, 2)
 
         for i, (line_edit, remove_button) in enumerate(self.shift_rows):
-            row_index = 5 + i
+            row_index = 6 + i
             self.gridLayout_5.addWidget(line_edit, row_index, 1)
             self.gridLayout_5.addWidget(remove_button, row_index, 2)
 

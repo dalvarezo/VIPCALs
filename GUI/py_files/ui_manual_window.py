@@ -32,19 +32,8 @@ class Ui_manual_window(object):
 
         self.gridLayout = QGridLayout(manual_window)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.continue_button = QPushButton(manual_window)
-        self.continue_button.setObjectName(u"continue_button")
         font = QFont()
         font.setPointSize(10)
-        self.continue_button.setFont(font)
-
-        self.gridLayout.addWidget(self.continue_button, 3, 2, 1, 1)
-
-        self.return_button = QPushButton(manual_window)
-        self.return_button.setObjectName(u"return_button")
-        self.return_button.setFont(font)
-
-        self.gridLayout.addWidget(self.return_button, 3, 1, 1, 1)
 
         self.scrollArea = QScrollArea(manual_window)
         self.scrollArea.setObjectName(u"scrollArea")
@@ -473,86 +462,67 @@ class Ui_manual_window(object):
         self.horizontalLayout_4 = QHBoxLayout(self.refant_top)
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.horizontalLayout_4.setContentsMargins(0, 0, 0, 0)
+        
         self.refant_line_L = QFrame(self.refant_top)
         self.refant_line_L.setObjectName(u"refant_line_L")
         self.refant_line_L.setFont(font3)
         self.refant_line_L.setFrameShape(QFrame.HLine)
         self.refant_line_L.setFrameShadow(QFrame.Raised)
-
         self.horizontalLayout_4.addWidget(self.refant_line_L)
 
         self.refant_label = QLabel(self.refant_top)
         self.refant_label.setObjectName(u"refant_label")
         self.refant_label.setFont(font2)
         self.refant_label.setAlignment(Qt.AlignCenter)
-
         self.horizontalLayout_4.addWidget(self.refant_label)
 
         self.refant_line_R = QFrame(self.refant_top)
         self.refant_line_R.setObjectName(u"refant_line_R")
         self.refant_line_R.setFrameShape(QFrame.HLine)
         self.refant_line_R.setFrameShadow(QFrame.Raised)
-
         self.horizontalLayout_4.addWidget(self.refant_line_R)
 
-
         self.verticalLayout_4.addWidget(self.refant_top)
+
+
 
         self.refant_bottom = QWidget(self.refantbox)
         self.refant_bottom.setObjectName(u"refant_bottom")
         self.gridLayout_6 = QGridLayout(self.refant_bottom)
         self.gridLayout_6.setObjectName(u"gridLayout_6")
         self.gridLayout_6.setVerticalSpacing(10)
-        self.centrant_lbl = QLabel(self.refant_bottom)
-        self.centrant_lbl.setObjectName(u"centrant_lbl")
-        self.centrant_lbl.setFont(font1)
-
-        self.gridLayout_6.addWidget(self.centrant_lbl, 2, 0, 1, 1)
-
-        self.centrant_chck = QCheckBox(self.refant_bottom)
-        self.centrant_chck.setObjectName(u"centrant_chck")
-
-        self.gridLayout_6.addWidget(self.centrant_chck, 2, 1, 1, 1)
 
         self.refant_lbl = QLabel(self.refant_bottom)
         self.refant_lbl.setObjectName(u"refant_lbl")
         self.refant_lbl.setFont(font1)
-
         self.gridLayout_6.addWidget(self.refant_lbl, 0, 0, 1, 1)
+        self.refant_line = QLineEdit(self.refant_bottom)
+        self.refant_line.setObjectName(u"refant_line")
+        self.gridLayout_6.addWidget(self.refant_line, 0, 1, 1, 2)
 
         self.priorant_lbl = QLabel(self.refant_bottom)
         self.priorant_lbl.setObjectName(u"priorant_lbl")
         self.priorant_lbl.setFont(font1)
-
         self.gridLayout_6.addWidget(self.priorant_lbl, 1, 0, 1, 1)
+        self.priorant_line = QLineEdit(self.refant_bottom)
+        self.priorant_line.setObjectName(u"priorant_line")
+        self.gridLayout_6.addWidget(self.priorant_line, 1, 1, 1, 2)
+    
+        self.centrant_lbl = QLabel(self.refant_bottom)
+        self.centrant_lbl.setObjectName(u"centrant_lbl")
+        self.centrant_lbl.setFont(font1)
+        self.gridLayout_6.addWidget(self.centrant_lbl, 2, 0, 1, 1)
+        self.centrant_chck = QCheckBox(self.refant_bottom)
+        self.centrant_chck.setObjectName(u"centrant_chck")
+        self.gridLayout_6.addWidget(self.centrant_chck, 2, 1, 1, 1)
 
         self.maxrefantscans_lbl = QLabel(self.refant_bottom)
         self.maxrefantscans_lbl.setObjectName(u"maxrefantscans_lbl")
         self.maxrefantscans_lbl.setFont(font1)
-
         self.gridLayout_6.addWidget(self.maxrefantscans_lbl, 3, 0, 1, 1)
-
         self.maxrefantscans_line = QLineEdit(self.refant_bottom)
         self.maxrefantscans_line.setObjectName(u"maxrefantscans_line")
-
         self.gridLayout_6.addWidget(self.maxrefantscans_line, 3, 1, 1, 2)
-
-        self.priorant_line = QLineEdit(self.refant_bottom)
-        self.priorant_line.setObjectName(u"priorant_line")
-
-        self.gridLayout_6.addWidget(self.priorant_line, 1, 1, 1, 2)
-
-        self.refant_line = QLineEdit(self.refant_bottom)
-        self.refant_line.setObjectName(u"refant_line")
-
-        self.gridLayout_6.addWidget(self.refant_line, 0, 1, 1, 2)
-
-        #self.gridLayout_6.setRowStretch(0, 1)
-        #self.gridLayout_6.setRowStretch(1, 1)
-        #self.gridLayout_6.setRowStretch(2, 1)
-        #self.gridLayout_6.setRowStretch(3, 1)
-        #self.gridLayout_6.setColumnStretch(0, 3)
-        #self.gridLayout_6.setColumnStretch(1, 8)
 
         self.gridLayout_6.setColumnStretch(0, 4)
         self.gridLayout_6.setColumnStretch(1, 6)
@@ -796,10 +766,38 @@ class Ui_manual_window(object):
 
         self.gridLayout.addWidget(self.scrollArea, 2, 1, 1, 2)
 
+        self.continue_button = QPushButton(manual_window)
+        self.continue_button.setObjectName(u"continue_button")
+
+        self.continue_button.setFont(font)
+
+        self.gridLayout.addWidget(self.continue_button, 3, 2, 1, 1)
+
+        self.return_button = QPushButton(manual_window)
+        self.return_button.setObjectName(u"return_button")
+        self.return_button.setFont(font)
+
+        self.gridLayout.addWidget(self.return_button, 3, 1, 1, 1)
+
 
         self.retranslateUi(manual_window)
 
         QMetaObject.connectSlotsByName(manual_window)
+
+
+        # Set the TAB order
+        QWidget.setTabOrder( self.userno_line, self.disk_line)
+        QWidget.setTabOrder(self.disk_line, self.filepath_line)
+        QWidget.setTabOrder(self.filepath_line, self.selectfile_btn)
+        QWidget.setTabOrder(self.selectfile_btn, self.output_line)
+        QWidget.setTabOrder(self.output_line, self.selectdir_btn)
+        QWidget.setTabOrder(self.selectdir_btn, self.target_line)
+        QWidget.setTabOrder(self.target_line, self.addmore_btn)
+        QWidget.setTabOrder(self.addmore_btn, self.more_options_btn)
+        QWidget.setTabOrder(self.more_options_btn, self.caliball_chck)
+        QWidget.setTabOrder(self.caliball_chck, self.phasref_line)
+
+
     # setupUi
 
     def retranslateUi(self, manual_window):
