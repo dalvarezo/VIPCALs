@@ -1,3 +1,13 @@
+## [0.3.6] - 2025-10-14
+### Added
+
+### Changed
+- Crossmatch for potential calibrators in the VLBA calibrator list is now done in a 1 arcsecond radius, from previous 5 arcseconds. Given the accuracy of the coordinates, this value is more realistic.
+- Small improvements in the GUI
+
+### Fixed
+- Fixed error in CLCAL where the interpolation was not being done as intended.
+
 ## [0.3.5] - 2025-09-18
 ### Added
 - Visibilities per antenna across the different calibration steps are now included as .pdf plot in the /PLOTS directory.
