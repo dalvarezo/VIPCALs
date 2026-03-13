@@ -2,9 +2,13 @@ import warnings
 import copy
 import ast
 import os
+import subprocess
+import sys
+import shutil
 import pickle
 import numpy as np
 
+from pathlib import Path
 from matplotlib import pyplot as plt
 import matplotlib as mpl
 from matplotlib.ticker import ScalarFormatter
@@ -23,6 +27,34 @@ tmp_dir = os.path.expanduser("~/.vipcals/tmp")
 # Check if /home/vipcals exists
 if os.path.isdir("/home/vipcals"):
     tmp_dir = "/home/vipcals/.vipcals/tmp"
+
+def find_ghostscript():
+    """Locate the Ghostscript executable on the system."""
+    if sys.platform.startswith("win"):
+        candidates = ["gswin64c.exe", "gswin32c.exe"]
+    else:
+        candidates = ["gs"]
+    
+    for cmd in candidates:
+        path = shutil.which(cmd)
+        if path:
+            return path
+    raise RuntimeError(
+        "Ghostscript executable not found. "
+        "Please install 'ghostscript' in your Conda environment."
+    )
+
+def ps_to_pdf(ps_path):
+    ps_path = str(ps_path)
+    pdf_path = str(Path(ps_path).with_suffix(".pdf"))
+
+    # Find Ghostscript executable
+    gs_path = find_ghostscript()
+
+    subprocess.run(["ps2pdf", ps_path, pdf_path], check=True)
+
+    # Remove the original PS file
+    os.remove(ps_path)
 
 def plot_vis_per_antenna(stats_df, target_list, filename_list, outpath_list):
     """Plot visibility count per antenna across the pipeline.
@@ -193,6 +225,9 @@ def possm_plotter(filepath, data, target, \
     # If filename was long, move it
     if len(outpath) >= 110:
         os.system(f'mv {tmp}/CL{gainuse}.ps {outpath}')
+
+    # Convert to pdf
+    ps_to_pdf(outpath)
     # Clean all plots
     data.zap_table('PL', -1)
 
@@ -266,7 +301,8 @@ def uvplt_plotter(filepath, data, target, solint = 0.09):
         os.system('mv ' + tmp_dir + '/aux.uvplt.ps '\
                   + filepath + '/PLOTS/' + filename + '_UVPLT.ps')
 
-    
+    # Convert to pdf
+    ps_to_pdf(filepath + '/PLOTS/' + filename + '_UVPLT.ps')
     # Clean all plots
     data.zap_table('PL', -1)
 
@@ -357,7 +393,9 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     if len(filepath + '/PLOTS/' + filename + '_VPLOT.ps') >= 110:
         os.system('mv ' + tmp_dir + '/aux.vplot.ps '\
                   + filepath + '/PLOTS/' + filename + '_VPLOT.ps')
-    
+        
+    # Convert to pdf
+    ps_to_pdf(filepath + '/PLOTS/' + filename + '_VPLOT.ps')
     # Clean all plots
     data.zap_table('PL', -1)
 
@@ -427,6 +465,8 @@ def tsys_plotter(filepath, data, tyver = 1):
         os.system('mv ' + tmp_dir + f'/aux.tsys{tyver}.ps '\
                   + filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps')
     
+    # Convert to pdf
+    ps_to_pdf(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps')
     # Clean all plots
     data.zap_table('PL', -1)
 
@@ -460,8 +500,8 @@ def generate_pickle_plots(data, target_list, path_list):
     # Apply all calibrations tables to each target
     
     for i, target in enumerate(target_list):
-        max_cl = max([x for x in catalog if x.name == target], 
-                     key = lambda y: y.get('seq', float('-inf')))['seq']
+        max_cl = max([x.seq for x in catalog if x.name==target 
+                      and 'PLOT' in x.klass])
         name =  path_list[i].split('/')[-1]
         # Generate amp&phas vs freq
         for n in range(max_cl):
@@ -503,8 +543,8 @@ def generate_pickle_radplot(data, target_list, path_list):
     disk = data.disk
     catalog = AIPSCat(disk)[disk]
     for i, target in enumerate(target_list):
-        max_cl = max([x for x in catalog if x.name == target], 
-                key = lambda y: y.get('seq', float('-inf')))['seq']
+        max_cl = max([x.seq for x in catalog if x.name==target 
+                      and 'PLOT' in x.klass])
         name =  path_list[i].split('/')[-1]
         # Generate amp&phas vs freq
         if max_cl < 7:

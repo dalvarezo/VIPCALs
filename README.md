@@ -10,6 +10,7 @@ framework)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Outputs](#outputs)
+- [Changelog](CHANGELOG.md)
 - [Acknowledgements](#acknowledgements)
 
 
@@ -204,7 +205,7 @@ multiple files) and lets you inspect the results via interactive plots.
 
     > **Warning**: Generating these plots can consume lots of time and
     > disk storage. It is advised to disable them for large datasets. Static
-    > .ps and pdf plots are always saved in the output directory.
+    > pdf plots are always saved in the output directory.
 
 ### JSON Input
 
@@ -300,12 +301,12 @@ the pipeline:
 EA075/
 ├── J1159+2914_EA075_22G_2024-03-13/
 │   ├── PLOTS/
-│   │   ├ 1159+2914_EA075_22G_2024-03-13_CL1_POSSM.ps
-│   │   ├ 1159+2914_EA075_22G_2024-03-13_CL9_POSSM.ps
-│   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY1.ps
-│   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY2.ps
-│   │   ├ 1159+2914_EA075_22G_2024-03-13_UVPLT.ps
-│   │   ├ 1159+2914_EA075_22G_2024-03-13_VPLOT.ps
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_CL1_POSSM.pdf
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_CL9_POSSM.pdf
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY1.pdf
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY2.pdf
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_UVPLT.pdf
+│   │   ├ 1159+2914_EA075_22G_2024-03-13_VPLOT.pdf
 │   │   ├ 1159+2914_EA075_22G_2024-03-13_RADPLOT.pdf
 │   │   ├ 1159+2914_EA075_22G_2024-03-13_VISANT.pdf
 │   │
@@ -342,12 +343,12 @@ For each calibrated source, there is a directory that contains:
 The pipeline also generates the following plots inside the */PLOTS/*
 folder:
 
->   - *\*\_CL1\_POSSM.ps*: uncalibrated visibilities vs frequency
->   - *\*\_CL9\_POSSM.ps*: calibrated visibilities vs frequency
->   - *\*\_TSYS\_TY1.ps*: original antenna system temperatures vs time
->   - *\*\_TSYS\_TY2.ps*: smoothed antenna system temperatures vs time
->   - *\*\_UVPLT.ps*: UV coverage of the calibrated observation
->   - *\*\_VPLOT.ps*: calibrated visibilities vs time
+>   - *\*\_CL1\_POSSM.pdf*: uncalibrated visibilities vs frequency
+>   - *\*\_CL9\_POSSM.pdf*: calibrated visibilities vs frequency
+>   - *\*\_TSYS\_TY1.pdf*: original antenna system temperatures vs time
+>   - *\*\_TSYS\_TY2.pdf*: smoothed antenna system temperatures vs time
+>   - *\*\_UVPLT.pdf*: UV coverage of the calibrated observation
+>   - *\*\_VPLOT.pdf*: calibrated visibilities vs time
 >   - *\*\_RADPLOT.pdf*: calibrated visibilities vs uv-distance
 >   - *\*\_VISANT.pdf*: number of visibilities per antenna across the different calibration tables
 
@@ -362,6 +363,10 @@ and the following tables in the */TABLES/* folder:
 >   - *\*.caltab.uvfits*: AIPS tables used during the calibration
 
 -----
+
+## Changelog
+
+The detailed changelog for VIPCALs can be found in [CHANGELOG.md](CHANGELOG.md).
 
 ## Acknowledgements
 

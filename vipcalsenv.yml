@@ -24,6 +24,7 @@ dependencies:
   - distro=1.9.0=py38h06a4308_0
   - fmt=9.1.0=hdb19cb5_1
   - frozendict=2.4.2=py38h5eee18b_0
+  - ghostscript=9.54.0
   - glib=2.78.4=h6a678d5_0
   - glib-tools=2.78.4=h6a678d5_0
   - gsl=2.4=h14c3975_4

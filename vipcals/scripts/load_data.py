@@ -8,6 +8,7 @@ import functools
 print = functools.partial(print, flush=True)
 
 from astropy.io import fits
+from astropy.time import Time
 from astropy.table import Table
 from astropy.coordinates import SkyCoord
 from astropy.coordinates import search_around_sky
@@ -25,35 +26,43 @@ tmp_dir = os.path.expanduser("~/.vipcals/tmp")
 if os.path.isdir("/home/vipcals"):
     tmp_dir = "/home/vipcals/.vipcals/tmp"
 
+def get_date_obscode(path_list):
+    """
+    Get the observation date and project code of a fits file. If multiple, get the ones 
+    of the earliest observation.
 
-def set_name(path, source, klass):
-    """Set the name that will be used for the all the ouputs.
+    :param path_list: list of paths to the uvfits/idifits files
+    :type path_list: list of str
+    :return: date, project code
+    :rtype: str, str
+    """
+    obs = None
+    min_date_obs = None
+    for path in path_list:   
+        hdul = fits.open(path)
+        if '/' in hdul['UV_DATA'].header['DATE-OBS']:
+            date = hdul['UV_DATA'].header['DATE-OBS'].split('/')
+            if int(date[2]) > 90:
+                date_obs = '19' + date[2] + '-' + date[1] + '-' + date[0]
+            else:
+                date_obs = '20' + date[2] + '-' + date[1] + '-' + date[0]
+        if '-' in hdul['UV_DATA'].header['DATE-OBS']:
+            date_obs = hdul['UV_DATA'].header['DATE-OBS']
 
-    Name format is SOURCENAME_PROJECT_BAND_DATE
+        if obs == None:
+            obs = hdul['UV_DATA'].header['OBSCODE'].strip() 
 
-    :param path: path to the uvfits/idifits file
-    :type path: str
-    :param source: name of the science target
-    :type source: str
-    :param klass: klass name in AIPS, contains the band information
-    :type klass: str
-    :return: name to be used in the outputs
-    :rtype: str
-    """    
-    hdul = fits.open(path)
-    obs = hdul['UV_DATA'].header['OBSCODE'].strip()
-    if '/' in hdul['UV_DATA'].header['DATE-OBS']:
-        date = hdul['UV_DATA'].header['DATE-OBS'].split('/')
-        if int(date[2]) > 90:
-            date_obs = '19' + date[2] + '-' + date[1] + '-' + date[0]
-        else:
-            date_obs = '20' + date[2] + '-' + date[1] + '-' + date[0]
-    if '-' in hdul['UV_DATA'].header['DATE-OBS']:
-        date_obs = hdul['UV_DATA'].header['DATE-OBS']
-    hdul.close()
+        if min_date_obs == None:
+            min_date_obs = date_obs
 
-    name = source + '_' + obs + '_' + klass + '_' + date_obs
-    return(name)
+        if Time(date_obs) < Time(min_date_obs):
+            obs = obs = hdul['UV_DATA'].header['OBSCODE'].strip() 
+            min_date_obs = date_obs
+
+        hdul.close()
+
+    return(min_date_obs, obs)
+
 
 def get_source_list(file_path_list, freq = 0):
     """Get a source list from a uvfits/idifits file.
@@ -384,7 +393,7 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     :type disk: int
     :param multi_id: True if there are multiple frequency ids, False otherwise
     :type multi_id: bool
-    :param selfreq: if there are multiple frequency ids, which one to load
+    :param selfreq: if there are multiple frequency ids, which frequency to load in MHz
     :type selfreq: int
     :param klass: class name whithin AIPS; defaults to ''
     :type klass: str, optional
@@ -430,9 +439,9 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     fitld.clint = 0.1
 
     if multi_id == True:
-        fitld.selfreq = float(selfreq)  
+        fitld.selfreq = float(selfreq)      # In MHz !
         # Set tolerance as 0.5% of the selected frequency
-        fitld.fqtol = float(selfreq) * 5
+        fitld.fqtol = float(selfreq) * 5    # In kHz !
 
     fitld.datain = symlink_path + '/aux_'
 
@@ -570,7 +579,7 @@ def time_aver(data, oldtime, newtime):
 
     uvavg.doacor = 1
     uvavg.yinc = newtime
-    uvavg.zinc = oldtime
+    # uvavg.zinc = oldtime
     uvavg.opcode = 'TIME'
     
     uvavg.outname = data.name[:9] + '_AT'
@@ -631,7 +640,7 @@ def run_indxr(data):
     
     indxr.go()
 
-def tborder(data, log):
+def tborder(data):
     """Sort data in Time - Baseline order (TB)
 
     :param data: visibility data

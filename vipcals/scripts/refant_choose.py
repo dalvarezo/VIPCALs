@@ -105,18 +105,14 @@ def refant_choose_snr(data, sources, target_list, full_source_list, \
     del wuvdata
 
     # Give scans a source_name
+    su_table = {so.id__no: so.source.strip() for so in data.table('SU', 1)}
+
     for sc in scan_list:
-        for so in data.table('SU', 1):
-            if sc.source_id == so.id__no:
-                sc.source_name = so.source.strip()
+        sc.source_name = su_table.get(sc.source_id)
 
     # Drop scans with no antennas observing or 0 seconds of observing time
-    for s in scan_list:
-        if len(s.antennas) == 0:
-            scan_list.remove(s)
-    for s in scan_list:
-        if s.time_interval == 0.0:
-            scan_list.remove(s)
+    scan_list = [s for s in scan_list if len(s.antennas) > 0 and s.time_interval != 0.0]
+    
     # How many scans did each antenna observe
     for ant in antennas_dict:
         for scn in scan_list:

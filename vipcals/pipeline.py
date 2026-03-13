@@ -177,7 +177,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
     ## Check for order
     if uvdata.header['sortord'] != 'TB':
-        load.tborder(uvdata, pipeline_log)
+        load.tborder(uvdata)
         for pipeline_log in log_list:
             pipeline_log.write('\nData was not in TB order. It has been reordered using '\
                                + 'the UVSRT task\n')
@@ -276,10 +276,11 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
             # Clean the tmp directory
             os.system(f'rm {tmp_dir}/*.vlba')
-    
-            print('\nSystem temperatures were not available in the ' \
-                                    + 'file, they have been retrieved from \n' \
-                                    + good_url)
+            
+            for good_url in retrieved_urls:    
+                print('\nSystem temperatures were not available in the ' \
+                                        + 'file, they have been retrieved from \n' \
+                                        + good_url)
             print('\nTY#1 created.\n')
             stats_df['need_ty'] = True
             stats_df['vlbacal_files'] = str(retrieved_urls)
@@ -295,7 +296,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                 print('WARNING: No gain curves were found at the observed date. No ' \
                 + 'GC table will be created.\nThe pipeline will stop here.\n')
                 
-                return  # END THE PIPELINE!
+                return(1)  # END THE PIPELINE!
             
             for pipeline_log in log_list:
                 pipeline_log.write('\nGain curve information was not available in the '\
@@ -330,14 +331,15 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             # Clean the tmp directory
             os.system(f'rm {tmp_dir}/*.vlba')
             
-            print('Flag information was not available in the file, ' \
-                            + 'it has been retrieved from\n' + good_url + '\n')
+            for good_url in retrieved_urls:
+                print('Flag information was not available in the file, ' \
+                                + 'it has been retrieved from\n' + good_url + '\n')
             print('FG#1 created.\n')
             stats_df['need_fg'] = True
             stats_df['vlbacal_files'] = str(retrieved_urls)
 
         except help.NoTablesError:
-            # If the pipeline finds no tables, gives a wrning but continues
+            # If the pipeline finds no tables, gives a warning but continues
             print("No vlba.cal tables were found online. No initial flags will be applied.\n")
             for pipeline_log in log_list:
                 pipeline_log.write("\nNo vlba.cal tables were found online. No initial flags will be applied.\n")
@@ -654,10 +656,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             plot.tsys_plotter(outpath_list[i], uvdata, tyver = 1)
             print('\nOriginal system temperatures plotted in '
                     + outpath_list[i] + '/PLOTS/'  \
-                    + filename_list[i] + '_TSYS_TY1.ps\n')
+                    + filename_list[i] + '_TSYS_TY1.pdf\n')
             log_list[i].write('\nOriginal system temperatures plotted in '
                             + outpath_list[i] + '/PLOTS/'  \
-                            + filename_list[i] + '_TSYS_TY1.ps\n')           
+                            + filename_list[i] + '_TSYS_TY1.pdf\n')           
     except RuntimeError:
         for i, target in enumerate(target_list):
             log_list[i].write('\nOriginal system temperatures could not be plotted.\n')
@@ -668,10 +670,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             plot.tsys_plotter(outpath_list[i], uvdata, tyver = 2)
             print('\nSmoothed system temperatures plotted in '
                     + outpath_list[i] + '/PLOTS/'  \
-                    + filename_list[i] + '_TSYS_TY2.ps\n')
+                    + filename_list[i] + '_TSYS_TY2.pdf\n')
             log_list[i].write('\nSmoothed system temperatures plotted in '
                             + outpath_list[i] + '/PLOTS/'  \
-                            + filename_list[i] + '_TSYS_TY2.ps\n')           
+                            + filename_list[i] + '_TSYS_TY2.pdf\n')           
     except RuntimeError:
         for i, target in enumerate(target_list):
             log_list[i].write('\nSmoothed system temperatures could not be plotted.\n')
@@ -878,7 +880,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                     print('\nEarth orientation parameter corrections cannot be ' \
                                     + 'applied for non-DiFX correlators.\n'\
                                     + 'CL#3 will be copied from CL#2.\n')
-                    help.tacop(uvdata, 'CL', 2, 3)
+                help.tacop(uvdata, 'CL', 2, 3)
             else:
                 eopc.eop_correct(uvdata)
 
@@ -948,7 +950,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
     ## Selecting calibrator scan ##
     # If there is no input calibrator
-    if input_calibrator ==  None:
+    if input_calibrator == None:
         ## Look for calibrator ##
         ## SNR fringe search ##
         disp.write_box(log_list, 'Calibrator search')
@@ -982,7 +984,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
             print("\n\nNo suitable calibrators were found, the pipeline will end now\n\n")
             for pipeline_log in log_list:
                 pipeline_log.write("\n\nNo suitable calibrators were found, the pipeline will end now\n\n")
-                return()
+            return()
 
         for pipeline_log in log_list:
             if len(calibrator_scans) == 1:
@@ -993,8 +995,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
                 antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                             if a['nosta'] in calibrator_scans[0].calib_antennas[:-1]]
+                antennas = list(dict.fromkeys(antennas)) # Remove duplicates
                 flagged_antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                             if a['nosta'] in no_calib_antennas]
+                flagged_antennas = list(dict.fromkeys(flagged_antennas)) # Remove duplicates
                 
                 pipeline_log.write(f"\n{'Source:':<12} {calibrator_scans[0].source_name}\t\t")
                 pipeline_log.write(f"\n{'Time:':<12} {init_str} - {fin_str}")
@@ -1018,9 +1022,11 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
                     antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                                 if a['nosta'] in scn.calib_antennas[:-1]]
+                    antennas = list(dict.fromkeys(antennas)) # Remove duplicates
                     flagged_antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                                 if a['nosta'] in no_calib_antennas]
-                    
+                    flagged_antennas = list(dict.fromkeys(flagged_antennas)) # Remove duplicates
+
                     pipeline_log.write(f"\n{'Source:':<12} {scn.source_name}\t\t")
                     pipeline_log.write(f"\n{'Time:':<12} {init_str} - {fin_str}")
                     pipeline_log.write(f"\n{'Antennas:':<12} {antennas}\t\t")
@@ -1043,8 +1049,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
             antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                         if a['nosta'] in calibrator_scans[0].calib_antennas[:-1]]
+            antennas = list(dict.fromkeys(antennas)) # Remove duplicates
             flagged_antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                         if a['nosta'] in no_calib_antennas]
+            flagged_antennas = list(dict.fromkeys(flagged_antennas)) # Remove duplicates
             
             print(f"\n{'Source:':<12} {calibrator_scans[0].source_name}")
             print(f"\n{'Time:':<12} {init_str} - {fin_str}")
@@ -1066,9 +1074,11 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
                 antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                             if a['nosta'] in scn.calib_antennas[:-1]]
+                antennas = list(dict.fromkeys(antennas)) # Remove duplicates
                 flagged_antennas = [str(a['nosta']) +  '-' + a['anname'].strip() for a in uvdata.table('AN', 1) 
                             if a['nosta'] in no_calib_antennas]
-                
+                flagged_antennas = list(dict.fromkeys(flagged_antennas)) # Remove duplicates
+
                 print(f"\n{'Source:':<12} {scn.source_name}")
                 print(f"\n{'Time:':<12} {init_str} - {fin_str}")
                 print(f"\n{'Antennas:':<12} {antennas}")
@@ -1144,10 +1154,7 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
         stats_df['SNR_scan_list'] = json.dumps(scan_dict)
         stats_df['selected_scans'] = json.dumps(calibscans_dict)
-        if len(no_calib_antennas) > 0:
-            stats_df['antennas_no_calib'] = str(no_calib_antennas)
-        else:
-            stats_df['antennas_no_calib'] = False
+        stats_df['antennas_no_calib'] = 'MANUAL'
         stats_df['calibrator_search'] = 'MANUAL'
         stats_df['time_10'] = t7 - t6
 
@@ -1859,10 +1866,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                                             flagver=1, flag_edge=False)
                 log_list[i].write('\nUncalibrated visibilities plotted in '
                                 + outpath_list[i] + '/PLOTS/'  \
-                                + filename_list[i] + '_CL1_POSSM.ps\n')
+                                + filename_list[i] + '_CL1_POSSM.pdf\n')
                 print('\nUncalibrated visibilities plotted in '
                                 + outpath_list[i] + '/PLOTS/'  \
-                                + filename_list[i] + '_CL1_POSSM.ps\n')
+                                + filename_list[i] + '_CL1_POSSM.pdf\n')
                 
             except RuntimeError:
                 log_list[i].write('\nUncalibrated visibilities could not be plotted\n')
@@ -1880,10 +1887,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                                             flag_edge=False)
                 log_list[i].write('Calibrated visibilities plotted in '
                                 + outpath_list[i] + '/PLOTS/' \
-                                + filename_list[i] + '_CL' + str(9) + '_POSSM.ps\n')
+                                + filename_list[i] + '_CL' + str(9) + '_POSSM.pdf\n')
                 print('Calibrated visibilities plotted in '
                                 + outpath_list[i] + '/PLOTS/' \
-                                + filename_list[i] + '_CL' + str(9) + '_POSSM.ps\n')
+                                + filename_list[i] + '_CL' + str(9) + '_POSSM.pdf\n')
             except RuntimeError:
                 log_list[i].write('\nCalibrated visibilities could not be plotted\n')
                 print('\nCalibrated visibilities could not be plotted\n')
@@ -1898,10 +1905,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                 plot.uvplt_plotter(outpath_list[i], uvdata, target)
                 log_list[i].write('UV coverage plotted in '
                                 + outpath_list[i] + '/PLOTS/' \
-                                + filename_list[i] + '_UVPLT.ps\n')
+                                + filename_list[i] + '_UVPLT.pdf\n')
                 print('UV coverage plotted in '
                                 + outpath_list[i] + '/PLOTS/' \
-                                + filename_list[i] + '_UVPLT.ps\n')
+                                + filename_list[i] + '_UVPLT.pdf\n')
             except RuntimeError:
                 log_list[i].write('UV coverage could not be plotted\n')
                 print('UV coverage could not be plotted\n')    
@@ -1916,10 +1923,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
                 plot.vplot_plotter(outpath_list[i], uvdata, target, 9)   
                 log_list[i].write('Visibilities as a function of time plotted in '
                                 + outpath_list[i] + '/PLOTS/' \
-                                + filename_list[i]  + '_VPLOT.ps\n')
+                                + filename_list[i]  + '_VPLOT.pdf\n')
                 print('Visibilities as a function of time plotted in '
                                 + outpath_list[i] + '/PLOTS/' \
-                                + filename_list[i]  + '_VPLOT.ps\n')
+                                + filename_list[i]  + '_VPLOT.pdf\n')
             except RuntimeError:
                 log_list[i].write('Visibilities as a function of time could not be ' \
                                   + 'plotted\n')
@@ -1964,10 +1971,10 @@ def calibrate(filepath_list, filename_list, outpath_list, log_list, target_list,
 
             log_list[i].write('Visibilities as a function of uv-distance plotted in '
                               + outpath_list[i] + '/PLOTS/' \
-                              + filename_list[i]  + '_RADPLOT.ps\n')
+                              + filename_list[i]  + '_RADPLOT.pdf\n')
             print('Visibilities as a function of uv-distance plotted in '
                               + outpath_list[i] + '/PLOTS/' \
-                              + filename_list[i]  + '_RADPLOT.ps\n')    
+                              + filename_list[i]  + '_RADPLOT.pdf\n')    
             
     ## Plot visibilities per antenna across the calibration
     plot.plot_vis_per_antenna(stats_df, target_list, filename_list, outpath_list)
@@ -2181,8 +2188,8 @@ def pipeline(input_dict):
                     klass_1 = str(group[0])[:1] + 'G'
 
                 # Define AIPS name
-                with fits.open(filepath_list_ID[0]) as hdul:
-                    aips_name = hdul['UV_DATA'].header['OBSCODE'] # + '_' + klass_1
+                date, obscode = load.get_date_obscode(filepath_list_ID)
+                aips_name = obscode
 
                 ## Check if the AIPS catalogue name is too long, and rename ##
                 # 12 is the maximum length for a file name in AIPS
@@ -2194,7 +2201,7 @@ def pipeline(input_dict):
                     aips_name_short = name[:size_name] + '_' + suffix
 
                 # Check if project directory already exists, if not, create one
-                project_dir = output_directory + '/' + hdul['UV_DATA'].header['OBSCODE']
+                project_dir = output_directory + '/' + obscode
                 if os.path.exists(project_dir) == False:
                     os.system('mkdir ' + project_dir)
 
@@ -2216,7 +2223,7 @@ def pipeline(input_dict):
                 log_list = target_list.copy()
                 outpath_list = target_list.copy()
                 for i, name in enumerate(filename_list):
-                    filename_list[i] = load.set_name(filepath_list_ID[0], name, klass_1)
+                    filename_list[i] = name + '_' + obscode + '_' + klass_1 + '_' + date
                     outpath_list[i] = project_dir + '/' + filename_list[i]
                     if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                         os.system('rm -rf ' + project_dir + '/' + filename_list[i])
@@ -2280,8 +2287,8 @@ def pipeline(input_dict):
                     sources = [x.name for x in full_source_list]
 
         # Define AIPS name
-        hdul = fits.open(filepath_list[0])
-        aips_name = hdul['UV_DATA'].header['OBSCODE'] # + '_' + klass_1
+        date, obscode = load.get_date_obscode(filepath_list)
+        aips_name = obscode
 
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -2292,7 +2299,7 @@ def pipeline(input_dict):
             aips_name_short = name[:size_name] + '_' + suffix
 
         # Check if project directory already exists, if not, create one
-        project_dir = output_directory + '/' + hdul['UV_DATA'].header['OBSCODE']
+        project_dir = output_directory + '/' + obscode
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 
@@ -2313,7 +2320,7 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         outpath_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
+            filename_list[i] = name + '_' + obscode + '_' + klass_1 + '_' + date
             outpath_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
@@ -2367,8 +2374,8 @@ def pipeline(input_dict):
                     sources = [x.name for x in full_source_list]
 
         # Define AIPS name
-        hdul = fits.open(filepath_list[0])
-        aips_name = hdul['UV_DATA'].header['OBSCODE'] # + '_' + klass_2
+        date, obscode = load.get_date_obscode(filepath_list)
+        aips_name = obscode
         
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -2379,7 +2386,7 @@ def pipeline(input_dict):
             aips_name_short = name[:size_name] + '_' + suffix
 
         # Check if project directory already exists, if not, create one
-        project_dir = output_directory + '/' + hdul['UV_DATA'].header['OBSCODE']
+        project_dir = output_directory + '/' + obscode
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 
@@ -2400,7 +2407,7 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         outpath_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = load.set_name(filepath_list[0], name, klass_2)
+            filename_list[i] = name + '_' + obscode + '_' + klass_2 + '_' + date
             outpath_list[i] = project_dir + '/' + filename_list[i]
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:
                 os.system('rm -rf ' + project_dir + '/' + filename_list[i])
@@ -2458,8 +2465,8 @@ def pipeline(input_dict):
                     sources = [x.name for x in full_source_list]
 
         # Define AIPS name
-        hdul = fits.open(filepath_list[0])
-        aips_name = hdul['UV_DATA'].header['OBSCODE']
+        date, obscode = load.get_date_obscode(filepath_list)
+        aips_name = obscode
         
         ## Check if the AIPS catalogue name is too long, and rename ##
         aips_name_short = aips_name
@@ -2470,7 +2477,7 @@ def pipeline(input_dict):
             aips_name_short = name[:size_name] + '_' + suffix
 
         # Check if project directory already exists, if not, create one
-        project_dir = output_directory + '/' + hdul['UV_DATA'].header['OBSCODE']
+        project_dir = output_directory + '/' + obscode
         if os.path.exists(project_dir) == False:
             os.system('mkdir ' + project_dir)
 
@@ -2491,7 +2498,7 @@ def pipeline(input_dict):
         log_list = target_list.copy()
         outpath_list = target_list.copy()
         for i, name in enumerate(filename_list):
-            filename_list[i] = load.set_name(filepath_list[0], name, klass_1)
+            filename_list[i] = name + '_' + obscode + '_' + klass_1 + '_' + date
             outpath_list[i] = project_dir + '/' + filename_list[i]
             
             if os.path.exists(project_dir + '/' + filename_list[i]) == True:

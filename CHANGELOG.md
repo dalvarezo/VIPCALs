@@ -1,5 +1,18 @@
+## [0.3.7] - 2026-03-13
+
+### Changed
+- All plots produced within AIPS are now converted from .ps to .pdf. This requires a new package in the pyside62 conda environment, that needs to be reinstalled in the manual installation.
+- When multiple files are available, the date used in the naming of the folders and files corresponds to the earliest of the observing dates. Before, it was the date of the first file loaded into the pipeline.
+
+### Fixed
+- Fixed error that would cause the pipeline to crash at the plotting step if more than 9 phase center shifts were requested.
+- Fixed error that would cause the pipeline to crash when calibrating multiple sources from non-DiFX-correlated datasets.
+- Fixed minor bug that would cause the reference antenna algorithm to fail when there were consecutive empty scans. 
+- Fixed minor bug that would make the GUI display only the name of the last calibration table retrieved online, even when multiple tables were used. 
+- Fixed minor bug that would cause the names of the antennas in the calibrator search to appear duplicated in the logs.
+- Fixed minor bug that would cause the .txt log to be incomplete under very specific circunstances.
+
 ## [0.3.6] - 2025-10-14
-### Added
 
 ### Changed
 - Crossmatch for potential calibrators in the VLBA calibrator list is now done in a 1 arcsecond radius, from previous 5 arcseconds. Given the accuracy of the coordinates, this value is more realistic.

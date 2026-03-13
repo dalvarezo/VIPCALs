@@ -173,7 +173,7 @@ def optimize_solint_mm(data, target, target_scans, refant, min_solint = 1.0,
                 snr_values.append(np.nanmedian(snr_dict[key]))
                 solint_dict[solint][key] = np.nanmedian(snr_dict[key])
 
-	    #Check if they are all over 5, if so, get that solution interval
+        # Check if they are all over 5, if so, get that solution interval
         if all([x > 5 for x in snr_values if np.isnan(x) == False]) == True:
             break
 
