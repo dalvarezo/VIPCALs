@@ -260,3 +260,27 @@ def tacop(data, ext, invers, outvers):
     tacop.outvers = outvers
     
     tacop.go()
+
+def edge_channel_range(data, flag_edge):
+    """First and last channel to use after discarding the edge channels of each IF.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param flag_edge: channels to discard at each edge of the IF, either a fraction
+        of the channels (if < 1) or a number of channels (if >= 1)
+    :type flag_edge: float
+    :return: first and last channel (bchan, echan)
+    :rtype: tuple of int
+    """
+    fq = data.table('FQ', 1)[0]
+    no_channels = int(np.atleast_1d(fq['total_bandwidth'])[0]
+                      / np.atleast_1d(fq['ch_width'])[0])
+    if flag_edge is None or flag_edge <= 0:
+        n_edge = 0
+    elif flag_edge < 1:
+        n_edge = int(round(flag_edge * no_channels))
+    else:
+        n_edge = int(flag_edge)
+    # Always keep at least one channel
+    n_edge = min(n_edge, (no_channels - 1) // 2)
+    return n_edge + 1, no_channels - n_edge

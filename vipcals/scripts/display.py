@@ -124,3 +124,17 @@ def print_info(data, filepath_list, sources):
 
     print('\nLoaded sources: ' + str([x.strip() for x in set(sources)]))
     print(f'\nAvailable antennas: {data.antennas}\n')
+
+def vis_frac(n_vis, n_total):
+    """Format a visibility count as a percentage of a reference count.
+
+    :param n_vis: number of visibilities
+    :type n_vis: int
+    :param n_total: reference number of visibilities
+    :type n_total: int
+    :return: text to append after the count, e.g. ' (89.3% of total)'
+    :rtype: str
+    """
+    if n_total == 0:
+        return ''
+    return f' ({100 * n_vis / n_total:.1f}% of total)'

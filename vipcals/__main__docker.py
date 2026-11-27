@@ -93,8 +93,9 @@ def create_default_dict():
     # Loading options
     default_dict['load_all'] = False
     default_dict['load_tables'] = None
-    default_dict['freq_sel'] = None
-    default_dict['subarray'] = False
+    default_dict['load_flags'] = None
+    #default_dict['freq_sel'] = None
+    #default_dict['subarray'] = False
     default_dict['shifts'] = None
     # Reference antenna options
     default_dict['refant'] = None
@@ -164,13 +165,22 @@ for i, entry in enumerate(entry_list):
         print('Threshold for frequency averaging has to be an integer value in kHz.\n')
         exit()
 
-    # Some inputs need to be floats
-    if input_dict['flag_edge'] != None:
+    # Edge channels: a fraction (< 0.5) or a whole number of channels (>= 1)
+    if input_dict['flag_edge'] == None:
+        input_dict['flag_edge'] = 0
+    else:
         try:
             input_dict['flag_edge'] = float(input_dict['flag_edge'])
         except ValueError:
-            print('Edge channels to be flagged needs to be a float number.\n')
+            print('Edge channels to be flagged needs to be a number.\n')
             exit()
+        fe = input_dict['flag_edge']
+        if fe < 0 or 0.5 <= fe < 1 or (fe >= 1 and not fe.is_integer()):
+            print('Edge channels to be flagged has to be a fraction below 0.5, '
+                  'or a whole number of channels.\n')
+            exit()
+        if fe >= 1:
+            input_dict['flag_edge'] = int(fe)
 
     # Some inputs need to be given as a list #
     if type(input_dict['paths']) != list:
@@ -196,9 +206,9 @@ for i, entry in enumerate(entry_list):
         exit()
 
     # subarrays has to be True/False
-    if type(input_dict['subarray']) != bool:
-        print('subarray option has to be True/False.\n')
-        exit()
+    #if type(input_dict['subarray']) != bool:
+    #    print('subarray option has to be True/False.\n')
+    #    exit()
 
     # Phase reference #
     if input_dict['phase_ref'] != None:
@@ -364,6 +374,12 @@ for i, entry in enumerate(entry_list):
                         + ' Please make sure that the input is correct.\n')
                     print(f'Available antennas are {antenna_names}')
                     exit()
+
+    # External table files have to exist
+    for key in ['load_tables', 'load_flags']:
+        if input_dict[key] != None and os.path.isfile(input_dict[key]) == False:
+            print(f'\nThe file given in {key} does not exist: {input_dict[key]}\n')
+            exit()
 
     # Output directory
     if input_dict['output_directory'] != None:

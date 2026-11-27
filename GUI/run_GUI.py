@@ -1,6 +1,7 @@
 import sys
 import json
 import os
+import shutil
 import glob
 import re
 import matplotlib
@@ -240,8 +241,14 @@ class MainWindow(qtw.QMainWindow, Ui_VIPCALs):
         for win in self.canvas_windows:
             if win is not None and win.isVisible():
                 win.close()
-        # Clean the tmp directory
-        os.system(f"rm -r {tmp_dir}/*")
+        # Clean the tmp directory if it exists
+        if os.path.isdir(tmp_dir) and os.listdir(tmp_dir):
+            for f in os.listdir(tmp_dir):
+                path = os.path.join(tmp_dir, f)
+                if os.path.isdir(path):
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
         event.accept()
         
         
@@ -278,10 +285,10 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         ##########   FOR NOW SOME OPTIONS ARE HIDDEN    ##########
         self.calsour_line.setVisible(False)
         self.calsour_lbl.setVisible(False)        
-        self.freqsel_line.setVisible(False)
-        self.freqsel_lbl.setVisible(False)
-        self.subarray_chck.setVisible(False)
-        self.subarray_lbl.setVisible(False)
+        #self.freqsel_line.setVisible(False)
+        #self.freqsel_lbl.setVisible(False)
+        #self.subarray_chck.setVisible(False)
+        #self.subarray_lbl.setVisible(False)
         ##########################################################
 
         self.should_reset_fields = False  # Flag for reset control
@@ -306,8 +313,9 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             # Loading options
             "load_all": self.loadall_chck,
             "load_tables": self.loadtables_line,
-            "freq_sel": self.freqsel_line,
-            "subarray": self.subarray_chck,
+            "load_flags": self.loadflags_line,
+            #"freq_sel": self.freqsel_line,
+            #"subarray": self.subarray_chck,
             "shifts": self.shift_line,
             "time_aver": self.timeaver_line,
             "freq_aver": self.freqaver_line,
@@ -333,6 +341,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         self.selectfile_btn.clicked.connect(self.get_input_file)
         self.selectdir_btn.clicked.connect(self.get_output_dir)
         self.loadtables_btn.clicked.connect(self.get_antab_file)
+        self.loadflags_btn.clicked.connect(self.get_flag_file)
 
         self.more_options_btn.clicked.connect(self.toggle_moreoptions)
         
@@ -520,7 +529,7 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             parent=self,
             caption="Select a file",
             #directory=os.getcwd(),
-            filter = 'FITS file (*.fits *.uvfits *.idifits);;All files (*)'
+            filter = 'FITS file (*.fits *.uvfits *.idifits *.IDI* *.idi*);;All files (*)'
         )
         self.filepath_line.setText(", ".join(response[0]))
 
@@ -532,6 +541,13 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
             #filter = 'FITS file (*.fits *.uvfits *.idifits);;All files (*)'
         )
         self.loadtables_line.setText(response[0])
+
+    def get_flag_file(self):
+        response = qtw.QFileDialog.getOpenFileName(
+            parent=self,
+            caption="Select a file",
+        )
+        self.loadflags_line.setText(response[0])
 
     def get_output_dir(self):
         response = qtw.QFileDialog.getExistingDirectory(
@@ -553,8 +569,8 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
                 inputs[label] = self.caliball_chck.isChecked()
             elif label == "search_central":
                 inputs[label] = self.centrant_chck.isChecked()
-            elif label == "subarray":
-                inputs[label] = self.subarray_chck.isChecked()
+            #elif label == "subarray":
+            #    inputs[label] = self.subarray_chck.isChecked()
             elif label == "interactive":
                 inputs[label] = self.interactive_chck.isChecked()
             elif label == "channel_out":
@@ -637,8 +653,9 @@ class ManualWindow(qtw.QWidget, Ui_manual_window):
         ## Loading options
         self.loadall_chck.setChecked(False)
         self.loadtables_line.setText("")
-        self.freqsel_line.setText("")
-        self.subarray_chck.setChecked(False)
+        self.loadflags_line.setText("")
+        #self.freqsel_line.setText("")
+        #self.subarray_chck.setChecked(False)
         self.shift_line.setText("")
         self.timeaver_line.setText("2")
         self.freqaver_line.setText("500")

@@ -22,9 +22,13 @@ sys.path.insert(0, os.path.abspath(os.path.join('..','..')))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'VIPCALs'
-copyright = '2025, Diego Alvarez-Ortega'
+copyright = '2025-2026, Diego Alvarez-Ortega'
 author = 'Diego Alvarez-Ortega'
-release = '0.3.4'
+
+# Read the version from pyproject.toml, so that it does not need to be updated here
+import re
+with open(os.path.join(os.path.dirname(__file__), '..', '..', 'pyproject.toml')) as f:
+    release = re.search(r'^version\s*=\s*"([^"]+)"', f.read(), re.M).group(1)
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

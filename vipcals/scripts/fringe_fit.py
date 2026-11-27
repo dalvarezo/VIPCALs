@@ -1,14 +1,116 @@
 import functools
 print = functools.partial(print, flush=True)
 
-from vipcals.scripts.helper import tacop
+import json
+
+from vipcals.scripts.helper import tacop, edge_channel_range
 
 from AIPSTask import AIPSTask, AIPSList
 AIPSTask.msgkill = -8
+
+def fringe_fit_with_fallback(data, refant, priority_refants, snr_cutoff,
+                             fit_source, target, version, label='',
+                             flag_edge=0):
+    """Fringe fit fit_source into SN `version`. If <99% of solutions are
+    good, retry averaging IFs (in a scratch SN table) and keep the better one.
+
+    :param data: visibility data
+    :type data: AIPSUVData
+    :param refant: reference antenna number
+    :type refant: int
+    :param priority_refants: list of alternatives to the reference antenna
+    :type priority_refants: list of int
+    :param snr_cutoff: S/N threshold for the FFT stage
+    :type snr_cutoff: float
+    :param fit_source: source to fringe fit (target or phase calibrator)
+    :type fit_source: str
+    :param target: target the solutions belong to
+    :type target: :class:`~vipcals.scripts.helper.FFTarget`
+    :param version: SN version where the final solutions are written
+    :type version: int
+    :param label: text before the source name in the log messages
+    :type label: str, optional
+    :param flag_edge: number of edge channels to ignore, either a fraction (if < 1) \
+                      or an integer number of channels (if >= 1); defaults to 0.1
+    :type flag_edge: float, optional
+    :return: multi-IF ratio, averaged-IF ratio, stats dictionary
+    :rtype: float, float, dict
+    """
+    def has_sn(v):
+        return [v, 'AIPS SN'] in data.tables
+
+    def log(msg):
+        print(msg)
+        target.log.write(msg)
+
+    stats = dict(good_sols=False, total_sols=False, ratios_dict=False,
+                 good_sols_single=False, total_sols_single=False,
+                 ratios_dict_single=False, single_ff=False)
+    ratio = ratio_single = 0
+
+    # Multi-IF fringe fit
+    try:
+        params = target_fring_fit(data, refant, priority_refants, fit_source,
+                                  version=version, snr_cutoff=snr_cutoff,
+                                  solint=float(target.solint), flag_edge=flag_edge)
+        log(f'\nFringe search performed on {label}{fit_source}. Windows '
+            f'for the search were {params[1]} ns and {params[2]} mHz.\n')
+        bad, total, rdict = assess_fringe_fit(data, target.log, version=version)
+        ratio = 1 - bad / total
+        stats.update(good_sols=int(total - bad), total_sols=int(total),
+                     ratios_dict=json.dumps(rdict))
+    except RuntimeError:
+        log('Fringe fit has failed.\n')
+
+    if ratio >= 0.99:
+        return ratio, ratio_single, stats
+
+    # Retry averaging IFs, in a scratch table above all existing ones
+    log(f'Ratio of good/total solutions is : {ratio:.2f}.\n'
+        'Repeating the fringe fit solving for all IFs together:\n')
+    scratch = max(data.table_highver('SN'), version) + 1
+    try:
+        params = target_fring_fit(data, refant, priority_refants, fit_source,
+                                  version=scratch, snr_cutoff=snr_cutoff,
+                                  solint=float(target.solint),
+                                  solve_ifs=False, flag_edge=flag_edge)
+        log(f'\nFringe search performed on {label}{fit_source}. Windows '
+            f'for the search were {params[1]} ns and {params[2]} mHz.\n')
+        bad_s, total_s, rdict_s = assess_fringe_fit(data, target.log,
+                                                    version=scratch)
+        ratio_single = 1 - bad_s / total_s
+        stats.update(good_sols_single=int(total_s - bad_s),
+                     total_sols_single=int(total_s),
+                     ratios_dict_single=json.dumps(rdict_s))
+    except RuntimeError:
+        log('\nThe new fringe fit has failed, the previous one will be kept.\n')
+
+    if ratio + ratio_single == 0:
+        log('\nThe pipeline was not able to find any good solutions.\n')
+        for v in (version, scratch):
+            if has_sn(v):
+                data.zap_table('SN', v)
+        return ratio, ratio_single, stats
+
+    log(f'New ratio of good/total solutions is : {ratio_single:.2f}.\n')
+    if ratio_single > ratio:
+        log('The averaged IF fringe fit will be applied.\n')
+        if has_sn(version):
+            data.zap_table('SN', version)
+        tacop(data, 'SN', scratch, version)
+        stats['single_ff'] = True
+    else:
+        log('The multi-IF fringe fit will be applied.\n')
+
+    if has_sn(scratch):
+        data.zap_table('SN', scratch)
+
+    return ratio, ratio_single, stats
    
 def target_fring_fit(data, refant, priority_refants, target_name, version, snr_cutoff,
                      solint, delay_w = 1000,\
-                     rate_w = 200, solve_ifs = True):
+                     rate_w = 200, solve_ifs = True,
+                     flag_edge = 0):
     """Fringe fit the science target.
 
     Uses the FRING task on AIPS to correct for any residual delay and rate errors on the 
@@ -39,7 +141,11 @@ def target_fring_fit(data, refant, priority_refants, target_name, version, snr_c
     :type rate_w: int, optional 
     :param solve_ifs: solve IFs separatedly; defaults to True
     :type solve_ifs: bool, optional
-    """    
+    :param flag_edge: number of edge channels to ignore, either a fraction (if < 1) \
+                      or an integer number of channels (if >= 1); defaults to 0.1
+    :type flag_edge: float, optional
+    """       
+
     target_fring = AIPSTask('fring')
     target_fring.inname = data.name
     target_fring.inclass = data.klass
@@ -47,6 +153,8 @@ def target_fring_fit(data, refant, priority_refants, target_name, version, snr_c
     target_fring.inseq = data.seq
     target_fring.refant = refant
     target_fring.calsour = AIPSList([target_name])
+
+    target_fring.bchan, target_fring.echan = edge_channel_range(data, flag_edge)
     
     target_fring.docalib = 1
     target_fring.gainuse = 8
@@ -97,7 +205,8 @@ def fringe_clcal(data, refant, target_list, target_scans, max_ver):
     :type max_ver: int
     """    
 
-    longest_scan = max(target_scans, key=lambda x: x.time_interval)
+    # Longest solution interval among the targets, in minutes
+    max_solint = max(float(t.solint) for t in target_list)
 
     
     clcal = AIPSTask('clcal')
@@ -106,12 +215,14 @@ def fringe_clcal(data, refant, target_list, target_scans, max_ver):
     clcal.indisk = data.disk
     clcal.inseq = data.seq
     clcal.refant = refant
-    # clcal.sources = AIPSList([t.name for t in target_list])
+    clcal.sources = AIPSList([t.name for t in target_list])
     
     clcal.opcode = 'CALP'
     clcal.interpol = 'SELF'
-    # Maximum interpolation time range
-    clcal.cutoff = 1.1 * (longest_scan.time_interval*24*60) 
+    # Maximum interpolation time range. Every point of a scan is within one solution
+    # interval of a solution from the same scan, so solutions are never taken from
+    # other scans further away
+    clcal.cutoff = max_solint
 
     clcal.snver = 6
     clcal.invers = max_ver
@@ -149,6 +260,7 @@ def fringe_phaseref_clcal(data, refant, target_list, version):
         clcal.inseq = data.seq
         clcal.refant = refant
         clcal.sources = AIPSList([target.name])
+        clcal.calsour = AIPSList([target.phaseref])
         
         clcal.opcode = 'CALP'
         clcal.interpol = '2PT'

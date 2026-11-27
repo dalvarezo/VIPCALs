@@ -1,7 +1,10 @@
 import os
+import shutil
 import functools
 print = functools.partial(print, flush=True)
 import numpy as np
+
+from vipcals.scripts.helper import edge_channel_range
 
 from AIPSData import AIPSUVData
 from AIPSTask import AIPSTask, AIPSList
@@ -16,7 +19,7 @@ if os.path.isdir("/home/vipcals"):
     tmp_dir = "/home/vipcals/.vipcals/tmp"
 
 def data_export(path_list, data, target_list, filename_list, \
-                ignore_list, channel_out, flag_edge = True, flag_frac = 0.1):
+                ignore_list, channel_out, flag_edge = True, flag_frac = 0):
     """Split multi-source uv data to single source and export it to uvfits format.
 
     Uses the SPLIT task in AIPS to apply the calibration tables to each source and 
@@ -48,14 +51,12 @@ def data_export(path_list, data, target_list, filename_list, \
     :param flag_edge: flag edge channels; defaults to True
     :type flag_edge: bool, optional
     :param flag_frac: number of edge channels to flag, either a percentage (if < 1) \
-                      or an integer number of channels (if >= 1); defaults to 0.1
+                      or an integer number of channels (if >= 1); defaults to 0
     :type flag_frac: float, optional
     :return: list of sources where no baselines could be formed, if any
     :rtype: list of str
     """
     no_baseline = []
-    if flag_frac == 0:
-        flag_edge = False
 
     # Delete the file if it already exists
     for name in target_list:
@@ -88,28 +89,7 @@ def data_export(path_list, data, target_list, filename_list, \
             split.aparm[1] = 1  # DON't average in frequency, produce multiple channels 
                                 # per IF
     
-        if flag_edge == False or flag_frac == None:
-            flag_chann = 0
-            no_channels = 0
-
-        else:
-            try:
-                no_channels = int(data.table('FQ',1)[0]['total_bandwidth'][0] / \
-                            data.table('FQ',1)[0]['ch_width'][0])
-            except TypeError:   # Single IF datasets
-                no_channels = int(data.table('FQ',1)[0]['total_bandwidth'] / \
-                            data.table('FQ',1)[0]['ch_width'])
-                
-            if flag_edge == True and flag_frac < 1:
-                flag_chann = round(flag_frac * no_channels)
-            if flag_edge == True and flag_frac >= 1:
-                if type(flag_frac) != int:
-                    flag_chann = 0
-                else:
-                    flag_chann = flag_frac
-
-        split.bchan = flag_chann + 1
-        split.echan = no_channels - flag_chann
+        split.bchan, split.echan = edge_channel_range(data, flag_frac)
 
         try:
             split.go()
@@ -142,8 +122,8 @@ def data_export(path_list, data, target_list, filename_list, \
 
             # If created, move the auxiliary file to the correct path
             if len(path_list[i] + '/' + filename_list[i] + '.uvfits') >= 100:
-                os.system('mv ' + tmp_dir + '/aux.export.uvfits ' \
-                        + path_list[i] + '/' + filename_list[i] + '.uvfits')
+                shutil.move(tmp_dir + '/aux.export.uvfits', 
+                            path_list[i] + '/' + filename_list[i] + '.uvfits')
 
     return(no_baseline)
 
@@ -189,15 +169,16 @@ def table_export(path_list, data, target_list, filename_list):
 
         # If created, move aux.caltab.fits to the correct path
         if len(path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits') >= 100:
-            os.system('mv ' + tmp_dir + '/aux.caltab.uvfits ' \
-                      + path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits')
+            shutil.move(tmp_dir + '/aux.caltab.uvfits', 
+                        path_list[i] + '/TABLES/' + filename_list[i] + '.caltab.uvfits')
+
 
     # Remove the DUMMY AIPS entry
     AIPSUVData(data.name, 'DUMMY', data.disk, 1).zap()
 
 
 def data_split(data, target_list, cl_table = 1, bpass = False, flagver = 0, \
-               keep = False):
+               keep = False, flag_edge = True, flag_frac = 0):
     """Split source data applying different CL tables and/or the BP table.
 
     Uses the SPLIT task in AIPS to apply the calibration tables to each source and 
@@ -218,8 +199,13 @@ def data_split(data, target_list, cl_table = 1, bpass = False, flagver = 0, \
     :type bpass: bool, optional
     :param flagver: flag table version to apply, 0 => max; defaults to 0
     :type flagver: int, optional
-    :param keep: delete previous entries for the same table; defaults to 0
+    :param keep: delete previous entries for the same table; defaults to False
     :type keep: bool, optional
+    :param flag_edge: flag edge channels; defaults to True
+    :type flag_edge: bool, optional
+    :param flag_frac: number of edge channels to flag, either a percentage (if < 1) \
+                      or an integer number of channels (if >= 1); defaults to 0.1
+    :type flag_frac: float, optional
     """
 
     for i, target in enumerate(target_list):
@@ -251,6 +237,10 @@ def data_split(data, target_list, cl_table = 1, bpass = False, flagver = 0, \
         data_split.flagver = flagver
         if bpass == True:
             data_split.doband = 1
+
+            # Only flag the edge channels after the bandpass was applied
+            data_split.bchan, data_split.echan = edge_channel_range(data, flag_frac)
+
         data_split.aparm[1] = 0  #Don't average frequency in IFs, multi-channel out
         data_split.aparm[5] = 0  # Pass ONLY xc
 

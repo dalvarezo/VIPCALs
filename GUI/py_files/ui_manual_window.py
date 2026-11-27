@@ -48,6 +48,11 @@ class Ui_manual_window(object):
         self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 766, 1233))
         self.verticalLayout_8 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_8.setObjectName(u"verticalLayout_8")
+
+
+        # BASIC INPUTS
+
+
         self.basicgroup = QGroupBox(self.scrollAreaWidgetContents)
         self.basicgroup.setObjectName(u"basicgroup")
         sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
@@ -213,6 +218,10 @@ class Ui_manual_window(object):
 
         self.verticalLayout_8.addItem(self.verticalSpacer)
 
+
+        # CALIBRATE OPTIONS
+
+
         self.calibbox = QGroupBox(self.scrollAreaWidgetContents)
         self.calibbox.setObjectName(u"calibbox")
         self.calibbox.setFont(font1)
@@ -303,6 +312,10 @@ class Ui_manual_window(object):
 
         self.verticalLayout_8.addWidget(self.calibbox)
 
+
+        # LOAD OPTIONS
+
+
         self.loadbox = QGroupBox(self.scrollAreaWidgetContents)
         self.loadbox.setObjectName(u"loadbox")
         self.loadbox.setFont(font1)
@@ -347,19 +360,6 @@ class Ui_manual_window(object):
         self.gridLayout_5 = QGridLayout(self.load_bottom)
         self.gridLayout_5.setObjectName(u"gridLayout_5")
         self.gridLayout_5.setVerticalSpacing(10)
-        self.freqsel_lbl = QLabel(self.load_bottom)
-        self.freqsel_lbl.setObjectName(u"freqsel_lbl")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        sizePolicy3.setHorizontalStretch(0)
-        sizePolicy3.setVerticalStretch(0)
-        sizePolicy3.setHeightForWidth(self.freqsel_lbl.sizePolicy().hasHeightForWidth())
-        self.freqsel_lbl.setSizePolicy(sizePolicy3)
-        self.freqsel_lbl.setFont(font1)
-        self.gridLayout_5.addWidget(self.freqsel_lbl, 2, 0, 1, 1)
-        self.freqsel_line = QLineEdit(self.load_bottom)
-        self.freqsel_line.setObjectName(u"freqsel_line")
-        self.gridLayout_5.addWidget(self.freqsel_line, 2, 1, 1, 2)
-
 
         # Load all check button
         self.loadall_lbl = QLabel(self.load_bottom)
@@ -370,7 +370,7 @@ class Ui_manual_window(object):
         self.loadall_chck.setObjectName(u"loadall_chck")
         self.gridLayout_5.addWidget(self.loadall_chck, 0, 1, 1, 2)
 
-        # Load tables button
+        # Load amplitude tables button
         self.loadtables_lbl = QLabel(self.load_bottom)
         self.loadtables_lbl.setObjectName(u"loadtables_lbl")
         self.loadtables_lbl.setFont(font1)
@@ -384,72 +384,87 @@ class Ui_manual_window(object):
         self.loadtables_btn.setSizePolicy(sizePolicy_btn)
         self.gridLayout_5.addWidget(self.loadtables_btn, 1, 2, 1, 1)
 
-        self.subarray_chck = QCheckBox(self.load_bottom)
-        self.subarray_chck.setObjectName(u"subarray_chck")
-        self.subarray_chck.setFont(font3)
+        # Load flag tables button
+        self.loadflags_lbl = QLabel(self.load_bottom)
+        self.loadflags_lbl.setObjectName(u"loadflags_lbl")
+        self.loadflags_lbl.setFont(font1)
+        self.gridLayout_5.addWidget(self.loadflags_lbl, 2, 0, 1, 1)
+        self.loadflags_line = QLineEdit(self.load_bottom)
+        self.loadflags_line.setObjectName(u"loadflags_line")
+        self.gridLayout_5.addWidget(self.loadflags_line, 2, 1, 1, 1)
+        self.loadflags_btn = QPushButton(self.load_bottom)
+        self.loadflags_btn.setObjectName(u"loadflags_btn")
+        self.loadflags_btn.setFont(font3)
+        self.loadflags_btn.setSizePolicy(sizePolicy_btn)
+        self.gridLayout_5.addWidget(self.loadflags_btn, 2, 2, 1, 1)
 
-        self.gridLayout_5.addWidget(self.subarray_chck, 3, 1, 1, 1)
+        # Frequency selection button, unused 
+        #self.freqsel_lbl = QLabel(self.load_bottom)
+        #self.freqsel_lbl.setObjectName(u"freqsel_lbl")
+        #sizePolicy3 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        #sizePolicy3.setHorizontalStretch(0)
+        #sizePolicy3.setVerticalStretch(0)
+        #sizePolicy3.setHeightForWidth(self.freqsel_lbl.sizePolicy().hasHeightForWidth())
+        #self.freqsel_lbl.setSizePolicy(sizePolicy3)
+        #self.freqsel_lbl.setFont(font1)
+        #self.gridLayout_5.addWidget(self.freqsel_lbl, 2, 0, 1, 1)
+        #self.freqsel_line = QLineEdit(self.load_bottom)
+        #self.freqsel_line.setObjectName(u"freqsel_line")
+        #self.gridLayout_5.addWidget(self.freqsel_line, 2, 1, 1, 2)
 
-        self.subarray_lbl = QLabel(self.load_bottom)
-        self.subarray_lbl.setObjectName(u"subarray_lbl")
-        self.subarray_lbl.setFont(font1)
+        # Subarray button, unused
+        #self.subarray_chck = QCheckBox(self.load_bottom)
+        #self.subarray_chck.setObjectName(u"subarray_chck")
+        #self.subarray_chck.setFont(font3)
+        #self.gridLayout_5.addWidget(self.subarray_chck, 3, 1, 1, 1)
+        #self.subarray_lbl = QLabel(self.load_bottom)
+        #self.subarray_lbl.setObjectName(u"subarray_lbl")
+        #self.subarray_lbl.setFont(font1)
+        #self.gridLayout_5.addWidget(self.subarray_lbl, 3, 0, 1, 1)
 
-        self.gridLayout_5.addWidget(self.subarray_lbl, 3, 0, 1, 1)
-
+        # Time average button
         self.timeaver_lbl = QLabel(self.load_bottom)
         self.timeaver_lbl.setObjectName(u"timeaver_lbl")
         self.timeaver_lbl.setFont(font1)
-
-        self.gridLayout_5.addWidget(self.timeaver_lbl, 4, 0, 1, 1)
-
+        self.gridLayout_5.addWidget(self.timeaver_lbl, 3, 0, 1, 1)
         self.timeaver_line = QLineEdit(self.load_bottom)
         self.timeaver_line.setObjectName(u"timeaver_line")
+        self.gridLayout_5.addWidget(self.timeaver_line, 3, 1, 1, 2)
 
-        self.gridLayout_5.addWidget(self.timeaver_line, 4, 1, 1, 2)
-
-
+        # Frequency average button
         self.freqaver_lbl = QLabel(self.load_bottom)
         self.freqaver_lbl.setObjectName(u"freqaver_lbl")
         self.freqaver_lbl.setFont(font1)
-
-        self.gridLayout_5.addWidget(self.freqaver_lbl, 5, 0, 1, 1)
-
+        self.gridLayout_5.addWidget(self.freqaver_lbl, 4, 0, 1, 1)
         self.freqaver_line = QLineEdit(self.load_bottom)
         self.freqaver_line.setObjectName(u"freqaver_line")
+        self.gridLayout_5.addWidget(self.freqaver_line, 4, 1, 1, 2)
 
-        self.gridLayout_5.addWidget(self.freqaver_line, 5, 1, 1, 2)
-
+        # Phase center shift button
         self.shift_lbl = QLabel(self.load_bottom)
         self.shift_lbl.setObjectName(u"shift_lbl")
         self.shift_lbl.setFont(font1)
-
-        self.gridLayout_5.addWidget(self.shift_lbl, 6, 0, 1, 1)
-
+        self.gridLayout_5.addWidget(self.shift_lbl, 5, 0, 1, 1)
         self.shift_line = QLineEdit(self.load_bottom)
         self.shift_line.setObjectName(u"shift_line")
-
-        self.gridLayout_5.addWidget(self.shift_line, 6, 1, 1, 1)
-
+        self.gridLayout_5.addWidget(self.shift_line, 5, 1, 1, 1)
         self.addmoreshift_btn = QPushButton(self.load_bottom)
         self.addmoreshift_btn.setObjectName(u"addmoreshift_btn")
         self.addmoreshift_btn.setFont(font3)
-
         self.addmoreshift_btn.setSizePolicy(sizePolicy_btn)
-
-        self.gridLayout_5.addWidget(self.addmoreshift_btn, 6, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.addmoreshift_btn, 5, 2, 1, 1)
 
 
         self.gridLayout_5.setColumnStretch(0, 4)
         self.gridLayout_5.setColumnStretch(1, 6)
         self.gridLayout_5.setColumnStretch(2, 3)
 
-        #self.gridLayout_5.setColumnStretch(0, 3)
-        #self.gridLayout_5.setColumnStretch(1, 8)
-
         self.verticalLayout_3.addWidget(self.load_bottom)
-
-
         self.verticalLayout_8.addWidget(self.loadbox)
+
+
+        # REFERENCE ANTENNA OPTIONS
+
 
         self.refantbox = QGroupBox(self.scrollAreaWidgetContents)
         self.refantbox.setObjectName(u"refantbox")
@@ -533,6 +548,10 @@ class Ui_manual_window(object):
 
 
         self.verticalLayout_8.addWidget(self.refantbox)
+
+
+        # FRINGE FIT OPTIONS
+
 
         self.fringebox = QGroupBox(self.scrollAreaWidgetContents)
         self.fringebox.setObjectName(u"fringebox")
@@ -628,6 +647,10 @@ class Ui_manual_window(object):
 
         self.verticalLayout_8.addWidget(self.fringebox)
 
+
+        # EXPORT OPTIONS
+
+
         self.exportbox = QGroupBox(self.scrollAreaWidgetContents)
         self.exportbox.setObjectName(u"exportbox")
         self.exportbox.setFont(font1)
@@ -701,6 +724,10 @@ class Ui_manual_window(object):
 
 
         self.verticalLayout_8.addWidget(self.exportbox)
+
+
+        # PLOT OPTIONS
+
 
         self.plotbox = QGroupBox(self.scrollAreaWidgetContents)
         self.plotbox.setObjectName(u"plotbox")
@@ -824,21 +851,18 @@ class Ui_manual_window(object):
         self.addmorephasref_btn.setText(QCoreApplication.translate("manual_window", u"             Add more             ", None))
         self.loadbox.setTitle("")
         self.load_label.setText(QCoreApplication.translate("manual_window", u"LOAD OPTIONS", None))
-
-
         self.loadtables_lbl.setText(QCoreApplication.translate("manual_window", u"Load amp. calibration tables", None))
-        
-        
-        
         self.loadtables_btn.setText(QCoreApplication.translate("manual_window", u"          Select file          ", None))
-        self.freqsel_lbl.setText(QCoreApplication.translate("manual_window", u"Frequency selection", None))
+        self.loadflags_lbl.setText(QCoreApplication.translate("manual_window", u"Load flag tables", None))
+        self.loadflags_btn.setText(QCoreApplication.translate("manual_window", u"          Select file          ", None))
+        # self.freqsel_lbl.setText(QCoreApplication.translate("manual_window", u"Frequency selection", None))
         self.loadall_lbl.setText(QCoreApplication.translate("manual_window", u"Load all sources", None))
-        self.subarray_chck.setText("")
-        self.subarray_lbl.setText(QCoreApplication.translate("manual_window", u"Look for subarray", None))
+        #self.subarray_chck.setText("")
+        #self.subarray_lbl.setText(QCoreApplication.translate("manual_window", u"Look for subarray", None))
         self.shift_lbl.setText(QCoreApplication.translate("manual_window", u"Phase center shift", None))
         self.addmoreshift_btn.setText(QCoreApplication.translate("manual_window", u"             Add more             ", None))
-        self.timeaver_lbl.setText(QCoreApplication.translate("manual_window", u"Time average threshold", None))
-        self.freqaver_lbl.setText(QCoreApplication.translate("manual_window", u"Freq. average threshold", None))
+        self.timeaver_lbl.setText(QCoreApplication.translate("manual_window", u"Time average threshold (s)", None))
+        self.freqaver_lbl.setText(QCoreApplication.translate("manual_window", u"Freq. average threshold (kHz)", None))
         self.loadall_chck.setText("")
         self.refantbox.setTitle("")
         self.refant_label.setText(QCoreApplication.translate("manual_window", u"REFERENCE ANTENNA OPTIONS", None))

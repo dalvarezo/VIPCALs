@@ -68,7 +68,7 @@ Documentation can be found in [Read the Docs](https://vipcals.readthedocs.io/)
 3.  Activate the conda environment and install with:
     
     ``` bash
-    conda activate pyside62
+    conda activate vipcalsenv
     pip install .
     ```
 
@@ -77,6 +77,10 @@ You can now launch VIPCALs with:
 ``` bash
 vipcals
 ```
+
+> **Note**: the conda environment was called `pyside62` in versions up to
+> 0.3.7 and is now called `vipcalsenv`. If you are upgrading, create the new
+> environment as in step 2 and run `pip install .` inside it.
 
 ### Docker Installation
 
@@ -149,6 +153,11 @@ multiple files) and lets you inspect the results via interactive plots.
         target(s) + 3 tentative calibrators)
       - *Load amp. calibration tables*: load external tables with system 
         temperatures and gain curves in AIPS ANTAB format.
+      - *Load flag tables*: load an external flag file in AIPS UVFLG
+        format, whose flags are added to the initial flag table (FG1).
+        IF numbers refer to the frequency band as loaded by the pipeline,
+        not to the original file, see the
+        [documentation](https://vipcals.readthedocs.io/) for details.
       - *Time average threshold*: minimum integration time in seconds.
         If the data have a shorter time sampling, it will be averaged in
         time up to this value (0 to disable)
@@ -191,13 +200,14 @@ multiple files) and lets you inspect the results via interactive plots.
             channel per IF
           - \`MULTI\`: export all channels
     
-      - *Edge flagging*: when exporting:
+      - *Edge flagging*: channels to discard at the edges of each IF in
+        the target fringe fit, the exported data and the calibrated plots:
         
-        If \< 1: flag that fraction of edge channels at the
-        beginning/end of each IF
+        If \< 0.5: discard that fraction of the channels at each edge
+        of the IF
         
-        If ≥ 1 and integer: flag that number of edge channels at the
-        beginning/end of each IF
+        If ≥ 1 and integer: discard that number of channels (counted
+        after the frequency average) at each edge of the IF
 
   - **Plotting Options**
     
@@ -212,6 +222,9 @@ multiple files) and lets you inspect the results via interactive plots.
 For batch processing, inputs can be supplied via a JSON file. All 
 parameters mirror the manual input described above. As before, when running in Docker, 
 both userno and disk should be omitted.
+
+A JSON file can contain several calibration blocks, separated by one empty
+line. A block must not contain empty lines itself.
 
 **Minimum JSON Fields**
 
@@ -231,6 +244,7 @@ both userno and disk should be omitted.
 | phase\_ref                | list of str               |
 | load\_all                 | bool                      |
 | load\_tables              | str                       |
+| load\_flags               | str                       |
 | time\_aver                | float                     |
 | freq\_aver                | float                     |
 | shifts                    | list of str               |
@@ -244,6 +258,7 @@ both userno and disk should be omitted.
 | max\_solint               | float                     |
 | channel\_out              | str ("SINGLE" or "MULTI") |
 | flag\_edge                | float                     |
+| interactive               | bool                      |
 
 **Examples**
 
@@ -284,11 +299,25 @@ apply, then it can be skipped by giving a null value:
     "/data/pipeline_test_sample/felix/BR235/BR235O/VLBA_BR235O_br235o_BIN0_SRC0_0_210217T213934.idifits"
   ],
   "targets": ["0737+171", "0912+237"],
-  "phase_ref": ["0740+155", null]
+  "phase_ref": ["0740+155", null],
   "output_directory": "/home/dalvarez/vipcals/vipcals/101_200",
   "shifts": [null, "138.72500917 23.53151889"]
 }
 ```
+
+### Command line
+
+JSON files can also be run without the GUI, e.g. on a remote server:
+
+``` bash
+conda activate vipcalsenv
+VIPCALS_DIR=$(python -c "import os, vipcals; print(os.path.dirname(vipcals.__file__))")
+ParselTongue $VIPCALS_DIR/__main__.py input.json
+```
+
+AIPS has to be available in the shell (run its `LOGIN.SH` first if needed).
+See the [documentation](https://vipcals.readthedocs.io/) for running it in the
+background and in Docker.
 
 -----
 

@@ -16,7 +16,9 @@ In this section, we provide a detailed description of the AIPS tasks used throug
 Data loading
 -------------
 
-After splitting in frequencies and selecting multiple potential calibrators, data are loaded into AIPS using FITLD:
+Before loading, the data are split into frequency bands, and each band is calibrated separately. Bands are first separated by frequency ID and then, within each ID, by gaps larger than 500 MHz between the IF frequencies. The IFs of a band do not need to be consecutive in the file. Bands are processed from the lowest to the highest frequency.
+
+After selecting multiple potential calibrators, the data of each band are loaded into AIPS using FITLD:
 
    .. code-block:: firstword
 
@@ -24,17 +26,31 @@ After splitting in frequencies and selecting multiple potential calibrators, dat
       
       outname       # Project name
       outdisk
-      outclass      # The loaded frequency, i.e. 22G for K band data 
+      outclass      # Lowest frequency of the band, i.e. 22G for K band data
       outseq    1
       
       sources       # Science targets + potential calibrators
-      bif           # Depending on frequency loaded
-      eif           # Depending on frequency loaded
+      bif           # First IF of the band in the file
+      eif           # Last IF of the band in the file
       clint     0.1 # CL entry interval in minutes
       selfreq       # Depending on frequency loaded
       fqtol         # 0.5% of selfreq
       
       
+If the IFs of a band are not consecutive in the file, each group of consecutive IFs is loaded separately with FITLD and the pieces are glued together with VBGLU, which takes up to four inputs at a time
+
+   .. code-block:: firstword
+
+      task 'VBGLU'
+
+      inname, inclass, indisk, inseq        # First piece
+      in2name, in2class, in2disk, in2seq    # Second piece
+      in3name, in3class, in3disk, in3seq    # Third piece
+      in4name, in4class, in4disk, in4seq    # Fourth piece
+      outseq    1
+
+The IFs of the glued dataset are numbered from 1, keeping their order in the file. Calibration tables that do not end up with the right number of IFs (TY, GC, PC) are deleted so that they are retrieved again, and FG1 is rebuilt from the flag tables of the pieces with the IF ranges shifted to their new position.
+
 If more than 1 file is loaded, redundant calibration tables are merged with TAMRG
 
    .. code-block:: firstword
@@ -90,14 +106,14 @@ If the loaded data not in time-baseline (TB) order, they are sorted with UVSRT
       sort  'TB'
       
 
-If there is not an index table (NX) or an intial calibration table (CL1), they are created with INDXR
+If there is not an index table (NX) or an initial calibration table (CL1), they are created with INDXR. INDXR is also run again after the data are averaged in time or frequency
 
    .. code-block:: firstword
    
       task 'INDXR'
       
       cparm(3)  0.1 # CL entry interval in minutes
-      cparm(4)  4   # Recalculate CL group delays if IM table is available
+      cparm(4)  1   # Recalculate CL group delays if IM table is available
       
 
 ----
@@ -105,15 +121,27 @@ If there is not an index table (NX) or an intial calibration table (CL1), they a
 Table loading
 -------------
 
-When system temperatures (TY1), gain curves (GC1), or initial flag tables (FG1) are not available in the data, they are retrieved online and loaded using ANTAB
+If the user provides an external flag file (see :ref:`external-flags`), it is applied first with UVFLG. Its flags are added to FG1, which is created if it does not exist
+
+   .. code-block:: firstword
+
+      task 'UVFLG'
+
+      intext    # User flag file
+      outfgver  1
+
+If the user provides an external ANTAB file, system temperatures and gain curves are loaded from it with ANTAB, and no tables are retrieved online.
+
+Otherwise, when system temperatures (TY1), gain curves (GC1), or initial flag tables (FG1) are not available in VLBA data, they are retrieved online and loaded using ANTAB. Gain curves are taken from the VLBA gain file distributed with VIPCALs
 
    .. code-block:: firstword
    
       task 'ANTAB'
       
-      tyver 1
-      gcver 1
+      tyver 1   # For the Tsys file
+      gcver 1   # For the gain curve file
       calin     # Tsys or GC file
+      sparm     # Antennas in the Tsys file that are not in the data, ignored
       
 or UVFLG in case of the initial flag table
 
@@ -122,6 +150,10 @@ or UVFLG in case of the initial flag table
       task 'UVFLG'
       
       intext    # Flag file
+
+System temperatures in the online files are matched to the loaded IFs by frequency, so the IFs of a band do not need to be consecutive in the file.
+
+For EVN data, the ANTAB file of the experiment is retrieved from the `EVN archive <https://archive.jive.nl/>`_ and loaded with ANTAB (``tyver 1``), replacing any TY1 and GC1 already present in the data. If several versions of the file exist, the one without a version number is used, or otherwise the earliest one, and the rest are listed in the log. If FG1 is not available, the flag file of the experiment is also retrieved from the archive and loaded with UVFLG.
 
 When the dataset has been observed with the VLBA and the calibration tables have been generated with the TSM software, the pipeline uses the VLOG task to extract the information
 
@@ -202,12 +234,10 @@ To improve the signal-to-noise ratio while still preserving coherence, VIPCALs c
 
    .. code-block:: firstword
    
-      # GC tables
       task 'UVAVG'
       
       doacor    1   # Keep autocorrelations
       yinc      2   # Final sampling time, can be changed
-      zinc          # Original sampling time
       opcode    'TIME'
       
 
@@ -215,8 +245,7 @@ In frequency, the pipeline will run AVSPC by default if the channel width is nar
 
    .. code-block:: firstword
    
-      # GC tables
-      task 'UVAVG'
+      task 'AVSPC'
       
       doacor    1   # Keep autocorrelations
       channel       # Ratio old_channels/new_channels
@@ -249,7 +278,8 @@ System temperatures are filtered and smoothed using TYSMO. Default criteria are 
       outvers   2
       
       inext     'TY'
-      dobetween 0       # Smooth each source individually
+      dobtween  0       # Smooth each source individually
+      flagver   -1      # Do not apply flags
       
       aparm(1)  0       # Minimim temperature
       aparm(6)  1500    # Maximum temperature
@@ -279,7 +309,9 @@ Antennas with no TY or GC tables at this stage, or where all Tsys values have be
       outfgver  2
       reason    'NO TSYS/GC'
 
-TSys tables, both original and smoothed, are plotted with SNPLT
+Antennas where all Tsys values have been flagged by TYSMO are flagged in a separate UVFLG run with ``reason 'FLAGGED ALL TSYS'``.
+
+Tsys tables, both original and smoothed, are plotted with SNPLT
 
    .. code-block:: firstword
    
@@ -313,6 +345,7 @@ A fringe fit with FRING is run on a selected number of scans, rotating around al
       refant        # Rotates around antennas
       docalib   1   # Use calibrated data
       gainuse   1
+      flagver   -1  # Do not apply flags
       solint        # Scan length
       timeran       # Scan time
       
@@ -366,7 +399,7 @@ Files older than June 1998 simply get their CL1 copied into CL2 with TACOP.
 Geometric corrections
 ---------------------
 
-Earth orientation parameters and parallactic angle are corrected for with CLCOR.
+Earth orientation parameters and parallactic angle are corrected for with CLCOR. The EOPS correction is not applied, and CL2 is copied into CL3, when the data were correlated with SFXC, or when the correlator is not specified in the file and the data are from the EVN or do not have a compatible CT table.
 
    .. code-block:: firstword
    
@@ -405,7 +438,7 @@ The pipeline uses FRING to rank each scan based on its fringe S/N
       refant        # Reference antenna
       docalib   1   # Use calibrated data
       gainuse   4   # Use CL4
-      solint        # Scan length
+      solint        # Length of the longest scan
       
       aparm(1) 2    # Min. number of antennas for a solution
       aparm(5) 0    # Solve IFs separately
@@ -423,7 +456,7 @@ The pipeline uses FRING to rank each scan based on its fringe S/N
       
 ----
 
-If, for a certain antenna, there are no scans with S/N greater than 5, then that antenna is flagged in FG3 using UVFLG
+FG2 is copied into FG3 with TACOP. If, for a certain antenna, there are no scans with S/N greater than 5, then that antenna is flagged in FG3 using UVFLG
 
    .. code-block:: firstword
    
@@ -431,7 +464,7 @@ If, for a certain antenna, there are no scans with S/N greater than 5, then that
       
       antennas      # Antennas with no reliable calibrators
       outfgver  3
-      reason    'NO CALIB'
+      reason    'NO CALIBRATOR'
       
 Digital sampling correction
 ---------------------------
@@ -485,9 +518,11 @@ FRING is run for each of the calibrator scans selected previously.
       dparm(1) 1    # Number of baseline combinations
       dparm(2) 1000 # Delay window in ns
       dparm(3) 200  # Rate window in mHz
-      dparm(8) 1    # Zero the rated after fitting
+      dparm(8) 1    # Zero the rates after fitting
       
-      snver 3       # Produce SN3
+      snver 3+n     # One SN table per calibrator scan, starting at SN3
+
+If FRING finds no solutions for the selected antennas, it is run again on all antennas of the scan and the solutions of the other antennas are then removed with TABED.
 
 If there is more than one calibrator scan, merge the solutions with CLCAL
 
@@ -509,6 +544,7 @@ And apply the solutions with CLCAL
       opcode    'CALP'
       interpol  '2PT'
       snver         # Merged SN table
+      antennas      # Excludes antennas without valid solutions
       gainver   5   # From CL5
       gainuse   6   # To CL6
       
@@ -525,7 +561,6 @@ Bandpass is corrected with BPASS
    
       task 'BPASS'
       
-      solint        -3      # Solution interval respecting scan boundaries
       refant            # Reference antenna
       calsour           # Calibrator sources
       
@@ -535,12 +570,12 @@ Bandpass is corrected with BPASS
       
       solint        -1  # Scan length
       weightit      1   # Weight data by 1/sigma
-      bpassparm(5)  0   # Divide by channel zero (central 75% of the IF)
-      bpassparm(9)  1   # Interpolate over flagged channels
+      bpassprm(5)   0   # Divide by channel zero (central 75% of the IF)
+      bpassprm(9)   1   # Interpolate over flagged channels
       
       # If only one calibrator scan is used:
-      timerang          # Time interval of the scan
-      bpassparm(10) 6   # Shift the average phase to 0
+      timerang          # Central 90% of the scan
+      bpassprm(10)  6   # Shift the average phase to 0
       
 
 After the bandpass corrections, normalize again the autocorrelations with ACSCL. Solutions are applied with CLCAL.
@@ -576,13 +611,16 @@ Final amplitude calibration is computed with APCAL and applied with CLCAL
       task 'APCAL'
       
       solint    -3  # Solution interval respecting scan boundaries
+      antennas      # Antennas with gain curves
+      aparm(6)  0   # Do not normalize by the average Tsys
+      aparm(7)  0
       
    .. code-block:: firstword
    
       task 'CLCAL'
       
       opcode    'CALP'
-      interpol  'SELF'
+      interpol  'SELF'  # '2PT' if antenna SV is in the array
       snver     5
       gainver   7   # From CL7
       gainuse   8   # To CL8
@@ -592,7 +630,7 @@ Final amplitude calibration is computed with APCAL and applied with CLCAL
 Target fringe fit
 -----------------
 
-Before running the final fringe fit, the solution interval is optimized by running a fringe fit in a reduced set of target scans. 
+Before running the final fringe fit, the solution interval is optimized by running a fringe fit in a reduced set of up to 10 target scans. Solution intervals of 5, 4, 3, 2 and 1 solutions per scan, within the minimum and maximum allowed by the user, are tried in that order, and the first one where every antenna reaches a median S/N above 5 is chosen. This step is skipped if the user gives a fixed solution interval.
 
    .. code-block:: firstword
    
@@ -612,7 +650,6 @@ Before running the final fringe fit, the solution interval is optimized by runni
       aparm(6) 2    # Amount of information printed
       aparm(7) 1    # No S/N threshold
       aparm(9) 1    # Use other antennas as backup reference antennas
-      search        # Prioritized list of antennas to use
 
       dparm(1) 1    # Number of baseline combinations
       dparm(2) 1000 # Delay window in ns
@@ -633,23 +670,26 @@ Finally, fringe fit on target (or phase reference source) to correct for residua
       gainuse   8     # Use CL8
       doband    1     # Apply the bandpass correction 
       
-
+      bchan             # Initial channel, depends on the edge flagging
+      echan             # Final channel, depends on the edge flagging
       
       aparm(1) 2    # Min. number of antennas for a solution
       
       # On a first round
       aparm(5) 0    # Solve IFs separately
-      # On a second round
+      # On a second round, only if less than 99% of the solutions are good
       aparm(5) 1    # Solve IFs together
       
       aparm(6) 2    # Amount of information printed
-      aparm(7)      # S/N cutodd, default is 5
+      aparm(7)      # S/N cutoff, default is 5
       aparm(9) 1    # Use other antennas as backup reference antennas
       search        # Prioritized list of antennas to use
 
       dparm(1) 1    # Number of baseline combinations
       dparm(2) 1000 # Delay window in ns
       dparm(3) 200  # Rate window in mHz
+
+If the second round produces a higher fraction of good solutions, its table is kept. If neither round produces any solution, the target is not exported.
 
 Solutions are applied with CLCAL
 
@@ -659,9 +699,12 @@ Solutions are applied with CLCAL
       
       task 'CLCAL'
       
+      sources       # Science targets
+      refant        # Reference antenna
+
       opcode    'CALP'
       interpol  'SELF'
-      cutoff        # 1.1*scan_length, interpolate solutions only within the scan
+      cutoff        # Longest solution interval of the targets, in minutes
       gainver   8   # From CL8
       gainuse   9   # To CL9
       
@@ -672,19 +715,23 @@ Solutions are applied with CLCAL
       task 'CLCAL'
       
       sources       # Science target
+      calsour       # Phase-reference calibrator
+      refant        # Reference antenna
       
       opcode    'CALP'
       interpol  '2PT'
 
-      gainver   8   # From CL8
-      gainuse   9   # To CL9
+      gainver   9   # From CL9
+      gainuse   10  # To CL10
+
+CL10 is then copied into CL9 with TACOP, so that the final calibration of all targets is in CL9.
 
 ----
 
 Data export
 -----------
 
-Calibration, flags, and bandpass corrections are applied with SPLIT. Final calibrated data are exported to a uvfits with FITTP
+Calibration, flags, and bandpass corrections are applied with SPLIT, using the latest flag table (FG3). Final calibrated data are exported to a uvfits with FITTP
 
    .. code-block:: firstword
    
@@ -694,7 +741,6 @@ Calibration, flags, and bandpass corrections are applied with SPLIT. Final calib
       docalib   1   # Use calibrated data
       gainuse   9   # Use CL9
       doband    1   # Do bandpass
-      fgver     3   # Use the last FG table
       
       # If channel_out == 'SINGLE'
       aparm(1)  2
@@ -709,14 +755,16 @@ Calibration, flags, and bandpass corrections are applied with SPLIT. Final calib
    
       task 'FITTP'
       
-      dataout '/output_folder/sourcename_project_band_date/sourcename_project_band_date.uvfits
+      dataout '/output_folder/project/sourcename_project_band_date/sourcename_project_band_date.uvfits'
+
+All calibration tables are also saved with TASAV and exported with FITTP to the *TABLES/* folder, as *sourcename_project_band_date.caltab.uvfits*.
       
 ----
       
 Plots
 -----
 
-PostScript format plots are produced from AIPS using different tasks.
+Plots are produced from AIPS using different tasks, printed to PostScript files with LWPLA, and converted to PDF.
 
 For amplitude and phase as a function of frequency, both uncalibrated and calibrated, POSSM is used.
 
@@ -730,7 +778,7 @@ For amplitude and phase as a function of frequency, both uncalibrated and calibr
       
       docalib   1       # Use calibrated data
       gainuse           # 1 for the uncalibrated, 9 for the calibrated
-      flagver           # 1 for the uncalibrated, 3 for the calibrated      
+      flagver           # 1 for the uncalibrated, latest (FG3) for the calibrated
       doband            # 0 for the uncalibrated, 1 for the calibrated
       
       bchan             # Initial channel to calibrate, by default 1
@@ -750,16 +798,15 @@ For calibrated amplitudes and phases as a function of time, the pipeline uses VP
       sources           # Science target
 
       avgchan   1       # Average channels
-      avgif     1       # Average channels
+      avgif     1       # Average IFs
       solint    0.09    # One point every 5 seconds
       
       docalib   1       # Use calibrated data
       gainuse   9       # Use CL9     
-      flagver   3       # Use FG3
       doband    1       # Correct for bandpass
-      
-      bchan             # Initial channel to calibrate, by default 1
-      echan             # Final channel to calibrate, by default the last 
+
+      bchan             # Initial channel, depends on the edge flagging
+      echan             # Final channel, depends on the edge flagging
       
       # Plotting options
       bparm 12 -1 0
@@ -773,23 +820,17 @@ For the uv coverage, the pipeline uses UVPLT
       task 'UVPLT'
       
       sources           # Science target
-      stokes    'RRLL'
-      solint    0.09    # One point every 10 seconds
+      solint    0.09    # One point every 5 seconds
       
       docalib   1       # Use calibrated data
       gainuse   9       # Use CL9     
-      flagver   3       # Use FG3
-      doband    1       # Correct for bandpass
-      
-      bchan             # Initial channel to calibrate, by default 1
-      echan             # Final channel to calibrate, by default the last 
       
       # Plotting options
       bparm 6 7 2 0
       do3color -1
       dotv -1
       
-Finally, all these plots are printed into PostScript files using LWPLA
+All these plots are printed into PostScript files using LWPLA, and then converted to PDF
 
    .. code-block:: firstword
    
@@ -798,3 +839,4 @@ Finally, all these plots are printed into PostScript files using LWPLA
       # Plotting options
       dparm     0 0 0 0 0 4 31 7 0
 
+The amplitude and phase as a function of uv-distance (*RADPLOT*) and the number of visibilities per antenna after each calibration step (*VISANT*) are produced directly with matplotlib.

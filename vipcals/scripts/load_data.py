@@ -1,11 +1,14 @@
 import numpy as np
 import os
 import math
+import shutil
 import pandas as pd
 import pkg_resources
 
 import functools
 print = functools.partial(print, flush=True)
+
+import Wizardry.AIPSData as wizard
 
 from astropy.io import fits
 from astropy.time import Time
@@ -160,6 +163,8 @@ def find_calibrators(full_source_list, choose = 'BYCOORD'):
 
     :return: names of possible calibrators available in the file
     :rtype: list of str
+    :return: should the pipeline load all sources?
+    :rtype: bool
     """
     col_names = ['NameJ2000', 'NameB1950', 'NameICRF3', 'NameOther','RA',\
                  'DEC', 'RAE', 'DECE', 'S_short', 'S_long', 'C_short',\
@@ -203,15 +208,15 @@ def find_calibrators(full_source_list, choose = 'BYCOORD'):
         raise ValueError("None of the sources was found on the VLBA calibrator list.")
 
     if len(full_source_list) > 3:
-        return [str(full_source_list[0].name),str(full_source_list[1].name),\
-                str(full_source_list[2].name)]
+        return ([str(full_source_list[0].name),str(full_source_list[1].name),\
+                str(full_source_list[2].name)], False)
             
     # If there are 3 or less sources just load all 
     else:
         calibs = []
         for src in full_source_list:
             calibs.append(src.name)
-        return(calibs)
+        return(calibs, True)
     
 def is_it_multifreq_id(file_path_list):
     """Check if the files contains multiple bands splitted in IDs.
@@ -248,6 +253,41 @@ def is_it_multifreq_id(file_path_list):
 
     return(multifreq, id_list, file_dict)
 
+
+def group_ifs_by_band(if_freqs, gap = 5e8):
+    """Group IF indices by frequency band, regardless of their order in the file.
+
+    IFs are sorted by frequency and a new band starts at every jump larger than
+    ``gap``. Bands are returned in the order in which they first appear in the file.
+
+    :param if_freqs: frequency of each IF in Hz, in file order
+    :type if_freqs: array of float
+    :param gap: minimum separation between two bands in Hz; defaults to 500 MHz
+    :type gap: float, optional
+    :return: one list per band with its 0-based IF indices, in file order
+    :rtype: list of list of int
+    """
+    if_freqs = np.atleast_1d(if_freqs)
+    order = np.argsort(if_freqs, kind = 'stable')
+    bands = [[int(order[0])]]
+    for prev, curr in zip(order[:-1], order[1:]):
+        if if_freqs[curr] - if_freqs[prev] > gap:
+            bands.append([int(curr)])
+        else:
+            bands[-1].append(int(curr))
+    bands = [sorted(b) for b in bands]
+    return sorted(bands, key = lambda b: b[0])
+
+def is_contiguous(if_idx):
+    """Check if a list of IF indices can be loaded with a single BIF/EIF range.
+
+    :param if_idx: 0-based IF indices, in file order
+    :type if_idx: list of int
+    :return: True if the indices are consecutive
+    :rtype: bool
+    """
+    return list(if_idx) == list(range(if_idx[0], if_idx[-1] + 1))
+
 def group_ids(id):
     """Look for multiple frequencies within one frequency ID.
     
@@ -258,29 +298,93 @@ def group_ids(id):
     :param id: list of tuples grouping the difference bands within an ID
     :type id: list of tuples
 
-    :return: minimum frequency of the id, minimum frequency of the group, minimum and 
-        maximum IFs containing the group
-    :rtype: float, float, list of int
+    :return: minimum frequency of the group, minimum frequency of the id, first and
+        last IF of the group, and all the IFs of the group (0-based, in file order)
+    :rtype: float, float, list of int, list of int
     """ 
     if isinstance(id, np.float64):
-        return [(id, id, [0, 0])]
-    # Ensure input is a list or array
+        return [(id, id, [0, 0], [0])]
     id = list(id)
-    groups = []
-    current_group = [0]
-    for i in range(1, len(id)):
-        if abs(id[i] - id[i - 1]) > 1e9:
-            groups.append(current_group)
-            current_group = [i]
-        else:
-            current_group.append(i)
-    groups.append(current_group)
     overall_min = min(id)
     result = []
-    for group in groups:
-        group_min = min(id[i] for i in group)
-        result.append((group_min, overall_min, [min(group), max(group)]))
+    for if_idx in group_ifs_by_band(id):
+        group_min = min(id[i] for i in if_idx)
+        result.append((group_min, overall_min, [if_idx[0], if_idx[-1]], if_idx))
     return result
+
+def band_klass(freq):
+    """Build the AIPS class of a frequency band from its frequency.
+
+    :param freq: frequency of the band in Hz
+    :type freq: float
+    :return: class name, e.g. '8G' or '15G'
+    :rtype: str
+    """
+    freq = np.floor(freq)
+    if freq > 1e10:
+        return str(freq)[:2] + 'G'
+    return str(freq)[0] + 'G'
+
+def get_bands(file_path_list):
+    """List the frequency bands of a dataset, one entry per pipeline run.
+
+    Bands are separated first by frequency ID and then, within each ID, by gaps in
+    frequency between the IFs (see :func:`~vipcals.scripts.load_data.group_ifs_by_band`).
+    The IFs of a band do not need to be consecutive in the file.
+
+    :param file_path_list: list of paths of the uvfits/idifts files
+    :type file_path_list: list of str
+    :return: one dictionary per band with the frequency ID it belongs to ('id'), the
+        files that contain it ('files'), whether the dataset has multiple frequency IDs
+        ('multi_id'), the frequency in MHz used to select the ID with FITLD for each run 
+        of consecutive IFs ('selfreq'), the lowest frequency of the band in Hz ('freq'), 
+        its 0-based IF indices in file order ('if_idx'), its AIPS class ('klass') and 
+        the number of bands ('n_bands')
+    :rtype: list of dict
+    """
+    multi_id, id_list, file_dict = is_it_multifreq_id(file_path_list)
+    bands = []
+    for id in id_list:
+        files = [f for f in file_path_list if id in file_dict[f]]
+        freqs = np.atleast_1d(id)
+        for group in group_ids(id):
+            # FITLD selects a frequency ID by the lowest IF it loads, so each run
+            # of consecutive IFs gets its own selection frequency
+            selfreq = [min(freqs[bif - 1:eif]) / 1e6 for bif, eif in if_runs(group[3])]
+            bands.append({'id': id, 'files': files, 'multi_id': multi_id,
+                          'selfreq': selfreq,
+                          'freq': group[0], 'if_idx': group[3]})
+
+    # Make sure that two bands never share the same class
+    used = []
+    for band in sorted(bands, key = lambda b: b['freq']):
+        klass = band_klass(band['freq'])
+        n = 2
+        while klass in used:
+            klass = band_klass(band['freq']) + str(n)
+            n += 1
+        used.append(klass)
+        band['klass'] = klass
+        band['n_bands'] = len(bands)
+
+    return(sorted(bands, key = lambda b: b['freq']))
+
+def if_runs(if_idx):
+    """Split a list of IFs into runs of consecutive IFs that FITLD can load.
+
+    :param if_idx: 0-based IF indices, in file order
+    :type if_idx: list of int
+    :return: first and last IF (1-based) of each run, e.g. [0, 1, 4, 5] gives
+        [(1, 2), (5, 6)]
+    :rtype: list of tuple
+    """
+    runs = []
+    for i in if_idx:
+        if len(runs) > 0 and runs[-1][1] == i:
+            runs[-1][1] = i + 1
+        else:
+            runs.append([i + 1, i + 1])
+    return [tuple(r) for r in runs]
     
 def are_sources_in_id(file_path_list, loaded_id, sources):
     """Check if some sources were not observed in a certain frequency ID
@@ -324,64 +428,216 @@ def are_sources_in_id(file_path_list, loaded_id, sources):
                         break
 
     return(missingso)
-
-def is_it_multifreq_if(file_path):
-    """Check if the file contains multiple bands splitted in IFs.
-    
-    Looks at the central frequency of all IFs and looks for jumps of
-    more than 1 GHz between them. Only works for datasets with 1 or 2
-    frequency bands, not more.
-
-    :param file_path: path of the uvfits/idifts file
-    :type file_path: str
-    :return: True if the dataset has multiple bands, False if not; Value of the first \
-             IF, always 1; value of the last IF of band 1; value of the first IF of \
-             band 2; value of the last IF of band 2; first digit of the frequency of \
-             band 1; first digit of the frequency of band 2; frequency of band 1 ;\
-             frequency of band 2
-    :rtype: boolean, int, int, int, int, str, str, float, float
-    """    
-    multifreq = False
-    hdul = fits.open(file_path)
-    if_freq = hdul['FREQUENCY'].header['REF_FREQ'] \
-              + hdul['FREQUENCY'].data['BANDFREQ']
-
-    if isinstance(if_freq[0], np.float64) == True:
-        # Data is single IF
-        if if_freq[0] > 1e10:
-            freq = str(if_freq[0])[:2] 
-        else:
-            freq = str(if_freq[0])[:1] 
-        return(False, 1, 1, 1, 1, freq, freq)
-               
-    for IF,freq in enumerate(if_freq[0]):
-        if IF == 0:
-            continue
-        if abs(freq - if_freq[0][IF-1]) > 1e9 :
-            multifreq = True
-            break
-    freq_1 = np.floor(if_freq[0][0])
-    freq_2 = np.floor(if_freq[0][-1])
-
-    if freq_1 > 1e10:
-        klass_1 = str(freq_1)[:2]
-    else:
-        klass_1 = str(freq_1)[0]
-    if freq_2 > 1e10:
-        klass_2 = str(freq_2)[:2]
-    else:
-        klass_2 = str(freq_2)[0]
-
-    hdul.close()
-
-    return(multifreq, 1, IF, IF+1, len(if_freq[0]), klass_1,\
-           klass_2, freq_1, freq_2)
         
 
 def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = '', \
-              seq = 1, bif = 0, eif = 0, l_a = False, 
+              seq = 1, if_idx = None, l_a = False,
               symlink_path = os.path.expanduser("~/.vipcals/tmp")):
     """Load data from a uvfits/idifits file.
+
+    If the IFs to load are not consecutive in the file, each run of consecutive IFs
+    is loaded separately and the pieces are glued together with
+    :func:`~vipcals.scripts.load_data.glue_ifs`.
+
+    :param file_path_list: list of paths of the uvfits/idifts files
+    :type file_path_list: list of str
+    :param name: file name whithin AIPS
+    :type name: str
+    :param sources: list of sources to load
+    :type sources: list of str
+    :param disk: disk number whithin AIPS
+    :type disk: int
+    :param multi_id: True if there are multiple frequency ids, False otherwise
+    :type multi_id: bool
+    :param selfreq: if there are multiple frequency ids, which frequency to load in MHz,
+        one per run of consecutive IFs
+    :type selfreq: float or list of float
+    :param klass: class name whithin AIPS; defaults to ''
+    :type klass: str, optional
+    :param seq: sequence number within AIPS; defaults to 1
+    :type seq: int, optional
+    :param if_idx: 0-based indices of the IFs to load, in file order; None loads all;
+        defaults to None
+    :type if_idx: list of int, optional
+    :param l_a: load all sources; default False
+    :type l_a: bool, optional
+    :param symlink_path: path where to create the symbolic links needed to load the data;
+        default is the /vipcals/tmp folder
+    :type symlink_path: str, optional
+    """
+    if if_idx is None:
+        runs = [(0, 0)]
+    else:
+        runs = if_runs(if_idx)
+
+    selfreqs = np.atleast_1d(selfreq)
+
+    # Consecutive IFs: load them directly
+    if len(runs) == 1:
+        run_fitld(file_path_list, name, sources, disk, multi_id, selfreqs[0], klass, seq,
+                  runs[0][0], runs[0][1], l_a, symlink_path)
+        return
+
+    # Non-consecutive IFs: load each run separately and glue them
+    pieces = []
+    for n, (bif, eif) in enumerate(runs):
+        run_fitld(file_path_list, name, sources, disk, multi_id,
+                  selfreqs[min(n, len(selfreqs) - 1)], klass,
+                  seq + 100 + n, bif, eif, l_a, symlink_path)
+        pieces.append(AIPSUVData(name, klass, disk, seq + 100 + n))
+
+    glue_ifs(pieces, AIPSUVData(name, klass, disk, seq),
+             [eif - bif + 1 for bif, eif in runs])
+
+    for piece in pieces:
+        piece.zap()
+
+def glue_ifs(pieces, out, n_ifs):
+    """Glue datasets that only differ in their IFs into a single dataset.
+
+    Uses the VBGLU task in AIPS, which takes up to 4 inputs at a time, so with more
+    pieces the output is built in several steps. IF-dependent tables that do not end
+    up with the right number of IFs are deleted, so that the pipeline retrieves them
+    again, and the flag table is rebuilt from the pieces with
+    :func:`~vipcals.scripts.load_data.glue_flags`.
+
+    :param pieces: datasets to glue, in the IF order of the output
+    :type pieces: list of AIPSUVData
+    :param out: output dataset
+    :type out: AIPSUVData
+    :param n_ifs: number of IFs of each piece
+    :type n_ifs: list of int
+    """
+    current = list(pieces)
+    intermediate = []
+    step = 0
+    while len(current) > 1:
+        last = len(current) <= 4
+        if last:
+            target = out
+        else:
+            target = AIPSUVData(out.name, out.klass, out.disk, out.seq + 200 + step)
+        if target.exists() == True:
+            target.zap()
+
+        vbglu = AIPSTask('vbglu')
+        for prefix, data in zip(['in', 'in2', 'in3', 'in4'], current[:4]):
+            setattr(vbglu, prefix + 'name', data.name)
+            setattr(vbglu, prefix + 'class', data.klass)
+            setattr(vbglu, prefix + 'disk', data.disk)
+            setattr(vbglu, prefix + 'seq', data.seq)
+        vbglu.outname = target.name
+        vbglu.outclass = target.klass
+        vbglu.outdisk = target.disk
+        vbglu.outseq = target.seq
+        vbglu.go()
+
+        if not last:
+            intermediate.append(target)
+        current = [target] + current[4:]
+        step += 1
+
+    for data in intermediate:
+        data.zap()
+
+    if out.exists() == False:
+        raise RuntimeError(f'VBGLU did not create {out.name}.{out.klass}.{out.seq}')
+
+    # Delete IF-dependent tables that were not glued correctly
+    n_if = sum(n_ifs)
+    wout = wizard.AIPSUVData(out.name, out.klass, out.disk, out.seq)
+    for ext in ['TY', 'GC', 'PC']:
+        if [1, 'AIPS ' + ext] in out.tables:
+            with wout.table(ext, 1) as table:
+                glued = table.keywords['NO_IF'] == n_if
+            if not glued:
+                out.zap_table(ext, 1)
+
+    # Without an index, let the pipeline create NX#1 and CL#1 again
+    if [1, 'AIPS NX'] not in out.tables and [1, 'AIPS CL'] in out.tables:
+        out.zap_table('CL', 1)
+
+    # Rebuild the flags, whatever VBGLU did with them
+    for version, name in out.tables:
+        if name == 'AIPS FG':
+            out.zap_table('FG', version)
+    glue_flags(pieces, out, n_ifs)
+
+def glue_flags(pieces, out, n_ifs):
+    """Build FG#1 of a glued dataset from the flag tables of its pieces.
+
+    FG#1 of each piece is copied with its IF ranges shifted to the position that the
+    piece occupies in the glued dataset.
+
+    :param pieces: datasets that were glued, in the IF order of the output
+    :type pieces: list of AIPSUVData
+    :param out: glued dataset, without flag tables
+    :type out: AIPSUVData
+    :param n_ifs: number of IFs of each piece
+    :type n_ifs: list of int
+    """
+    wout = wizard.AIPSUVData(out.name, out.klass, out.disk, out.seq)
+    offset = 0
+    fg_out = None
+    for piece, n_if in zip(pieces, n_ifs):
+        if [1, 'AIPS FG'] in piece.tables:
+            if fg_out is None:
+                # Copy the first flag table, so that FG#1 exists with the right format
+                tacop = AIPSTask('tacop')
+                tacop.inname = piece.name
+                tacop.inclass = piece.klass
+                tacop.indisk = piece.disk
+                tacop.inseq = piece.seq
+                tacop.inext = 'FG'
+                tacop.invers = 1
+                tacop.outname = out.name
+                tacop.outclass = out.klass
+                tacop.outdisk = out.disk
+                tacop.outseq = out.seq
+                tacop.outvers = 1
+                tacop.go()
+                fg_out = wout.table('FG', 1)
+                for i in range(len(fg_out)):
+                    row = fg_out[i]
+                    row.ifs = shift_ifs(row.ifs, offset, n_if)
+                    fg_out[i] = row
+            else:
+                wpiece = wizard.AIPSUVData(piece.name, piece.klass, piece.disk,
+                                           piece.seq)
+                with wpiece.table('FG', 1) as fg_piece:
+                    for row in fg_piece:
+                        row.ifs = shift_ifs(row.ifs, offset, n_if)
+                        fg_out.append(row)
+        offset += n_if
+
+    if fg_out is not None:
+        fg_out.close()
+
+def shift_ifs(ifs, offset, n_if):
+    """Move the IF range of a flag to its position in a glued dataset.
+
+    :param ifs: first and last IF of the flag in its piece, 0 => all
+    :type ifs: list of int
+    :param offset: number of IFs before the piece in the glued dataset
+    :type offset: int
+    :param n_if: number of IFs of the piece
+    :type n_if: int
+    :return: first and last IF of the flag in the glued dataset
+    :rtype: list of int
+    """
+    bif, eif = ifs
+    if bif <= 0:
+        bif = 1
+    if eif <= 0:
+        eif = n_if
+    return [bif + offset, eif + offset]
+
+def run_fitld(file_path_list, name, sources, disk, multi_id, selfreq, klass, seq, \
+              bif, eif, l_a, symlink_path):
+    """Load a range of consecutive IFs from uvfits/idifits files with FITLD.
+
+    Parameters are the same as in :func:`~vipcals.scripts.load_data.load_data`, with
+    the first (bif) and last (eif) IF to load, 0 => all.
 
     :param file_path_list: list of paths of the uvfits/idifts files
     :type file_path_list: list of str
@@ -416,7 +672,7 @@ def load_data(file_path_list, name, sources, disk, multi_id, selfreq, klass = ''
     if os.path.exists(symlink_path + '/aux_1'):
         os.system('rm ' + symlink_path + '/aux_*')
     for n, filepath in enumerate(file_path_list):
-        os.system('ln -s ' + filepath + ' ' + symlink_path + '/aux_' + str(n+1))
+        os.symlink(filepath, symlink_path + '/aux_' + str(n+1))
     
 
     fitld.ncount = int(len(file_path_list))  
@@ -555,8 +811,8 @@ def print_listr(data, path_list, filename_list):
         
         # If created, move aux.caltab.fits to the correct path
         if len(path_list[i] + '/' + name + '_scansum.txt') >= 100:
-            os.system('mv ' + tmp_dir + '/aux.scansum.txt ' \
-                      + path_list[i] + '/' + name + '_scansum.txt')    
+            shutil.move(tmp_dir + '/aux.scansum.txt', 
+                        path_list[i] + '/' + name + '_scansum.txt')  
 
 
 def time_aver(data, oldtime, newtime):

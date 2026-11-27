@@ -1,3 +1,32 @@
+## [0.4.0] - 2026-11-27
+
+### Added
+- External flag tables in AIPS UVFLG format can now be given as an input. Their flags are added to the initial flag table and a copy is saved in the /TABLES folder.
+- Datasets with any number of frequency bands are now supported, and the IFs of a band no longer need to be consecutive in the file. Bands are split wherever there is a gap larger than 500 MHz between IFs.
+- The log now shows the percentage of remaining visibilities after each calibration step.
+- For EVN datasets without initial flags, the flag file is now also retrieved from the EVN archive.
+- Instructions to run the pipeline from the command line have been added to the documentation.
+
+### Changed
+- IMPORTANT: The conda environment is now called vipcalsenv (previously pyside62). Manual installations need to create the new environment and reinstall the pipeline.
+- System temperatures retrieved online are now matched to the loaded IFs by frequency.
+- The online search for VLBA calibration tables is now faster, and EVN antab files are also searched in their uncompressed and numbered versions.
+- Edge channel flagging is now also applied in the target fringe fit and in the POSSM and VPLOT plots.
+- The CLCAL interpolation cutoff when fringe fitting on the science target is now the longest solution interval, so solutions are not applied to neighbouring scans.
+- Earth orientation parameter corrections are skipped for EVN datasets and for incompatible CT tables.
+- Visibilities vs uv-distance plots now shows Stokes I with the Difmap phase convention. Before, only RR was plotted.
+- Visibilities vs time plots now apply the bandpass correction.
+- Updated the documentation.
+
+### Fixed
+- Fixed bug that would cause the pipeline to crash when the number of edge channels was given as an integer.
+- Fixed bug where, with "Calibrate all" and multiple frequency bands, the sources of one band were used as targets of the next one.
+- Fixed bug where AIPS names longer than 12 characters were not shortened for single-band datasets.
+- Fixed error when some entries of the phase-reference calibrator list were empty.
+- Fixed errors with paths containing special characters such as & or spaces.
+- Fixed bug that would cause the pipeline to fail when none of the sources was included in the VLBA calibrator list.
+- Fixed package incompabilities in the conda environment.
+
 ## [0.3.7] - 2026-03-13
 
 ### Changed

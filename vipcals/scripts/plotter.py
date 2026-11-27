@@ -15,6 +15,8 @@ from matplotlib.ticker import ScalarFormatter
 from scipy.interpolate import PchipInterpolator
 mpl.use('Agg')
 
+from vipcals.scripts.helper import edge_channel_range
+
 from AIPSData import AIPSCat
 
 import Wizardry.AIPSData as wizard
@@ -118,7 +120,7 @@ def plot_vis_per_antenna(stats_df, target_list, filename_list, outpath_list):
 
 def possm_plotter(filepath, data, target, \
                   gainuse, bpver = 0, flagver = 0, \
-                  flag_edge = False, flag_frac = 0.1):
+                  flag_edge = 0):
     """Plot visibilities as a function of frequency to a PostScript file.
 
     Uses the POSSM task in AIPS to plot amplitudes and phases as a function of frequency.
@@ -138,11 +140,9 @@ def possm_plotter(filepath, data, target, \
     :param flagver: FG table version to use, if = 0 then apply the highest; 
                   defaults to 0
     :type flagver: int, optional
-    :param flag_edge: flag edge channels; defaults to False
-    :type flag_edge: bool, optional
-    :param flag_frac: number of edge channels to flag, either a fraction (if < 1) \
+    :param flag_edge: number of edge channels to flag, either a fraction (if < 1) \
                       or an integer number of channels (if >= 1); defaults to 0.1
-    :type flag_frac: float, optional
+    :type flag_edge: float, optional
     """    
     here = os.path.dirname(__file__)
     tmp = tmp_dir
@@ -166,25 +166,7 @@ def possm_plotter(filepath, data, target, \
         possm.doband = 1
         possm.bpver = bpver
 
-    try:
-        no_channels = int(data.table('FQ',1)[0]['total_bandwidth'][0] / \
-                      data.table('FQ',1)[0]['ch_width'][0])
-    except TypeError:   # Single IF datasets
-        no_channels = int(data.table('FQ',1)[0]['total_bandwidth'] / \
-                      data.table('FQ',1)[0]['ch_width'])
-        
-    if flag_edge == True and flag_frac < 1:
-        flag_chann = int(flag_frac * no_channels)
-    if flag_edge == True and flag_frac >= 1:
-        if type(flag_frac) != int:
-            flag_chann = 0
-        else:
-            flag_chann = flag_frac
-    if flag_edge == False:
-        flag_chann = 0
-    
-    possm.bchan = flag_chann + 1
-    possm.echan = no_channels - flag_chann
+    possm.bchan, possm.echan = edge_channel_range(data, flag_edge)
 
     possm.flagver = flagver
 
@@ -224,7 +206,7 @@ def possm_plotter(filepath, data, target, \
     
     # If filename was long, move it
     if len(outpath) >= 110:
-        os.system(f'mv {tmp}/CL{gainuse}.ps {outpath}')
+        shutil.move(f'{tmp}/CL{gainuse}.ps', outpath)
 
     # Convert to pdf
     ps_to_pdf(outpath)
@@ -298,8 +280,8 @@ def uvplt_plotter(filepath, data, target, solint = 0.09):
 
     # If the filepath name was too long, move the auxiliary file to the correct place
     if len(filepath + '/PLOTS/' + filename + '_UVPLT.ps') >= 110:
-        os.system('mv ' + tmp_dir + '/aux.uvplt.ps '\
-                  + filepath + '/PLOTS/' + filename + '_UVPLT.ps')
+        shutil.move(tmp_dir + '/aux.uvplt.ps', filepath 
+                    + '/PLOTS/' + filename + '_UVPLT.ps')
 
     # Convert to pdf
     ps_to_pdf(filepath + '/PLOTS/' + filename + '_UVPLT.ps')
@@ -308,7 +290,7 @@ def uvplt_plotter(filepath, data, target, solint = 0.09):
 
 
 def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan = 1, \
-                  solint = 0.09):
+                  solint = 0.09, flag_edge = 0):
     """Plot visibilities as a function of time to a PostScript file.
 
     Uses the VPLOT task in AIPS to plot amplitudes and phases of a source as a function 
@@ -333,6 +315,9 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
     :type avgchan: int, optional
     :param solint: time averaging interval in minutes; defaults to 0.09
     :type solint: float, optional
+    :param flag_edge: number of edge channels to flag, either a fraction (if < 1) \
+                      or an integer number of channels (if >= 1); defaults to 0.1
+    :type flag_edge: float, optional
     """    
     filename = filepath.split('/')[-1]
 
@@ -349,6 +334,7 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
 
     vplot.docalib = 1
     vplot.gainuse = gainuse
+    vplot.bchan, vplot.echan = edge_channel_range(data, flag_edge)
     if bpver > 0:
         vplot.doband = 1
         vplot.bpver = bpver
@@ -391,8 +377,8 @@ def vplot_plotter(filepath, data, target, gainuse, bpver = 0, avgif = 1, avgchan
 
     # If the filepath name was too long, move the auxiliary file to the correct place
     if len(filepath + '/PLOTS/' + filename + '_VPLOT.ps') >= 110:
-        os.system('mv ' + tmp_dir + '/aux.vplot.ps '\
-                  + filepath + '/PLOTS/' + filename + '_VPLOT.ps')
+        shutil.move(tmp_dir + '/aux.vplot.ps', filepath 
+                    + '/PLOTS/' + filename + '_VPLOT.ps')
         
     # Convert to pdf
     ps_to_pdf(filepath + '/PLOTS/' + filename + '_VPLOT.ps')
@@ -462,8 +448,8 @@ def tsys_plotter(filepath, data, tyver = 1):
 
     # If the filepath name was too long, move the auxiliary file to the correct place
     if len(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps') >= 110:
-        os.system('mv ' + tmp_dir + f'/aux.tsys{tyver}.ps '\
-                  + filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps')
+        shutil.move(tmp_dir + f'/aux.tsys{tyver}.ps', filepath + '/PLOTS/' 
+                    + filename + '_TSYS_TY' + str(tyver) + '.ps')
     
     # Convert to pdf
     ps_to_pdf(filepath + '/PLOTS/' + filename + '_TSYS_TY' + str(tyver) + '.ps')
@@ -603,11 +589,15 @@ def pickle_uvplt(wuvdata, path, name):
         pickle.dump(uvplt_fig, f)
     plt.close()
 
-def pickle_radplot(wuvdata, path, name):
+def pickle_radplot(wuvdata, path, name, difmap_convention=True):
     """Generate visibility vs uvdist plots and serialize them into a pickle object.
 
-    Produced plots are averaged in IFs (i.e. one value per IF) but not between IFs nor 
-    in time. RR and LL polarizations are plotted together.
+    For dual-polarization data (RR, LL, ...), Stokes I is formed per channel as
+    (RR + LL) / 2. If the data are already in Stokes I, they are used directly. For
+    single-polarization data (only RR or only LL), that polarization is plotted on its
+    own and the plot title states which one it is.
+    Visibilities are averaged over channels within each IF (i.e. one value per IF), but
+    not between IFs nor in time. Flagged data (non-positive weights) are excluded.
     Requires the Wizardry module, as it gives you full access to the visibilities.
 
     :param wuvdata: AIPSUVData from the Wizardry module
@@ -615,60 +605,89 @@ def pickle_radplot(wuvdata, path, name):
     :param path: path were to write the pickle object
     :type path: str
     :param name: name to be given to the file
-    :type wuvdata: str
-    """    
+    :type name: str
+    :param difmap_convention: if True, flip the sign of the phases to match the
+    convention used by Difmap (equivalent to plotting the complex conjugate)
+    :type difmap_convention: bool
+    :raises ValueError: if the Stokes axis is not supported (e.g. linear feeds)
+    """
+    # Read axes from the header instead of assuming their order
+    ctype = [c.strip() for c in wuvdata.header['ctype']]
+    crval = wuvdata.header['crval']
+    stokes_idx = ctype.index('STOKES')
+    central_freq = crval[ctype.index('FREQ')]
+    stokes_start = crval[stokes_idx]
+    npol = wuvdata.header['naxis'][stokes_idx]
 
-    central_freq = wuvdata.header['crval'][2]
+    # Decide what to plot: Stokes I if possible, otherwise the single available hand
+    if stokes_start == 1:
+        mode, pol_label = 'single', 'Stokes I'
+    elif stokes_start == -1 and npol >= 2:
+        mode, pol_label = 'RRLL', 'Stokes I'
+    elif stokes_start == -1:
+        mode, pol_label = 'single', 'RR'
+    elif stokes_start == -2:
+        mode, pol_label = 'single', 'LL'
+    else:
+        raise ValueError(f'Unsupported Stokes axis: starts at {stokes_start}, '
+                         f'{npol} polarization(s)')
+
     if_freq = wuvdata.table('FQ', 0)[0]['if_freq']
+    if isinstance(if_freq, float):  # Single IF
+        if_freq = [if_freq]
+    freq_scale = 1 + np.array(if_freq) / central_freq
+
     reals_list = []
     imags_list = []
-    amps = []
-    phases = []
     uvdists = []
 
-    # Go through each timestamp and record uv distance and IF-averaged visibilities
+    # Go through each record and compute IF-averaged visibilities
     for v in wuvdata:
-        central_uv_dist = np.sqrt(v.uvw[0]**2 + v.uvw[1]**2)
-        if type(if_freq) == float:  # Single IF
-            uvdist = [central_uv_dist * (1+if_freq/central_freq)]
+        central_uv_dist = np.hypot(v.uvw[0], v.uvw[1])
+        vis = np.asarray(v.visibility)   # shape (nIF, nchan, npol, 3)
+
+        if mode == 'single':
+            # Data already in I, or single-pol RR/LL: use the first Stokes entry
+            reals = vis[:, :, 0, 0]
+            imags = vis[:, :, 0, 1]
+            weights = vis[:, :, 0, 2]
         else:
-            uvdist = [central_uv_dist * (1+x/central_freq) for x in if_freq]
-        visshape = v.visibility.shape
-        if_avg_vis = np.zeros([visshape[0], 1, visshape[2], 
-                                   visshape[3]], dtype = float)
-        for IF in range(visshape[0]):
-            for pol in range(visshape[2]):
-                reals = v.visibility[IF, :, pol, 0]
-                imags = v.visibility[IF, :, pol, 1]
-                weights = v.visibility[IF, :, pol, 2]
-                if np.sum(weights) == 0:
-                    if_avg_vis[IF, 0, pol, 0] = 0
-                    if_avg_vis[IF, 0, pol, 1] = 0
-                    if_avg_vis[IF, 0, pol, 2] = 0
-                else:
-                    if_avg_vis[IF, 0, pol, :] = np.average(reals, weights= weights), \
-                                                np.average(imags, weights= weights), \
-                                                sum(weights)
-            indx = np.nonzero(if_avg_vis[:,0,0,2])[0].tolist()
-            reals_list.append(if_avg_vis[:, 0, 0, 0][indx])
-            imags_list.append(if_avg_vis[:, 0, 0, 1][indx])
-            uvdists += (np.array(uvdist)[indx]/1e6).tolist()
+            w_rr = vis[:, :, 0, 2]
+            w_ll = vis[:, :, 1, 2]
+            reals = 0.5 * (vis[:, :, 0, 0] + vis[:, :, 1, 0])
+            imags = 0.5 * (vis[:, :, 0, 1] + vis[:, :, 1, 1])
+            # Var(I) = (Var_RR + Var_LL) / 4  ->  w_I = 4 w_RR w_LL / (w_RR + w_LL)
+            # Only channels where both hands are unflagged are kept
+            both_good = (w_rr > 0) & (w_ll > 0)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                weights = np.where(both_good, 4 * w_rr * w_ll / (w_rr + w_ll), 0.)
+
+        # Negative weights are flagged data in AIPS
+        weights = np.where(weights > 0, weights, 0.)
+
+        # Weighted average over channels, one value per IF
+        wsum = weights.sum(axis=1)
+        ok = wsum > 0
+        reals_list.append((reals * weights).sum(axis=1)[ok] / wsum[ok])
+        imags_list.append((imags * weights).sum(axis=1)[ok] / wsum[ok])
+        uvdists.extend((central_uv_dist * freq_scale[ok] / 1e6).tolist())
+
     reals_array = np.concatenate(reals_list)
     imags_array = np.concatenate(imags_list)
-    amps = np.sqrt(reals_array**2 + imags_array**2).tolist()
-    phases = (np.arctan2(imags_array, reals_array) * 360 / (2 * np.pi)).tolist()
+    amps = np.hypot(reals_array, imags_array)
+    phases = np.degrees(np.arctan2(imags_array, reals_array))
+    if difmap_convention:
+        phases = -phases
 
-    radplot_fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True) 
-    radplot_fig.suptitle('Amp&Phase - UV Radius')
+    radplot_fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
+    radplot_fig.suptitle(f'{pol_label} Amp&Phase - UV Radius')
 
     # First subplot - Amplitudes vs. UV distances
-    axes[0].scatter(uvdists, amps, label='Amplitude', marker = '.',
-                    s = 1, c = 'lime')
-    axes[0].set_ylabel('Amplitude (JY)')
+    axes[0].scatter(uvdists, amps, marker='.', s=1, c='lime')
+    axes[0].set_ylabel('Amplitude (Jy)')
 
     # Second subplot - Phases vs. UV distances
-    axes[1].scatter(uvdists, phases, label='Phase', marker = '.',
-                    s = 1, c = 'lime')
+    axes[1].scatter(uvdists, phases, marker='.', s=1, c='lime')
     axes[1].set_xlabel(r'UV Radius (M$\lambda$)')
     axes[1].set_ylabel('Phase (degrees)')
 

@@ -54,7 +54,13 @@ def amp_cal(data, solint = -3, average = False, ref_if = 0):
     clcal.indisk = data.disk
     clcal.inseq = data.seq
     clcal.opcode = 'CALP'
-    clcal.interpol = 'SELF'
+    # Tsys from SV have their 'source_id' fixed to 1, regardless of the source.
+    # In those cases INTERPOL 'SELF' will fail, so I fall back to '2PT', which should 
+    # be safe in most cases. Future work: implement a more thorough way to check for this
+    if 'SV' in data.antennas:
+        clcal.interpol = '2PT'
+    else:
+        clcal.interpol = 'SELF'
     clcal.snver = 5
     clcal.gainver = 7
     clcal.gainuse = 8

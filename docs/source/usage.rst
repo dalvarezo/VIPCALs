@@ -37,6 +37,7 @@ This mode allows calibration of a single observation (which may include multiple
 
   - *Load all sources*: load all sources (default: only science target(s) + 3 tentative calibrators)
   - *Load amp. calibration tables*: load external tables with system temperatures and gain curves in AIPS ANTAB format.
+  - *Load flag tables*: load an external flag file in AIPS UVFLG format. Its flags are added to the initial flag table (FG1), together with any flags already in the data or retrieved online. See :ref:`external-flags` for the format and for how IFs are numbered.
   - *Time average threshold*: minimum integration time in seconds. If the data have a shorter time sampling, it will be averaged in time up to this value (0 to disable)
   - *Freq. average threshold*: minimum channel width in kHz. If the data have narrower channels, they will be averaged in frequency up to this value (0 to disable)
   - *Phase center shift*: give coordinates to shift the phase center of each target if more accurate positions are available.  
@@ -63,10 +64,10 @@ This mode allows calibration of a single observation (which may include multiple
     - `SINGLE`: before exporting, average in frequency to 1 channel per IF
     - `MULTI`: export all channels
 
-  - *Edge flagging*: when exporting:
+  - *Edge flagging*: channels to discard at the beginning and end of each IF in the target fringe fit, the exported data and the calibrated plots:
 
-    - If < 1: flag that fraction of edge channels at the beginning/end of each IF
-    - If ≥ 1 and integer: flag that number of edge channels at the beginning/end of each IF
+    - If < 0.5: discard that fraction of the channels at each edge of the IF
+    - If ≥ 1 and integer: discard that number of channels at each edge of the IF, counted after the frequency average
 
 - **Plotting Options**
 
@@ -74,7 +75,7 @@ This mode allows calibration of a single observation (which may include multiple
   
   .. warning::
      Generating these plots can consume lots of time and disk storage. It is advised to disable them for large datasets.  
-     Static `.ps` and `.pdf` plots are always saved in the output directory.
+     Static `.pdf` plots are always saved in the output directory.
   
   
 Pipeline log
@@ -141,6 +142,10 @@ JSON Input
 
 For batch processing, inputs can be supplied via a JSON file. All parameters mirror the manual input described above. As before, when running in Docker, both `userno` and `disk` should be omitted.
 
+A JSON file can contain several calibration blocks, which are run one after the other. Each block is a JSON object, and blocks are separated by **one empty line**. For this reason, a block must not contain empty lines itself.
+
+JSON files can be run from the GUI (*JSON Input* in the main menu) or from the command line, see :ref:`cli-usage`.
+
 **Minimum JSON Fields**
 
 +--------------------+----------------+
@@ -170,6 +175,8 @@ For batch processing, inputs can be supplied via a JSON file. All parameters mir
 +---------------------------+----------------------------+
 | load_tables               | str                        |
 +---------------------------+----------------------------+
+| load_flags                | str                        |
++---------------------------+----------------------------+
 | time_aver                 | float                      |
 +---------------------------+----------------------------+
 | freq_aver                 | float                      |
@@ -195,6 +202,8 @@ For batch processing, inputs can be supplied via a JSON file. All parameters mir
 | channel_out               | str ("SINGLE" or "MULTI")  |
 +---------------------------+----------------------------+
 | flag_edge                 | float                      |
++---------------------------+----------------------------+
+| interactive               | bool                       |
 +---------------------------+----------------------------+
 
 **Examples**
@@ -243,6 +252,77 @@ Note that sources and coordinates in the *"phase_ref"* and *"shifts"* fields hav
    
 ----
 
+.. _external-flags:
+
+External flag files
+~~~~~~~~~~~~~~~~~~~
+
+With *Load flag tables* in the GUI, or ``load_flags`` in a JSON file, you can give a text file with flags in the AIPS UVFLG ``INTEXT`` format (see ``explain uvflg`` in AIPS). The file is applied with UVFLG right after the data are loaded, before any averaging, and its flags are **added** to the initial flag table (FG1). Flags already present in the data, or retrieved online, are kept. A copy of the file is saved in the */TABLES/* folder of each target.
+
+Each entry ends with ``/`` and anything after ``!`` is a comment. For example:
+
+.. code-block:: text
+
+   ! Flag BR and HN for the whole observation
+   opcode='FLAG'
+   ant_name='BR' reason='BAD RECEIVER' /
+   ant_name='HN' reason='BAD RECEIVER' /
+   ! Flag KP between 09:00 and 09:30 on day 73 of the year
+   ant_name='KP' timerang=73,9,0,0,73,9,30,0 reason='SNOW' /
+   ! Flag a frequency range with RFI, in MHz
+   bfreq=2290 efreq=2300 reason='RFI' /
+
+Some details to take into account:
+
+- **Antennas**: use ``ant_name`` rather than ``antennas``. Antenna numbers can differ between files and after concatenating several files, while names do not.
+- **Times**: when an entry uses ``ant_name``, the day in ``timerang`` is the **day of the year** of the observation (e.g. 73 for 13 March), not the day number relative to the start of the observation. An entry without ``timerang`` applies to the whole observation.
+- **Channels**: ``bchan``/``echan`` refer to the channels of the original data, since the flags are applied before the frequency average.
+
+.. warning::
+   **IF numbers refer to the frequency band as loaded in AIPS, not to the original file.**
+
+   Before loading, the pipeline splits the data into frequency bands, and each band is calibrated separately. IFs are sorted by frequency and a new band starts wherever two of them are more than 500 MHz apart, so the IFs of a band do not need to be consecutive in the file. The IFs of each band are then numbered from 1, keeping their order in the file. For example, for a file with IFs at
+
+   ===========  =====  =====  =====  =====  =====  =====
+   File IF        1      2      3      4      5      6
+   Frequency    2.2 G  2.3 G  8.4 G  8.5 G  2.4 G  8.6 G
+   ===========  =====  =====  =====  =====  =====  =====
+
+   the S band is loaded with file IFs 1, 2, 5 as AIPS IFs 1, 2, 3, and the X band with file IFs 3, 4, 6 as AIPS IFs 1, 2, 3. The IFs loaded from the original file are listed in the *_VIPCALslog.txt* file of each band.
+
+   The same flag file is applied to every band. An entry with ``bif=2 eif=2`` therefore flags the second IF of **each** band, and an entry with ``bif`` larger than the number of IFs of a band makes UVFLG fail. If your file contains more than one band, use ``bfreq``/``efreq`` instead of ``bif``/``eif``: frequency ranges are converted to the right IFs and channels of each band, and ranges outside a band are ignored.
+
+----
+
+.. _cli-usage:
+
+Command line
+~~~~~~~~~~~~
+
+The pipeline can also run without the GUI, which is useful on remote servers without a display or for long batch runs. In this mode it reads the same JSON files described above.
+
+**Manual installation**
+
+Activate the environment, make sure AIPS is available in the shell, and pass a JSON file to the pipeline with ``ParselTongue``:
+
+.. code-block:: bash
+
+   conda activate vipcalsenv
+   VIPCALS_DIR=$(python -c "import os, vipcals; print(os.path.dirname(vipcals.__file__))")
+   ParselTongue $VIPCALS_DIR/__main__.py input.json
+
+The same information shown in the GUI is printed in the terminal, and the log files are written to the output directory as usual. To keep the pipeline running after closing the terminal, run it in the background and save the terminal output to a file:
+
+.. code-block:: bash
+
+   nohup ParselTongue $VIPCALS_DIR/__main__.py input.json > vipcals_run.log 2>&1 &
+
+or start it inside a ``screen`` or ``tmux`` session.
+
+.. note::
+   Interactive plots can only be displayed in the GUI, so leave ``interactive`` at its default (``false``) when running from the command line. The static plots in the */PLOTS/* folder are always produced.
+
+
 Outputs
 ~~~~~~~~
 
@@ -253,26 +333,27 @@ Below is a representative structure of the output directory produced by the pipe
     EA075/
     ├── J1159+2914_EA075_22G_2024-03-13/
     │   ├── PLOTS/
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13_CL1_POSSM.ps
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13_CL9_POSSM.ps
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY1.ps
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13_TSYS_TY2.ps
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13_UVPLT.ps
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13_VPLOT.ps
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13_RADPLOT.pdf
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13_VISANT.pdf
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13_CL1_POSSM.pdf
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13_CL9_POSSM.pdf
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13_TSYS_TY1.pdf
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13_TSYS_TY2.pdf
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13_UVPLT.pdf
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13_VPLOT.pdf
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13_RADPLOT.pdf
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13_VISANT.pdf
     │   │
     │   ├── TABLES/
     │   │   ├ flags.vlba
     │   │   ├ gaincurves.vlba
     │   │   ├ tsys.vlba
-    │   │   ├ 1159+2914_EA075_22G_2024-03-13.caltab.uvfits
+    │   │   ├ my_flags.uvflg
+    │   │   ├ J1159+2914_EA075_22G_2024-03-13.caltab.uvfits
     │   │
-    │   ├ 1159+2914_EA075_22G_2024-03-13.stats.csv
-    │   ├ 1159+2914_EA075_22G_2024-03-13.uvfits
-    │   ├ 1159+2914_EA075_22G_2024-03-13_AIPSlog.txt
-    │   ├ 1159+2914_EA075_22G_2024-03-13_scansum.txt
-    │   ├ 1159+2914_EA075_22G_2024-03-13_VIPCALslog.txt
+    │   ├ J1159+2914_EA075_22G_2024-03-13.stats.csv
+    │   ├ J1159+2914_EA075_22G_2024-03-13.uvfits
+    │   ├ J1159+2914_EA075_22G_2024-03-13_AIPSlog.txt
+    │   ├ J1159+2914_EA075_22G_2024-03-13_scansum.txt
+    │   ├ J1159+2914_EA075_22G_2024-03-13_VIPCALslog.txt
     │
     │
     ├── J1143+1834_EA075_22G_2024-03-13/
@@ -288,14 +369,14 @@ For each calibrated source, there is a directory that contains:
 - *\*_scansum.txt*: summary of the observation including scan list and frequency setup
 - *\*_VIPCALslog.txt*: human-readable summary of the calibration produced by VIPCALs
 
-The pipeline also generates the following plots inside the */PLOTS/* folder:
+The pipeline also generates the following plots inside the */PLOTS/* folder. Plots produced by AIPS are converted from PostScript to PDF:
 
-- *\*_CL1_POSSM.ps*: uncalibrated visibilities vs frequency
-- *\*_CL9_POSSM.ps*: calibrated visibilities vs frequency
-- *\*\_TSYS\_TY1.ps*: original antenna system temperatures vs time
-- *\*\_TSYS\_TY2.ps*: smoothed antenna system temperatures vs time
-- *\*\_UVPLT.ps*: UV coverage of the calibrated observation
-- *\*\_VPLOT.ps*: calibrated visibilities vs time
+- *\*_CL1_POSSM.pdf*: uncalibrated visibilities vs frequency
+- *\*_CL9_POSSM.pdf*: calibrated visibilities vs frequency
+- *\*\_TSYS\_TY1.pdf*: original antenna system temperatures vs time
+- *\*\_TSYS\_TY2.pdf*: smoothed antenna system temperatures vs time
+- *\*\_UVPLT.pdf*: UV coverage of the calibrated observation
+- *\*\_VPLOT.pdf*: calibrated visibilities vs time
 - *\*\_RADPLOT.pdf*: calibrated visibilities vs uv-distance
 - *\*\_VISANT.pdf*: number of visibilities per antenna across the different calibration tables
 
@@ -304,4 +385,5 @@ and the following tables in the */TABLES/* folder:
 - *flags.vlba*: initial flags of the observation (if not included in the file)
 - *gaincurves.vlba*: gain curves of each antenna (if not included in the file)
 - *tsys.vlba*: antenna system temperatures (if not included in the file)
+- a copy of the external flag file, with its original name (if one was given)
 - *\*.caltab.uvfits*: AIPS tables used during the calibration

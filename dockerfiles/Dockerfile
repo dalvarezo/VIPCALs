@@ -67,7 +67,7 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
     rm miniconda.sh
 
 # Copy environment and install under 'aips' user
-COPY pyside62.yml /tmp/pyside62.yml
+COPY vipcalsenv.yml /tmp/vipcalsenv.yml
 
 USER aips
 WORKDIR /usr/local/aips
@@ -78,11 +78,11 @@ SHELL ["/bin/bash", "-c"]
 RUN conda init bash && \
     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
     conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
-    conda env create -f /tmp/pyside62.yml && \
-    echo "conda activate pyside62" >> ~/.bashrc
+    conda env create -f /tmp/vipcalsenv.yml && \
+    echo "conda activate vipcalsenv" >> ~/.bashrc
 
-ENV PATH=$CONDA_DIR/envs/pyside62/bin:$PATH
-ENV CONDA_DEFAULT_ENV=pyside62
+ENV PATH=$CONDA_DIR/envs/vipcalsenv/bin:$PATH
+ENV CONDA_DEFAULT_ENV=vipcalsenv
 
 # Download and install AIPS
 WORKDIR /usr/local/aips
@@ -124,4 +124,4 @@ WORKDIR /usr/local/aips/VIPCALs
 ENV PYTHONPATH="/usr/local/aips/VIPCALs:\$PYTHONPATH"
 
 #CMD ["bash"]
-CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate pyside62 && source /usr/local/aips/LOGIN.SH && cd /usr/local/aips/VIPCALs/GUI && python3 run_GUI_docker.py"]
+CMD ["/bin/bash", "-c", "source /opt/conda/etc/profile.d/conda.sh && conda activate vipcalsenv && source /usr/local/aips/LOGIN.SH && cd /usr/local/aips/VIPCALs/GUI && python3 run_GUI_docker.py"]

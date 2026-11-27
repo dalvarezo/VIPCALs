@@ -5,8 +5,8 @@ From: ubuntu:22.04
     export DEBIAN_FRONTEND=noninteractive
     export CONDA_DIR=/opt/conda
     export PATH=$CONDA_DIR/bin:$PATH
-    export PATH=$CONDA_DIR/envs/pyside62/bin:$PATH
-    export CONDA_DEFAULT_ENV=pyside62
+    export PATH=$CONDA_DIR/envs/vipcalsenv/bin:$PATH
+    export CONDA_DEFAULT_ENV=vipcalsenv
     export AIPS_DISK=/etc/aips.dadevs
     export HOME=/usr/local/aips
 
@@ -34,15 +34,15 @@ From: ubuntu:22.04
 
     chown -R aips:aips /opt/conda
     
-    cp /opt/pyside62.yml /usr/local/aips/
-    chown aips:aips /usr/local/aips/pyside62.yml
+    cp /opt/vipcalsenv.yml /usr/local/aips/
+    chown aips:aips /usr/local/aips/vipcalsenv.yml
 
     su - aips -c "source /opt/conda/etc/profile.d/conda.sh && \
        conda init bash && \
        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
        conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
-       conda env create -f /usr/local/aips/pyside62.yml && \
-       echo 'conda activate pyside62' >> ~/.bashrc"
+       conda env create -f /usr/local/aips/vipcalsenv.yml && \
+       echo 'conda activate vipcalsenv' >> ~/.bashrc"
     
     # Create AIPS DISK
 
@@ -70,7 +70,7 @@ From: ubuntu:22.04
     chmod -R a+rx /usr/local/aips
 
 %files
-    pyside62.yml /opt/pyside62.yml
+    vipcalsenv.yml /opt/vipcalsenv.yml
     31DEC24 /opt/.AIPSRC
 
 %runscript
@@ -78,7 +78,7 @@ From: ubuntu:22.04
 
     # Load Conda environment
     source /opt/conda/etc/profile.d/conda.sh
-    conda activate pyside62
+    conda activate vipcalsenv
 
     # Source AIPS environment
     source /usr/local/aips/LOGIN.SH
@@ -92,7 +92,7 @@ From: ubuntu:22.04
 #
 #    # Load Conda environment
 #    source /opt/conda/etc/profile.d/conda.sh
-#    conda activate pyside62
+#    conda activate vipcalsenv
 #
 #    # Source AIPS environment 
 #    source /usr/local/aips/LOGIN.SH

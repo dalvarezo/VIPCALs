@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "VIPCALs"
-version = "0.3.7"
+version = "0.4.0"
 authors = [
     {name = "Diego Álvarez-Ortega", email = "dalvarez@physics.uoc.gr"}
 ]
@@ -20,6 +20,7 @@ vipcals = "GUI.run_GUI:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["vipcals*", "GUI*"]
 
 [tool.setuptools]
 include-package-data = true
